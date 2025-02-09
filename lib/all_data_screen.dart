@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'fuel_tracker_model.dart';
 
 class AllDataScreen extends StatelessWidget {
-  const AllDataScreen({Key? key}) : super(key: key);
+  const AllDataScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +32,7 @@ class AllDataScreen extends StatelessWidget {
                 : Colors.white;
 
             return DataRow(
-              color: MaterialStateProperty.all(color),
+              color: WidgetStateProperty.all(color),
               cells: [
                 DataCell(Text(entry['date'].toString())),
                 DataCell(Text(entry['odometerReading'].toString())),

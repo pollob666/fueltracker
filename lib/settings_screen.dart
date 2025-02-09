@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'fuel_tracker_model.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

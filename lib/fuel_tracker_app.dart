@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'settings_screen.dart';
 import 'all_data_screen.dart';
-import 'fuel_tracker_model.dart';
+// import 'fuel_tracker_model.dart';
 
 class FuelTrackerApp extends StatelessWidget {
-  const FuelTrackerApp({Key? key}) : super(key: key);
+  const FuelTrackerApp({super.key});
 
   @override
   Widget build(BuildContext context) {

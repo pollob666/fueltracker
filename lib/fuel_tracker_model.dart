@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class FuelTrackerModel with ChangeNotifier {
-  List<Map<String, dynamic>> _data = [];
+  final List<Map<String, dynamic>> _data = [];
   double _runningAverageMileage = 0;
   double _lastMileage = 0;
   double _lastRefuelVolume = 0;

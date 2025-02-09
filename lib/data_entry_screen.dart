@@ -3,15 +3,15 @@ import 'package:provider/provider.dart';
 import 'fuel_tracker_model.dart';
 
 class DataEntryScreen extends StatefulWidget {
-  const DataEntryScreen({Key? key}) : super(key: key);
+  const DataEntryScreen({super.key});
 
   @override
-  _DataEntryScreenState createState() => _DataEntryScreenState();
+  DataEntryScreenState createState() => DataEntryScreenState(); // Changed here
 }
 
-class _DataEntryScreenState extends State<DataEntryScreen> {
+class DataEntryScreenState extends State<DataEntryScreen> { // Changed here
   final _formKey = GlobalKey<FormState>();
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now(); // Changed here
   double _odometerReading = 0;
   String _fuelType = 'Octane';
   double _fuelPrice = 0;
