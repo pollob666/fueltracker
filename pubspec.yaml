@@ -33,14 +33,13 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  provider: ^6.1.2 # For state management
-  shared_preferences: ^2.5.1 # For local storage
-  intl: ^0.20.2 # For date formatting
-  path_provider: ^2.1.5 # For file storage
-  csv: ^6.0.0 # For CSV export/import
-  googleapis: ^13.2.0 # For Google Drive integration (optional)
-  dropbox_client: any # For Dropbox integration (optional)
+  sqflite: ^2.4.1
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  shared_preferences: ^2.5.1
+  file_picker: ^8.3.3
+  csv: ^6.0.0
+
 
 dev_dependencies:
   flutter_test:
