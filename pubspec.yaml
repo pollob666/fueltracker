@@ -1,5 +1,5 @@
 name: fuel_tracker
-description: "Fuel Consumption tracker"
+description: "Fuel Consumption Tracker by https://github.com/pollob666"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
