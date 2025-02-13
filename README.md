@@ -1,16 +1,11 @@
-# fueltracker
+# Fuel Tracker
 
-Pollobs Fuel Consumtion tracker
+Fuel Consumption tracker by **[pollob666](https://github.com/pollob666)**
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This is a simple app to track your vehicles fuel consumption. It will record whenever you are refueling and show you the Average Estimated Mileage.
+It will also show if you have any savings in fuel cost by marking the record green.
+In future I will try to add daily consumption and average daily fuel cost and distance traveled. 
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
