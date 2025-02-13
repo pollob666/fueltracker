@@ -30,6 +30,17 @@ class FuelRecord {
     return map;
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'dateTime': date.toIso8601String(),
+      'odometer': odometer,
+      'fuelType': fuelType,
+      'fuelRate': rate,
+      'volume': volume,
+      'amountPaid': paidAmount,
+    };
+  }
+
   factory FuelRecord.fromMap(Map<String, dynamic> map) {
     return FuelRecord(
       id: map['id'],
@@ -39,6 +50,17 @@ class FuelRecord {
       rate: map['rate'],
       volume: map['volume'],
       paidAmount: map['paidAmount'],
+    );
+  }
+
+  factory FuelRecord.fromJson(Map<String, dynamic> json) {
+    return FuelRecord (
+      date: DateTime.parse(json['dateTime']),
+      odometer: json['odometer'],
+      fuelType: json['fuelType'],
+      rate: json['fuelRate'].toDouble(),
+      volume: json['volume'].toDouble(),
+      paidAmount: json['amountPaid'].toDouble(),
     );
   }
 }
