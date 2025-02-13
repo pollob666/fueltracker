@@ -4,6 +4,8 @@ import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 
 class AllDataPage extends StatefulWidget {
+  const AllDataPage({super.key});
+
   @override
   _AllDataPageState createState() => _AllDataPageState();
 }

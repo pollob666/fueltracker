@@ -7,6 +7,8 @@ import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:file_picker/file_picker.dart';
 
 class ImportPage extends StatefulWidget {
+  const ImportPage({super.key});
+
   @override
   _ImportPageState createState() => _ImportPageState();
 }

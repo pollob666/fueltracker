@@ -4,6 +4,8 @@ import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 
 class AddDataPage extends StatefulWidget {
+  const AddDataPage({super.key});
+
   @override
   _AddDataPageState createState() => _AddDataPageState();
 }
@@ -12,12 +14,12 @@ class _AddDataPageState extends State<AddDataPage> {
   final _formKey = GlobalKey<FormState>();
 
   DateTime _selectedDate = DateTime.now();
-  TextEditingController _odometerController = TextEditingController();
+  final TextEditingController _odometerController = TextEditingController();
   String _selectedFuelType = "Octane";
-  TextEditingController _rateController = TextEditingController();
+  final TextEditingController _rateController = TextEditingController();
   double _volume = 0;
-  TextEditingController _volumeController = TextEditingController();
-  TextEditingController _paidAmountController = TextEditingController();
+  final TextEditingController _volumeController = TextEditingController();
+  final TextEditingController _paidAmountController = TextEditingController();
 
   @override
   void initState() {
@@ -70,8 +72,7 @@ class _AddDataPageState extends State<AddDataPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text("Date & Time: " +
-                          _selectedDate.toLocal().toString().substring(0, 16)),
+                      child: Text("Date & Time: ${_selectedDate.toLocal().toString().substring(0, 16)}"),
                     ),
                     IconButton(
                       icon: Icon(Icons.calendar_today),
@@ -86,8 +87,9 @@ class _AddDataPageState extends State<AddDataPage> {
                   keyboardType:
                   TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return "Enter odometer reading";
+                    }
                     return null;
                   },
                 ),
@@ -113,15 +115,15 @@ class _AddDataPageState extends State<AddDataPage> {
                   keyboardType:
                   TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return "Enter fuel price rate";
+                    }
                     return null;
                   },
                 ),
                 SizedBox(height: 16),
                 // Volume slider and input field
-                Text("Total Volume (litres): " +
-                    _volume.toStringAsFixed(2)),
+                Text("Total Volume (litres): ${_volume.toStringAsFixed(2)}"),
                 Slider(
                   value: _volume,
                   min: 0,
@@ -150,8 +152,9 @@ class _AddDataPageState extends State<AddDataPage> {
                     }
                   },
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return "Enter total volume";
+                    }
                     return null;
                   },
                 ),
@@ -162,8 +165,9 @@ class _AddDataPageState extends State<AddDataPage> {
                   keyboardType:
                   TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return "Enter paid amount";
+                    }
                     return null;
                   },
                 ),

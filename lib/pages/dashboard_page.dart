@@ -5,6 +5,8 @@ import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'add_data_page.dart';
 
 class DashboardPage extends StatefulWidget {
+  const DashboardPage({super.key});
+
   @override
   _DashboardPageState createState() => _DashboardPageState();
 }
@@ -61,7 +63,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           Text("Running Average Mileage"),
                           SizedBox(height: 8),
                           Text(
-                            runningAverage.toStringAsFixed(2) + " km/l",
+                            "${runningAverage.toStringAsFixed(2)} km/l",
                             style: TextStyle(fontSize: 24),
                           ),
                         ],
@@ -79,7 +81,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           Text("Last Time Mileage"),
                           SizedBox(height: 8),
                           Text(
-                            lastMileage.toStringAsFixed(2) + " km/l",
+                            "${lastMileage.toStringAsFixed(2)} km/l",
                             style: TextStyle(fontSize: 24),
                           ),
                         ],
@@ -95,7 +97,7 @@ class _DashboardPageState extends State<DashboardPage> {
               child: ListTile(
                 title: Text("Last Refuel Volume"),
                 subtitle:
-                Text(lastRefuelVolume.toStringAsFixed(2) + " litres"),
+                Text("${lastRefuelVolume.toStringAsFixed(2)} litres"),
               ),
             ),
             SizedBox(height: 16),

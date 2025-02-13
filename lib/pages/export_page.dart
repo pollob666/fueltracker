@@ -7,6 +7,8 @@ import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 
 class ExportPage extends StatefulWidget {
+  const ExportPage({super.key});
+
   @override
   _ExportPageState createState() => _ExportPageState();
 }

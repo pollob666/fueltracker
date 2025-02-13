@@ -6,6 +6,8 @@ import 'package:fuel_tracker/pages/export_page.dart';
 import 'package:fuel_tracker/pages/settings_page.dart';
 
 class MyDrawer extends StatelessWidget {
+  const MyDrawer({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Drawer(

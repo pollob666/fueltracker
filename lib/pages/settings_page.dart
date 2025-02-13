@@ -4,15 +4,17 @@ import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
   final _formKey = GlobalKey<FormState>();
-  TextEditingController _maxVolumeController = TextEditingController();
+  final TextEditingController _maxVolumeController = TextEditingController();
   String _storageOption = AppSettings.storageOption;
-  TextEditingController _folderController = TextEditingController();
+  final TextEditingController _folderController = TextEditingController();
 
   @override
   void initState() {
@@ -23,8 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _getCurrentFolderPath() {
     if (_storageOption == 'Local') return AppSettings.localFolderPath;
-    if (_storageOption == 'Google Drive')
+    if (_storageOption == 'Google Drive') {
       return AppSettings.googleDriveFolderPath;
+    }
     if (_storageOption == 'Dropbox') return AppSettings.dropboxFolderPath;
     return '';
   }
@@ -82,8 +85,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 keyboardType:
                 TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
-                  if (value == null || value.isEmpty)
+                  if (value == null || value.isEmpty) {
                     return "Enter maximum capacity";
+                  }
                   return null;
                 },
               ),
