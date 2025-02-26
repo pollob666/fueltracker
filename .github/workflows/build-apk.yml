@@ -3,7 +3,7 @@ name: Build Flutter APK
 on:
   push:
     branches:
-      - main
+      - chatGPT
 
 jobs:
   build:
