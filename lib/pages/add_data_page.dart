@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
+import 'package:fuel_tracker/l10n/l10n.dart';
 
 class AddDataPage extends StatefulWidget {
   const AddDataPage({super.key});
 
   @override
-  _AddDataPageState createState() => _AddDataPageState();
+  State<AddDataPage> createState() => _AddDataPageState();
 }
 
 class _AddDataPageState extends State<AddDataPage> {
@@ -45,7 +46,7 @@ class _AddDataPageState extends State<AddDataPage> {
     );
     if (picked != null) {
       TimeOfDay? time = await showTimePicker(
-          context: context, initialTime: TimeOfDay.fromDateTime(_selectedDate));
+          initialTime: TimeOfDay.fromDateTime(_selectedDate), context: context);
       if (time != null) {
         setState(() {
           _selectedDate = DateTime(
@@ -57,10 +58,10 @@ class _AddDataPageState extends State<AddDataPage> {
 
   @override
   Widget build(BuildContext context) {
-    double maxVolume = AppSettings.maxVolume; // Maximum from settings
+    double maxVolume = AppSettings.maxVolume;
 
     return Scaffold(
-      appBar: AppBar(title: Text("Add Fuel Data")),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).addFuelData)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -68,27 +69,27 @@ class _AddDataPageState extends State<AddDataPage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // Date and time picker
                 Row(
                   children: [
                     Expanded(
-                      child: Text("Date & Time: ${_selectedDate.toLocal().toString().substring(0, 16)}"),
+                      child: Text(
+                        "${AppLocalizations.of(context).dateAndTime}: ${_selectedDate.toLocal().toString().substring(0, 16)}",
+                      ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.calendar_today),
+                      icon: const Icon(Icons.calendar_today),
                       onPressed: _pickDate,
                     ),
                   ],
                 ),
                 TextFormField(
                   controller: _odometerController,
-                  decoration:
-                  InputDecoration(labelText: "Odometer Reading (km)"),
-                  keyboardType:
-                  TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).odometerReading),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Enter odometer reading";
+                      return AppLocalizations.of(context).enterOdometerReading; // Localized
                     }
                     return null;
                   },
@@ -106,24 +107,24 @@ class _AddDataPageState extends State<AddDataPage> {
                       _selectedFuelType = val!;
                     });
                   },
-                  decoration: InputDecoration(labelText: "Fuel Type"),
+                  decoration:
+                  InputDecoration(labelText: AppLocalizations.of(context).fuelType),
                 ),
                 TextFormField(
                   controller: _rateController,
-                  decoration:
-                  InputDecoration(labelText: "Fuel Price Rate (BDT)"),
-                  keyboardType:
-                  TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).fuelPriceRate),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Enter fuel price rate";
+                      return AppLocalizations.of(context).enterFuelPriceRate; // Localized
                     }
                     return null;
                   },
                 ),
                 SizedBox(height: 16),
-                // Volume slider and input field
-                Text("Total Volume (litres): ${_volume.toStringAsFixed(2)}"),
+                Text(
+                    "${AppLocalizations.of(context).totalVolume}: ${_volume.toStringAsFixed(2)}"),
                 Slider(
                   value: _volume,
                   min: 0,
@@ -139,10 +140,9 @@ class _AddDataPageState extends State<AddDataPage> {
                 ),
                 TextFormField(
                   controller: _volumeController,
-                  decoration:
-                  InputDecoration(labelText: "Total Volume (litres)"),
-                  keyboardType:
-                  TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).totalVolume),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
                   onChanged: (val) {
                     double? parsed = double.tryParse(val);
                     if (parsed != null) {
@@ -153,20 +153,19 @@ class _AddDataPageState extends State<AddDataPage> {
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Enter total volume";
+                      return AppLocalizations.of(context).enterTotalVolume; // Localized
                     }
                     return null;
                   },
                 ),
                 TextFormField(
                   controller: _paidAmountController,
-                  decoration:
-                  InputDecoration(labelText: "Paid Amount (BDT)"),
-                  keyboardType:
-                  TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).paidAmount),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Enter paid amount";
+                      return AppLocalizations.of(context).enterPaidAmount; // Localized
                     }
                     return null;
                   },
@@ -175,7 +174,6 @@ class _AddDataPageState extends State<AddDataPage> {
                 ElevatedButton(
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      // Create a new FuelRecord and save it.
                       FuelRecord record = FuelRecord(
                         date: _selectedDate,
                         odometer: double.parse(_odometerController.text),
@@ -188,7 +186,7 @@ class _AddDataPageState extends State<AddDataPage> {
                       Navigator.pop(context);
                     }
                   },
-                  child: Text("Save"),
+                  child: Text(AppLocalizations.of(context).save),
                 ),
               ],
             ),

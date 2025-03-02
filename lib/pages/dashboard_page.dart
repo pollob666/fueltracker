@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
+import 'package:fuel_tracker/l10n/l10n.dart';
 import 'add_data_page.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -27,31 +28,54 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    double lastMileage = 0;
-    double runningAverage = 0;
-    if (records.length >= 2) {
-      List<double> mileages = [];
-      for (int i = 1; i < records.length; i++) {
-        double diff = records[i].odometer - records[i - 1].odometer;
-        double mileage = diff / records[i].volume;
-        mileages.add(mileage);
-      }
-      lastMileage = mileages.last;
-      runningAverage = mileages.reduce((a, b) => a + b) / mileages.length;
+  double calculateLastMileage(List<FuelRecord> records) {
+    if (records.length < 2) {
+      return 0;
+    }
+    double lastOdometer = records.last.odometer;
+    double previousOdometer = records[records.length - 2].odometer;
+    double previousVolume = records[records.length - 2].volume;
+
+    if (previousVolume == 0) return 0; // Avoid division by zero
+
+    return (lastOdometer - previousOdometer) / previousVolume;
+  }
+
+  double calculateRunningAverage(List<FuelRecord> records) {
+    if (records.length < 3) {
+      return 0; // Not enough data for running average
     }
 
+    List<double> mileages = [];
+    for (int i = 1; i < records.length; i++) {
+      double diff = records[i].odometer - records[i - 1].odometer;
+      double mileage = diff / records[i].volume;
+      mileages.add(mileage);
+    }
+
+    double runningAverage = mileages[0]; // Initialize with the first mileage
+
+    for (int i = 1; i < mileages.length; i++) {
+      runningAverage = (runningAverage + mileages[i]) / 2;
+    }
+    return runningAverage;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double lastMileage = calculateLastMileage(records);
+    double runningAverage = calculateRunningAverage(records);
     double lastRefuelVolume = records.isNotEmpty ? records.last.volume : 0;
 
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: Text("Fuel Consumption Tracker")),
-      drawer: MyDrawer(),
+      appBar: AppBar(title: Text(localizations.appTitle)),
+      drawer: const MyDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Two side-by-side cards: running average and last mileage
             Row(
               children: [
                 Expanded(
@@ -60,29 +84,29 @@ class _DashboardPageState extends State<DashboardPage> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          Text("Running Average Mileage"),
-                          SizedBox(height: 8),
+                          Text(localizations.runningAverageMileage),
+                          const SizedBox(height: 8),
                           Text(
                             "${runningAverage.toStringAsFixed(2)} km/l",
-                            style: TextStyle(fontSize: 24),
+                            style: const TextStyle(fontSize: 24),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          Text("Last Time Mileage"),
-                          SizedBox(height: 8),
+                          Text(localizations.lastTimeMileage),
+                          const SizedBox(height: 8),
                           Text(
                             "${lastMileage.toStringAsFixed(2)} km/l",
-                            style: TextStyle(fontSize: 24),
+                            style: const TextStyle(fontSize: 24),
                           ),
                         ],
                       ),
@@ -91,25 +115,23 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            // Card showing last refuel volume
+            const SizedBox(height: 16),
             Card(
               child: ListTile(
-                title: Text("Last Refuel Volume"),
-                subtitle:
-                Text("${lastRefuelVolume.toStringAsFixed(2)} litres"),
+                title: Text(localizations.lastRefuelVolume),
+                subtitle: Text("${lastRefuelVolume.toStringAsFixed(2)} litres"),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
                 await Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => AddDataPage()));
-                _loadRecords(); // Refresh after adding new record.
+                        builder: (context) => const AddDataPage()));
+                _loadRecords();
               },
-              child: Text("Add New Data"),
+              child: Text(localizations.addFuelData),
             ),
           ],
         ),

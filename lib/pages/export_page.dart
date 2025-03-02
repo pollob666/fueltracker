@@ -5,12 +5,13 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
+import 'package:fuel_tracker/l10n/l10n.dart'; // Import localization
 
 class ExportPage extends StatefulWidget {
   const ExportPage({super.key});
 
   @override
-  _ExportPageState createState() => _ExportPageState();
+  State<ExportPage> createState() => _ExportPageState();
 }
 
 class _ExportPageState extends State<ExportPage> {
@@ -22,11 +23,17 @@ class _ExportPageState extends State<ExportPage> {
       _exporting = true;
       _message = "";
     });
-    List<FuelRecord> records =
-    await DatabaseHelper.instance.getFuelRecords();
-    // Create CSV data
+    List<FuelRecord> records = await DatabaseHelper.instance.getFuelRecords();
+
     List<List<String>> csvData = [
-      ["Date", "Odometer", "Fuel Type", "Rate", "Volume", "Paid Amount"],
+      [
+        AppLocalizations.of(context).dateAndTime, // Localized
+        AppLocalizations.of(context).odometerReading, // Localized
+        AppLocalizations.of(context).fuelType, // Localized
+        AppLocalizations.of(context).fuelPriceRate, // Localized
+        AppLocalizations.of(context).totalVolume, // Localized
+        AppLocalizations.of(context).paidAmount, // Localized
+      ],
       ...records.map((r) => [
         r.date.toIso8601String(),
         r.odometer.toStringAsFixed(2),
@@ -39,7 +46,6 @@ class _ExportPageState extends State<ExportPage> {
 
     String csv = const ListToCsvConverter().convert(csvData);
 
-    // Get folder path based on current settings.
     String folderPath = "";
     if (AppSettings.storageOption == 'Local') {
       folderPath = AppSettings.localFolderPath;
@@ -52,25 +58,23 @@ class _ExportPageState extends State<ExportPage> {
     if (folderPath.isEmpty) {
       setState(() {
         _exporting = false;
-        _message = "Folder path not set in settings.";
+        _message = AppLocalizations.of(context).folderPathNotSetInSettings; // Localized
       });
       return;
     }
 
-    // Create a file name with timestamp.
-    String fileName =
-        "fuel_data_${DateTime.now().millisecondsSinceEpoch}.csv";
+    String fileName = "fuel_data_${DateTime.now().millisecondsSinceEpoch}.csv";
     File file = File("$folderPath/$fileName");
     try {
       await file.writeAsString(csv);
       setState(() {
         _exporting = false;
-        _message = "Data exported to $fileName";
+        _message = "${AppLocalizations.of(context).dataExportedTo} $fileName"; // Localized
       });
     } catch (e) {
       setState(() {
         _exporting = false;
-        _message = "Failed to export: $e";
+        _message = "${AppLocalizations.of(context).failedToExport}: $e"; // Localized
       });
     }
   }
@@ -78,18 +82,18 @@ class _ExportPageState extends State<ExportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Export Data")),
-      drawer: MyDrawer(),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).exportToCSV)), // Localized
+      drawer: const MyDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             ElevatedButton(
               onPressed: _exporting ? null : _exportData,
-              child: Text("Export to CSV"),
+              child: Text(AppLocalizations.of(context).exportToCSV), // Localized
             ),
-            SizedBox(height: 16),
-            Text(_message),
+            const SizedBox(height: 16),
+            Text(_message), // Message is already localized in _exportData
           ],
         ),
       ),

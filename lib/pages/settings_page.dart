@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
+import 'package:fuel_tracker/l10n/l10n.dart'; // Import localization
+import 'package:fuel_tracker/l10n/l10n_utils.dart';
+import 'package:fuel_tracker/main.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
@@ -15,12 +18,14 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _maxVolumeController = TextEditingController();
   String _storageOption = AppSettings.storageOption;
   final TextEditingController _folderController = TextEditingController();
+  Locale? _currentLocale; // Store the current locale
 
   @override
   void initState() {
     super.initState();
     _maxVolumeController.text = AppSettings.maxVolume.toString();
     _folderController.text = _getCurrentFolderPath();
+    _currentLocale = L10n.all.first; // Initialize to the first supported locale
   }
 
   String _getCurrentFolderPath() {
@@ -33,9 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _pickFolder() async {
-    // Use FilePicker to let the user select a directory.
-    String? selectedDirectory =
-    await FilePicker.platform.getDirectoryPath();
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory != null) {
       setState(() {
         _folderController.text = selectedDirectory;
@@ -62,16 +65,16 @@ class _SettingsPageState extends State<SettingsPage> {
         AppSettings.dropboxFolderPath = _folderController.text;
       }
       await AppSettings.saveSettings();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Settings saved.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.settingsSaved)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Settings")),
-      drawer: MyDrawer(),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
+      drawer: const MyDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -81,23 +84,22 @@ class _SettingsPageState extends State<SettingsPage> {
               TextFormField(
                 controller: _maxVolumeController,
                 decoration: InputDecoration(
-                    labelText: "Maximum Tank Capacity (litres)"),
-                keyboardType:
-                TextInputType.numberWithOptions(decimal: true),
+                    labelText: AppLocalizations.of(context)!.maximumTankCapacity),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return "Enter maximum capacity";
+                    return AppLocalizations.of(context)!.enterMaximumCapacity;
                   }
                   return null;
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _storageOption,
                 items: ["Local", "Google Drive", "Dropbox"]
                     .map((option) => DropdownMenuItem(
                   value: option,
-                  child: Text(option),
+                  child: Text(AppLocalizations.of(context)!.local),
                 ))
                     .toList(),
                 onChanged: (val) {
@@ -106,23 +108,43 @@ class _SettingsPageState extends State<SettingsPage> {
                     _folderController.text = _getCurrentFolderPath();
                   });
                 },
-                decoration: InputDecoration(labelText: "File Storage Option"),
+                decoration:
+                InputDecoration(labelText: AppLocalizations.of(context)!.fileStorageOption),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _folderController,
                 decoration: InputDecoration(
-                  labelText: "Folder Path",
+                  labelText: AppLocalizations.of(context)!.folderPath,
                   suffixIcon: IconButton(
-                      icon: Icon(Icons.folder_open),
+                      icon: const Icon(Icons.folder_open),
                       onPressed: _pickFolder),
                 ),
                 readOnly: true,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
+              // Space for language toggle
+              DropdownButton<Locale>( // Language toggle dropdown
+                value: _currentLocale,
+                items: L10n.all.map((locale) => DropdownMenuItem<Locale>(
+                  value: locale,
+                  child: Text(L10n.getLanguageName(locale)), // Display language name
+                )).toList(),
+                onChanged: (locale) {
+                  if (locale != null) {
+                    setState(() {
+                      _currentLocale = locale;
+                      // Update the locale in the MaterialApp
+                      MyApp.setLocale(context, locale);
+                    });
+                  }
+                },
+                hint: const Text("Select Language"), // Placeholder text
+              ),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _saveSettings,
-                child: Text("Save Settings"),
+                child: Text(AppLocalizations.of(context)!.saveSettings),
               ),
             ],
           ),
