@@ -46,9 +46,9 @@ class _MyAppState extends State<MyApp> {
       supportedLocales: L10n.all, // Use the supported locales from L10n
       locale: _locale, // Set the locale here
       localeResolutionCallback: (locale, supportedLocales) {
-        return supportedLocales?.firstWhere(
+        return supportedLocales.firstWhere(
               (supportedLocale) => supportedLocale.languageCode == locale?.languageCode,
-          orElse: () => supportedLocales!.first,
+          orElse: () => supportedLocales.first,
         );
       },
       home: const DashboardPage(), // Add const here

@@ -67,7 +67,7 @@ class _DashboardPageState extends State<DashboardPage> {
     double runningAverage = calculateRunningAverage(records);
     double lastRefuelVolume = records.isNotEmpty ? records.last.volume : 0;
 
-    final localizations = AppLocalizations.of(context)!;
+    final localizations = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(localizations.appTitle)),

@@ -66,14 +66,14 @@ class _SettingsPageState extends State<SettingsPage> {
       }
       await AppSettings.saveSettings();
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.settingsSaved)));
+          SnackBar(content: Text(AppLocalizations.of(context).settingsSaved)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).settings)),
       drawer: const MyDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -84,11 +84,11 @@ class _SettingsPageState extends State<SettingsPage> {
               TextFormField(
                 controller: _maxVolumeController,
                 decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.maximumTankCapacity),
+                    labelText: AppLocalizations.of(context).maximumTankCapacity),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return AppLocalizations.of(context)!.enterMaximumCapacity;
+                    return AppLocalizations.of(context).enterMaximumCapacity;
                   }
                   return null;
                 },
@@ -99,7 +99,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 items: ["Local", "Google Drive", "Dropbox"]
                     .map((option) => DropdownMenuItem(
                   value: option,
-                  child: Text(AppLocalizations.of(context)!.local),
+                  child: Text(AppLocalizations.of(context).local),
                 ))
                     .toList(),
                 onChanged: (val) {
@@ -109,13 +109,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   });
                 },
                 decoration:
-                InputDecoration(labelText: AppLocalizations.of(context)!.fileStorageOption),
+                InputDecoration(labelText: AppLocalizations.of(context).fileStorageOption),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _folderController,
                 decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.folderPath,
+                  labelText: AppLocalizations.of(context).folderPath,
                   suffixIcon: IconButton(
                       icon: const Icon(Icons.folder_open),
                       onPressed: _pickFolder),
@@ -144,7 +144,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _saveSettings,
-                child: Text(AppLocalizations.of(context)!.saveSettings),
+                child: Text(AppLocalizations.of(context).saveSettings),
               ),
             ],
           ),
