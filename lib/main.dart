@@ -1,22 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:fuel_tracker/utils/app_settings.dart';
-import 'package:fuel_tracker/pages/dashboard_page.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:fuel_tracker/screens/dashboard_screen.dart';
+import 'package:fuel_tracker/utils/theme_provider.dart';
+import 'package:fuel_tracker/utils/language_provider.dart';
+import 'package:fuel_tracker/generated/l10n.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppSettings.loadSettings();
-  runApp(MyApp());
+
+  // Initialize providers
+  final themeProvider = ThemeProvider();
+  await themeProvider.initialize();
+
+  final languageProvider = LanguageProvider();
+  await languageProvider.initialize();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => themeProvider),
+        ChangeNotifierProvider(create: (_) => languageProvider),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Fuel Consumption Tracker',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: DashboardPage(),
+    return Consumer2<ThemeProvider, LanguageProvider>(
+      builder: (context, themeProvider, languageProvider, child) {
+        return MaterialApp(
+          title: 'Fuel Tracker',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blue,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+          ),
+          darkTheme: themeProvider.selectedTheme == ThemeMode.dark
+              ? ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blue,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          )
+              : ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blue,
+              brightness: Brightness.dark,
+              surface: Colors.black,
+              background: Colors.black,
+            ),
+            scaffoldBackgroundColor: Colors.black,
+            canvasColor: Colors.black,
+            useMaterial3: true,
+          ),
+          themeMode: themeProvider.themeMode,
+          locale: languageProvider.locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const DashboardScreen(),
+        );
+      },
     );
   }
 }
