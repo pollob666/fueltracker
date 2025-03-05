@@ -41,5 +41,7 @@
   "local": "স্থানীয়",
   "googleDrive": "Google Drive",
   "dropbox": "Dropbox",
-  "fileStorageOption": "ফাইল স্টোরেজ অপশন"
+  "fileStorageOption": "ফাইল স্টোরেজ অপশন",
+  "actualBill": "বিল",
+  "savings": "সঞ্চয়"
 }

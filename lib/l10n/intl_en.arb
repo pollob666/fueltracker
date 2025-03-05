@@ -41,5 +41,7 @@
   "local": "Local",
   "googleDrive": "Google Drive",
   "dropbox": "Dropbox",
-  "fileStorageOption": "File Storage Option"
+  "fileStorageOption": "File Storage Option",
+  "actualBill": "Actual Bill",
+  "savings": "Savings/Loss"
 }

@@ -34,11 +34,13 @@ class _DashboardPageState extends State<DashboardPage> {
     }
     double lastOdometer = records.last.odometer;
     double previousOdometer = records[records.length - 2].odometer;
-    double previousVolume = records[records.length - 2].volume;
+    // double previousVolume = records[records.length - 2].volume;
+    //fixed the calculation to use latest volume
+    double lastVolume = records.last.volume;
 
-    if (previousVolume == 0) return 0; // Avoid division by zero
+    if (lastVolume == 0) return 0; // Avoid division by zero
 
-    return (lastOdometer - previousOdometer) / previousVolume;
+    return (lastOdometer - previousOdometer) / lastVolume;
   }
 
   double calculateRunningAverage(List<FuelRecord> records) {

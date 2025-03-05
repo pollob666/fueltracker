@@ -414,6 +414,16 @@ class AppLocalizations {
       args: [],
     );
   }
+
+  /// `Actual Bill`
+  String get actualBill {
+    return Intl.message('Actual Bill', name: 'actualBill', desc: '', args: []);
+  }
+
+  /// `Savings/Loss`
+  String get savings {
+    return Intl.message('Savings/Loss', name: 'savings', desc: '', args: []);
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {

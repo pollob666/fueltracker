@@ -3,6 +3,7 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/l10n/l10n.dart'; // Import localization
+import 'dart:math';
 
 class AllDataPage extends StatefulWidget {
   const AllDataPage({super.key});
@@ -22,6 +23,8 @@ class _AllDataPageState extends State<AllDataPage> {
 
   Future<void> _loadRecords() async {
     List<FuelRecord> recs = await DatabaseHelper.instance.getFuelRecords();
+    // Sort records by date descending
+    recs.sort((a, b) => b.date.compareTo(a.date));
     setState(() {
       records = recs;
     });
@@ -36,34 +39,111 @@ class _AllDataPageState extends State<AllDataPage> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context); // Get the localizations
+    final localizations = AppLocalizations.of(context);
+
+    // Calculate summary values if records exist, else default to 0.
+    double maxOdometer = records.isNotEmpty
+        ? records.map((r) => r.odometer).reduce(max)
+        : 0.0;
+    double avgRate = records.isNotEmpty
+        ? records.map((r) => r.rate).reduce((a, b) => a + b) / records.length
+        : 0.0;
+    double sumVolume = records.isNotEmpty
+        ? records.map((r) => r.volume).reduce((a, b) => a + b)
+        : 0.0;
+    double sumPaid = records.isNotEmpty
+        ? records.map((r) => r.paidAmount).reduce((a, b) => a + b)
+        : 0.0;
+    double sumActualBill = records.isNotEmpty
+        ? records
+        .map((r) => r.rate * r.volume)
+        .reduce((a, b) => a + b)
+        : 0.0;
+    double sumSavings = sumActualBill - sumPaid;
+
+    // Create the summary row.
+    final DataRow summaryRow = DataRow(
+      // Using a different color or text style for differentiation.
+      color: MaterialStateProperty.all(Colors.grey[300]),
+      cells: [
+        DataCell(Text(
+          'Summary',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+        DataCell(Text(
+          maxOdometer.toStringAsFixed(2),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+        DataCell(const Text('')), // fuelType column left empty.
+        DataCell(Text(
+          avgRate.toStringAsFixed(2),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+        DataCell(Text(
+          sumVolume.toStringAsFixed(2),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+        DataCell(Text(
+          sumPaid.toStringAsFixed(2),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+        DataCell(Text(
+          sumActualBill.toStringAsFixed(2),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+        DataCell(Text(
+          sumSavings.toStringAsFixed(2),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        )),
+      ],
+    );
+
+    // Build the data rows for each record.
+    List<DataRow> dataRows = records.map((record) {
+      final actualBill = record.rate * record.volume;
+      final difference = actualBill - record.paidAmount;
+      return DataRow(
+        color: MaterialStateProperty.resolveWith<Color?>(
+                (states) => getRowColor(record)),
+        cells: [
+          DataCell(Text(
+              record.date.toLocal().toString().substring(0, 16))),
+          DataCell(Text(record.odometer.toStringAsFixed(2))),
+          DataCell(Text(record.fuelType)),
+          DataCell(Text(record.rate.toStringAsFixed(2))),
+          DataCell(Text(record.volume.toStringAsFixed(2))),
+          DataCell(Text(record.paidAmount.toStringAsFixed(2))),
+          DataCell(Text(actualBill.toStringAsFixed(2))),
+          DataCell(Text(difference.toStringAsFixed(2))),
+        ],
+      );
+    }).toList();
+
+    // Insert the summary row as the first row.
+    final List<DataRow> allRows = [summaryRow, ...dataRows];
 
     return Scaffold(
-      appBar: AppBar(title: Text(localizations.allData)), // Use localizations
+      appBar: AppBar(title: Text(localizations.allData)),
       drawer: const MyDrawer(),
-      body: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: [
-            DataColumn(label: Text(localizations.dateAndTime)), // Use localizations
-            DataColumn(label: Text(localizations.odometerReading)), // Use localizations
-            DataColumn(label: Text(localizations.fuelType)), // Use localizations
-            DataColumn(label: Text(localizations.fuelPriceRate)), // Use localizations
-            DataColumn(label: Text(localizations.totalVolume)), // Use localizations
-            DataColumn(label: Text(localizations.paidAmount)), // Use localizations
-          ],
-          rows: records.map((record) => DataRow(
-            color: WidgetStateProperty.resolveWith<Color?>(
-                    (states) => getRowColor(record)),
-            cells: [
-              DataCell(Text(record.date.toLocal().toString().substring(0, 16))),
-              DataCell(Text(record.odometer.toStringAsFixed(2))),
-              DataCell(Text(record.fuelType)),
-              DataCell(Text(record.rate.toStringAsFixed(2))),
-              DataCell(Text(record.volume.toStringAsFixed(2))),
-              DataCell(Text(record.paidAmount.toStringAsFixed(2))),
-            ],
-          )).toList(),
+      body: Scrollbar(
+        child: SingleChildScrollView(
+          // Vertical scroll view
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: [
+                DataColumn(label: Text(localizations.dateAndTime)),
+                DataColumn(label: Text(localizations.odometerReading)),
+                DataColumn(label: Text(localizations.fuelType)),
+                DataColumn(label: Text(localizations.fuelPriceRate)),
+                DataColumn(label: Text(localizations.totalVolume)),
+                DataColumn(label: Text(localizations.paidAmount)),
+                DataColumn(label: Text(localizations.actualBill)),
+                DataColumn(label: Text(localizations.savings)),
+              ],
+              rows: allRows,
+            ),
+          ),
         ),
       ),
     );
