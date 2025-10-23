@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:fuel_tracker/screens/dashboard_screen.dart';
-import 'package:fuel_tracker/utils/theme_provider.dart';
-import 'package:fuel_tracker/utils/language_provider.dart';
+import 'package:fuel_tracker/dashboard_screen.dart';
+import 'package:fuel_tracker/providers/theme_provider.dart';
+import 'package:fuel_tracker/providers/language_provider.dart';
 import 'package:fuel_tracker/generated/l10n.dart';
 
 void main() async {
@@ -44,20 +44,11 @@ class MyApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          darkTheme: themeProvider.selectedTheme == ThemeMode.dark
-              ? ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.blue,
-              brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-          )
-              : ThemeData(
+          darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.blue,
               brightness: Brightness.dark,
               surface: Colors.black,
-              background: Colors.black,
             ),
             scaffoldBackgroundColor: Colors.black,
             canvasColor: Colors.black,
@@ -71,7 +62,9 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: AppLocalizations.supportedLocales,
+          supportedLocales: const [
+            Locale('en', ''),
+          ],
           home: const DashboardScreen(),
         );
       },
