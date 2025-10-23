@@ -5,6 +5,9 @@ import 'package:fuel_tracker/dashboard_screen.dart';
 import 'package:fuel_tracker/providers/theme_provider.dart';
 import 'package:fuel_tracker/providers/language_provider.dart';
 import 'package:fuel_tracker/generated/l10n.dart';
+import 'package:fuel_tracker/fuel_tracker_model.dart';
+import 'package:fuel_tracker/all_data_screen.dart';
+import 'package:fuel_tracker/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +24,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => themeProvider),
         ChangeNotifierProvider(create: (_) => languageProvider),
+        ChangeNotifierProvider(create: (_) => FuelTrackerModel()),
       ],
       child: const MyApp(),
     ),
@@ -66,6 +70,10 @@ class MyApp extends StatelessWidget {
             Locale('en', ''),
           ],
           home: const DashboardScreen(),
+          routes: {
+            '/all_data': (_) => const AllDataScreen(),
+            '/settings': (_) => const SettingsScreen(),
+          },
         );
       },
     );
