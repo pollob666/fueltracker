@@ -164,10 +164,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Last Time Mileage`
+  /// `Current Running Mileage`
   String get lastTimeMileage {
     return Intl.message(
-      'Last Time Mileage',
+      'Current Running Mileage',
       name: 'lastTimeMileage',
       desc: '',
       args: [],
@@ -422,6 +422,51 @@ class AppLocalizations {
   /// `Savings/Loss`
   String get savings {
     return Intl.message('Savings/Loss', name: 'savings', desc: '', args: []);
+  }
+
+  /// `Average Mileage`
+  String get averageMileage {
+    return Intl.message(
+      'Average Mileage',
+      name: 'averageMileage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Last Refuel Details`
+  String get lastRefuelDetails {
+    return Intl.message(
+      'Last Refuel Details',
+      name: 'lastRefuelDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Volume:`
+  String get volume {
+    return Intl.message('Volume:', name: 'volume', desc: '', args: []);
+  }
+
+  /// `Total Price:`
+  String get totalPrice {
+    return Intl.message('Total Price:', name: 'totalPrice', desc: '', args: []);
+  }
+
+  /// `Odometer:`
+  String get odometer {
+    return Intl.message('Odometer:', name: 'odometer', desc: '', args: []);
+  }
+
+  /// `Fuel Rate:`
+  String get fuelRate {
+    return Intl.message('Fuel Rate:', name: 'fuelRate', desc: '', args: []);
+  }
+
+  /// `Summary`
+  String get summary {
+    return Intl.message('Summary', name: 'summary', desc: '', args: []);
   }
 }
 

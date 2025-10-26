@@ -43,5 +43,12 @@
   "dropbox": "Dropbox",
   "fileStorageOption": "File Storage Option",
   "actualBill": "Actual Bill",
-  "savings": "Savings/Loss"
+  "savings": "Savings/Loss",
+  "averageMileage": "Average Mileage",
+  "lastRefuelDetails": "Last Refuel Details",
+  "volume": "Volume:",
+  "totalPrice": "Total Price:",
+  "odometer": "Odometer:",
+  "fuelRate": "Fuel Rate:",
+  "summary": "Summary"
 }

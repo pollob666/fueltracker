@@ -28,6 +28,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "allData": MessageLookupByLibrary.simpleMessage("সমস্ত ডেটা"),
     "appTitle": MessageLookupByLibrary.simpleMessage("জ্বালানি খরচ ট্র্যাকার"),
+    "averageMileage": MessageLookupByLibrary.simpleMessage("গড় মাইলেজ"),
     "csvFileEmptyOrIncorrectlyFormatted": MessageLookupByLibrary.simpleMessage(
       "সিএসভি ফাইলটি খালি বা ভুলভাবে ফর্ম্যাট করা হয়েছে।",
     ),
@@ -41,25 +42,25 @@ class MessageLookup extends MessageLookupByLibrary {
     "dateAndTime": MessageLookupByLibrary.simpleMessage("তারিখ ও সময়"),
     "dropbox": MessageLookupByLibrary.simpleMessage("Dropbox"),
     "enterFuelPriceRate": MessageLookupByLibrary.simpleMessage(
-      "জ্বালানির দামের হার প্রবেশ করুন",
+      "জ্বালানির দামের হার টাইপ করুন",
     ),
     "enterMaximumCapacity": MessageLookupByLibrary.simpleMessage(
-      "সর্বোচ্চ ক্ষমতা প্রবেশ করুন",
+      "সর্বোচ্চ ক্ষমতা টাইপ করুন",
     ),
     "enterOdometerReading": MessageLookupByLibrary.simpleMessage(
-      "ওডোমিটার রিডিং প্রবেশ করুন",
+      "ওডোমিটার রিডিং টাইপ করুন",
     ),
     "enterPaidAmount": MessageLookupByLibrary.simpleMessage(
-      "পরিশোধিত পরিমাণ প্রবেশ করুন",
+      "পরিশোধিত পরিমাণ টাইপ করুন",
     ),
     "enterTotalVolume": MessageLookupByLibrary.simpleMessage(
-      "মোট ভলিউম প্রবেশ করুন",
+      "মোট ভলিউম টাইপ করুন",
     ),
     "errorImportingData": MessageLookupByLibrary.simpleMessage(
-      "ডেটা ইম্পোর্ট করতে ত্রুটি: ",
+      "ডেটা ইম্পোর্ট করতে সমস্যা: ",
     ),
     "errorReadingCSVFile": MessageLookupByLibrary.simpleMessage(
-      "সিএসভি ফাইল পড়তে ত্রুটি: ",
+      "সিএসভি ফাইল পড়তে সমস্যা: ",
     ),
     "export": MessageLookupByLibrary.simpleMessage("এক্সপোর্ট"),
     "exportToCSV": MessageLookupByLibrary.simpleMessage(
@@ -71,40 +72,47 @@ class MessageLookup extends MessageLookupByLibrary {
     "fileStorageOption": MessageLookupByLibrary.simpleMessage(
       "ফাইল স্টোরেজ অপশন",
     ),
-    "folderPath": MessageLookupByLibrary.simpleMessage("ফোল্ডারের পথ"),
+    "folderPath": MessageLookupByLibrary.simpleMessage("ফোল্ডারের পাথ"),
     "folderPathNotSetInSettings": MessageLookupByLibrary.simpleMessage(
       "সেটিংস-এ ফোল্ডারের পথ সেট করা নেই।",
     ),
     "fuelPriceRate": MessageLookupByLibrary.simpleMessage(
-      "জ্বালানির দামের হার (বিডিটি)",
+      "জ্বালানির দামের হার (টাকা)",
     ),
+    "fuelRate": MessageLookupByLibrary.simpleMessage("জ্বালানির দাম:"),
     "fuelType": MessageLookupByLibrary.simpleMessage("জ্বালানির ধরণ"),
     "googleDrive": MessageLookupByLibrary.simpleMessage("Google Drive"),
     "import": MessageLookupByLibrary.simpleMessage("ইম্পোর্ট"),
     "importData": MessageLookupByLibrary.simpleMessage("ডেটা ইম্পোর্ট করুন"),
+    "lastRefuelDetails": MessageLookupByLibrary.simpleMessage(
+      "শেষ রিফুয়েলের বিবরণ",
+    ),
     "lastRefuelVolume": MessageLookupByLibrary.simpleMessage(
       "শেষ রিফুয়েল ভলিউম",
     ),
-    "lastTimeMileage": MessageLookupByLibrary.simpleMessage("শেষবারের মাইলেজ"),
-    "local": MessageLookupByLibrary.simpleMessage("স্থানীয়"),
+    "lastTimeMileage": MessageLookupByLibrary.simpleMessage(
+      "বর্তমান চলমান মাইলেজ",
+    ),
+    "local": MessageLookupByLibrary.simpleMessage("লোকাল স্টোরেজ"),
     "maximumTankCapacity": MessageLookupByLibrary.simpleMessage(
-      "সর্বোচ্চ ট্যাঙ্কের ক্ষমতা (লিটার)",
+      "ট্যাঙ্কের সর্বোচ্চ ধারন ক্ষমতা (লিটার)",
     ),
     "noDataPreviewAvailable": MessageLookupByLibrary.simpleMessage(
-      "কোনও ডেটা প্রিভিউ উপলভ্য নয়",
+      "কোনও ডেটা প্রিভিউ পাওয়া যায় নি",
     ),
+    "odometer": MessageLookupByLibrary.simpleMessage("ওডোমিটার:"),
     "odometerReading": MessageLookupByLibrary.simpleMessage(
       "ওডোমিটার রিডিং (কিলোমিটার)",
     ),
     "paidAmount": MessageLookupByLibrary.simpleMessage(
-      "পরিশোধিত পরিমাণ (বিডিটি)",
+      "পরিশোধিত পরিমাণ (টাকা)",
     ),
     "runningAverageMileage": MessageLookupByLibrary.simpleMessage(
       "চলমান গড় মাইলেজ",
     ),
-    "save": MessageLookupByLibrary.simpleMessage("সংরক্ষণ করুন"),
-    "saveSettings": MessageLookupByLibrary.simpleMessage("সেটিংস সংরক্ষণ করুন"),
-    "savings": MessageLookupByLibrary.simpleMessage("সঞ্চয়"),
+    "save": MessageLookupByLibrary.simpleMessage("সেভ করুন"),
+    "saveSettings": MessageLookupByLibrary.simpleMessage("সেটিংস সেভ করুন"),
+    "savings": MessageLookupByLibrary.simpleMessage("বেচেছে (টাকা)"),
     "selectCSVFile": MessageLookupByLibrary.simpleMessage(
       "সিএসভি ফাইল নির্বাচন করুন",
     ),
@@ -113,6 +121,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "settingsSaved": MessageLookupByLibrary.simpleMessage(
       "সেটিংস সংরক্ষিত হয়েছে।",
     ),
+    "summary": MessageLookupByLibrary.simpleMessage("সারসংক্ষেপ"),
+    "totalPrice": MessageLookupByLibrary.simpleMessage("মোট মূল্য:"),
     "totalVolume": MessageLookupByLibrary.simpleMessage("মোট ভলিউম (লিটার)"),
+    "volume": MessageLookupByLibrary.simpleMessage("ভলিউম:"),
   };
 }

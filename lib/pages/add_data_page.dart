@@ -3,6 +3,7 @@ import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddDataPage extends StatefulWidget {
   const AddDataPage({super.key});
@@ -25,11 +26,41 @@ class _AddDataPageState extends State<AddDataPage> {
   @override
   void initState() {
     super.initState();
+    _loadLastValues();
     _volumeController.text = _volume.toStringAsFixed(2);
+
+    _rateController.addListener(_calculateVolume);
+    _paidAmountController.addListener(_calculateVolume);
+  }
+
+  void _calculateVolume() {
+    final double? rate = double.tryParse(_rateController.text);
+    final double? paidAmount = double.tryParse(_paidAmountController.text);
+
+    if (rate != null && rate > 0 && paidAmount != null && paidAmount > 0) {
+      setState(() {
+        _volume = paidAmount / rate;
+        _volumeController.text = _volume.toStringAsFixed(2);
+      });
+    }
+  }
+
+  Future<void> _loadLastValues() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _rateController.text = prefs.getString('last_fuel_price') ?? '';
+    });
+  }
+
+  Future<void> _saveLastValues() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_fuel_price', _rateController.text);
   }
 
   @override
   void dispose() {
+    _rateController.removeListener(_calculateVolume);
+    _paidAmountController.removeListener(_calculateVolume);
     _odometerController.dispose();
     _rateController.dispose();
     _volumeController.dispose();
@@ -143,14 +174,6 @@ class _AddDataPageState extends State<AddDataPage> {
                   decoration: InputDecoration(
                       labelText: AppLocalizations.of(context).totalVolume),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (val) {
-                    double? parsed = double.tryParse(val);
-                    if (parsed != null) {
-                      setState(() {
-                        _volume = parsed;
-                      });
-                    }
-                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return AppLocalizations.of(context).enterTotalVolume; // Localized
@@ -174,6 +197,7 @@ class _AddDataPageState extends State<AddDataPage> {
                 ElevatedButton(
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
+                      await _saveLastValues();
                       FuelRecord record = FuelRecord(
                         date: _selectedDate,
                         odometer: double.parse(_odometerController.text),

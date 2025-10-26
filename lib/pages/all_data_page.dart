@@ -42,9 +42,8 @@ class _AllDataPageState extends State<AllDataPage> {
     final localizations = AppLocalizations.of(context);
 
     // Calculate summary values if records exist, else default to 0.
-    double maxOdometer = records.isNotEmpty
-        ? records.map((r) => r.odometer).reduce(max)
-        : 0.0;
+    double maxOdometer =
+        records.isNotEmpty ? records.map((r) => r.odometer).reduce(max) : 0.0;
     double avgRate = records.isNotEmpty
         ? records.map((r) => r.rate).reduce((a, b) => a + b) / records.length
         : 0.0;
@@ -55,9 +54,7 @@ class _AllDataPageState extends State<AllDataPage> {
         ? records.map((r) => r.paidAmount).reduce((a, b) => a + b)
         : 0.0;
     double sumActualBill = records.isNotEmpty
-        ? records
-        .map((r) => r.rate * r.volume)
-        .reduce((a, b) => a + b)
+        ? records.map((r) => r.rate * r.volume).reduce((a, b) => a + b)
         : 0.0;
     double sumSavings = sumActualBill - sumPaid;
 
@@ -95,19 +92,31 @@ class _AllDataPageState extends State<AllDataPage> {
           sumSavings.toStringAsFixed(2),
           style: const TextStyle(fontWeight: FontWeight.bold),
         )),
+        DataCell(const Text('')), // Empty cell for the new column
       ],
     );
 
     // Build the data rows for each record.
-    List<DataRow> dataRows = records.map((record) {
+    List<DataRow> dataRows = [];
+    for (int i = 0; i < records.length; i++) {
+      final record = records[i];
       final actualBill = record.rate * record.volume;
       final difference = actualBill - record.paidAmount;
-      return DataRow(
+
+      double averageMileage = 0;
+      if (i < records.length - 1) {
+        final previousRecord = records[i + 1];
+        if (previousRecord.volume > 0) {
+          averageMileage = (record.odometer - previousRecord.odometer) /
+              previousRecord.volume;
+        }
+      }
+
+      dataRows.add(DataRow(
         color: MaterialStateProperty.resolveWith<Color?>(
-                (states) => getRowColor(record)),
+            (states) => getRowColor(record)),
         cells: [
-          DataCell(Text(
-              record.date.toLocal().toString().substring(0, 16))),
+          DataCell(Text(record.date.toLocal().toString().substring(0, 16))),
           DataCell(Text(record.odometer.toStringAsFixed(2))),
           DataCell(Text(record.fuelType)),
           DataCell(Text(record.rate.toStringAsFixed(2))),
@@ -115,9 +124,10 @@ class _AllDataPageState extends State<AllDataPage> {
           DataCell(Text(record.paidAmount.toStringAsFixed(2))),
           DataCell(Text(actualBill.toStringAsFixed(2))),
           DataCell(Text(difference.toStringAsFixed(2))),
+          DataCell(Text(averageMileage.toStringAsFixed(2))),
         ],
-      );
-    }).toList();
+      ));
+    }
 
     // Insert the summary row as the first row.
     final List<DataRow> allRows = [summaryRow, ...dataRows];
@@ -130,19 +140,20 @@ class _AllDataPageState extends State<AllDataPage> {
         child: Padding(
           padding: const EdgeInsets.only(bottom: 100.0),
           child: DataTable(
-              columns: [
-                DataColumn(label: Text(localizations.dateAndTime)),
-                DataColumn(label: Text(localizations.odometerReading)),
-                DataColumn(label: Text(localizations.fuelType)),
-                DataColumn(label: Text(localizations.fuelPriceRate)),
-                DataColumn(label: Text(localizations.totalVolume)),
-                DataColumn(label: Text(localizations.paidAmount)),
-                DataColumn(label: Text(localizations.actualBill)),
-                DataColumn(label: Text(localizations.savings)),
-              ],
-              rows: allRows,
-            ),
-      ),
+            columns: [
+              DataColumn(label: Text(localizations.dateAndTime)),
+              DataColumn(label: Text(localizations.odometerReading)),
+              DataColumn(label: Text(localizations.fuelType)),
+              DataColumn(label: Text(localizations.fuelPriceRate)),
+              DataColumn(label: Text(localizations.totalVolume)),
+              DataColumn(label: Text(localizations.paidAmount)),
+              DataColumn(label: Text(localizations.actualBill)),
+              DataColumn(label: Text(localizations.savings)),
+              DataColumn(label: Text(localizations.averageMileage)),
+            ],
+            rows: allRows,
+          ),
+        ),
       ),
     );
   }

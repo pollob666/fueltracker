@@ -9,7 +9,7 @@ class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  _DashboardPageState createState() => _DashboardPageState();
+  State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
@@ -67,8 +67,6 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     double currentRunningMileage = calculateCurrentRunningMileage(records);
     double runningAverage = calculateRunningAverage(records);
-    double lastRefuelVolume = records.isNotEmpty ? records.last.volume : 0;
-
     final localizations = AppLocalizations.of(context);
 
     return Scaffold(
@@ -119,9 +117,49 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 16),
             Card(
-              child: ListTile(
-                title: Text(localizations.lastRefuelVolume),
-                subtitle: Text("${lastRefuelVolume.toStringAsFixed(2)} litres"),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations.lastRefuelDetails,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(localizations.volume),
+                        Text("${records.isNotEmpty ? records.last.volume.toStringAsFixed(2) : 'N/A'} litres"),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(localizations.totalPrice),
+                        Text("${records.isNotEmpty ? records.last.paidAmount.toStringAsFixed(2) : 'N/A'} BDT"),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(localizations.odometer),
+                        Text("${records.isNotEmpty ? records.last.odometer.toStringAsFixed(2) : 'N/A'} km"),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(localizations.fuelRate),
+                        Text("${records.isNotEmpty ? records.last.rate.toStringAsFixed(2) : 'N/A'} BDT/litre"),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),

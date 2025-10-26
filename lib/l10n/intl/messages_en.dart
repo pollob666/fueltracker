@@ -28,6 +28,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "appTitle": MessageLookupByLibrary.simpleMessage(
       "Fuel Consumption Tracker",
     ),
+    "averageMileage": MessageLookupByLibrary.simpleMessage("Average Mileage"),
     "csvFileEmptyOrIncorrectlyFormatted": MessageLookupByLibrary.simpleMessage(
       "CSV file is empty or incorrectly formatted.",
     ),
@@ -74,10 +75,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "fuelPriceRate": MessageLookupByLibrary.simpleMessage(
       "Fuel Price Rate (BDT)",
     ),
+    "fuelRate": MessageLookupByLibrary.simpleMessage("Fuel Rate:"),
     "fuelType": MessageLookupByLibrary.simpleMessage("Fuel Type"),
     "googleDrive": MessageLookupByLibrary.simpleMessage("Google Drive"),
     "import": MessageLookupByLibrary.simpleMessage("Import"),
     "importData": MessageLookupByLibrary.simpleMessage("Import Data"),
+    "lastRefuelDetails": MessageLookupByLibrary.simpleMessage(
+      "Last Refuel Details",
+    ),
     "lastRefuelVolume": MessageLookupByLibrary.simpleMessage(
       "Last Refuel Volume",
     ),
@@ -91,6 +96,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "noDataPreviewAvailable": MessageLookupByLibrary.simpleMessage(
       "No Data Preview Available",
     ),
+    "odometer": MessageLookupByLibrary.simpleMessage("Odometer:"),
     "odometerReading": MessageLookupByLibrary.simpleMessage(
       "Odometer Reading (km)",
     ),
@@ -105,8 +111,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "selectedFile": MessageLookupByLibrary.simpleMessage("Selected File"),
     "settings": MessageLookupByLibrary.simpleMessage("Settings"),
     "settingsSaved": MessageLookupByLibrary.simpleMessage("Settings saved."),
+    "summary": MessageLookupByLibrary.simpleMessage("Summary"),
+    "totalPrice": MessageLookupByLibrary.simpleMessage("Total Price:"),
     "totalVolume": MessageLookupByLibrary.simpleMessage(
       "Total Volume (litres)",
     ),
+    "volume": MessageLookupByLibrary.simpleMessage("Volume:"),
   };
 }
