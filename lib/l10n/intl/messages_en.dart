@@ -22,100 +22,83 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
-    "actualBill": MessageLookupByLibrary.simpleMessage("Actual Bill"),
-    "addFuelData": MessageLookupByLibrary.simpleMessage("Add Fuel Data"),
-    "allData": MessageLookupByLibrary.simpleMessage("All Data"),
-    "appTitle": MessageLookupByLibrary.simpleMessage(
-      "Fuel Consumption Tracker",
-    ),
-    "averageMileage": MessageLookupByLibrary.simpleMessage("Average Mileage"),
-    "csvFileEmptyOrIncorrectlyFormatted": MessageLookupByLibrary.simpleMessage(
-      "CSV file is empty or incorrectly formatted.",
-    ),
-    "dashboard": MessageLookupByLibrary.simpleMessage("Dashboard"),
-    "dataExportedTo": MessageLookupByLibrary.simpleMessage("Data exported to "),
-    "dataImportedSuccessfully": MessageLookupByLibrary.simpleMessage(
-      "Data Imported Successfully!",
-    ),
-    "dateAndTime": MessageLookupByLibrary.simpleMessage("Date & Time"),
-    "dropbox": MessageLookupByLibrary.simpleMessage("Dropbox"),
-    "enterFuelPriceRate": MessageLookupByLibrary.simpleMessage(
-      "Enter fuel price rate",
-    ),
-    "enterMaximumCapacity": MessageLookupByLibrary.simpleMessage(
-      "Enter maximum capacity",
-    ),
-    "enterOdometerReading": MessageLookupByLibrary.simpleMessage(
-      "Enter odometer reading",
-    ),
-    "enterPaidAmount": MessageLookupByLibrary.simpleMessage(
-      "Enter paid amount",
-    ),
-    "enterTotalVolume": MessageLookupByLibrary.simpleMessage(
-      "Enter total volume",
-    ),
-    "errorImportingData": MessageLookupByLibrary.simpleMessage(
-      "Error importing data: ",
-    ),
-    "errorReadingCSVFile": MessageLookupByLibrary.simpleMessage(
-      "Error reading CSV file: ",
-    ),
-    "export": MessageLookupByLibrary.simpleMessage("Export"),
-    "exportToCSV": MessageLookupByLibrary.simpleMessage("Export to CSV"),
-    "failedToExport": MessageLookupByLibrary.simpleMessage(
-      "Failed to export: ",
-    ),
-    "fileStorageOption": MessageLookupByLibrary.simpleMessage(
-      "File Storage Option",
-    ),
-    "folderPath": MessageLookupByLibrary.simpleMessage("Folder Path"),
-    "folderPathNotSetInSettings": MessageLookupByLibrary.simpleMessage(
-      "Folder path not set in settings.",
-    ),
-    "fuelPriceRate": MessageLookupByLibrary.simpleMessage(
-      "Fuel Price Rate (BDT)",
-    ),
-    "fuelRate": MessageLookupByLibrary.simpleMessage("Fuel Rate:"),
-    "fuelType": MessageLookupByLibrary.simpleMessage("Fuel Type"),
-    "googleDrive": MessageLookupByLibrary.simpleMessage("Google Drive"),
-    "import": MessageLookupByLibrary.simpleMessage("Import"),
-    "importData": MessageLookupByLibrary.simpleMessage("Import Data"),
-    "lastRefuelDetails": MessageLookupByLibrary.simpleMessage(
-      "Last Refuel Details",
-    ),
-    "lastRefuelVolume": MessageLookupByLibrary.simpleMessage(
-      "Last Refuel Volume",
-    ),
-    "lastTimeMileage": MessageLookupByLibrary.simpleMessage(
-      "Last Time Mileage",
-    ),
-    "local": MessageLookupByLibrary.simpleMessage("Local"),
-    "maximumTankCapacity": MessageLookupByLibrary.simpleMessage(
-      "Maximum Tank Capacity (litres)",
-    ),
-    "noDataPreviewAvailable": MessageLookupByLibrary.simpleMessage(
-      "No Data Preview Available",
-    ),
-    "odometer": MessageLookupByLibrary.simpleMessage("Odometer:"),
-    "odometerReading": MessageLookupByLibrary.simpleMessage(
-      "Odometer Reading (km)",
-    ),
-    "paidAmount": MessageLookupByLibrary.simpleMessage("Paid Amount (BDT)"),
-    "runningAverageMileage": MessageLookupByLibrary.simpleMessage(
-      "Running Average Mileage",
-    ),
-    "save": MessageLookupByLibrary.simpleMessage("Save"),
-    "saveSettings": MessageLookupByLibrary.simpleMessage("Save Settings"),
-    "savings": MessageLookupByLibrary.simpleMessage("Savings/Loss"),
-    "selectCSVFile": MessageLookupByLibrary.simpleMessage("Select CSV File"),
-    "selectedFile": MessageLookupByLibrary.simpleMessage("Selected File"),
-    "settings": MessageLookupByLibrary.simpleMessage("Settings"),
-    "settingsSaved": MessageLookupByLibrary.simpleMessage("Settings saved."),
-    "summary": MessageLookupByLibrary.simpleMessage("Summary"),
-    "totalPrice": MessageLookupByLibrary.simpleMessage("Total Price:"),
-    "totalVolume": MessageLookupByLibrary.simpleMessage(
-      "Total Volume (litres)",
-    ),
-    "volume": MessageLookupByLibrary.simpleMessage("Volume:"),
-  };
+        "actualBill": MessageLookupByLibrary.simpleMessage("Actual Bill"),
+        "addFuelData": MessageLookupByLibrary.simpleMessage("Add Fuel Data"),
+        "allData": MessageLookupByLibrary.simpleMessage("All Data"),
+        "appTitle":
+            MessageLookupByLibrary.simpleMessage("Fuel Consumption Tracker"),
+        "averageMileage":
+            MessageLookupByLibrary.simpleMessage("Average Mileage"),
+        "csvFileEmptyOrIncorrectlyFormatted":
+            MessageLookupByLibrary.simpleMessage(
+                "CSV file is empty or incorrectly formatted."),
+        "dashboard": MessageLookupByLibrary.simpleMessage("Dashboard"),
+        "dataExportedTo":
+            MessageLookupByLibrary.simpleMessage("Data exported to "),
+        "dataImportedSuccessfully":
+            MessageLookupByLibrary.simpleMessage("Data Imported Successfully!"),
+        "dateAndTime": MessageLookupByLibrary.simpleMessage("Date & Time"),
+        "dropbox": MessageLookupByLibrary.simpleMessage("Dropbox"),
+        "enterFuelPriceRate":
+            MessageLookupByLibrary.simpleMessage("Enter fuel price rate"),
+        "enterMaximumCapacity":
+            MessageLookupByLibrary.simpleMessage("Enter maximum capacity"),
+        "enterOdometerReading":
+            MessageLookupByLibrary.simpleMessage("Enter odometer reading"),
+        "enterPaidAmount":
+            MessageLookupByLibrary.simpleMessage("Enter paid amount"),
+        "enterTotalVolume":
+            MessageLookupByLibrary.simpleMessage("Enter total volume"),
+        "errorImportingData":
+            MessageLookupByLibrary.simpleMessage("Error importing data: "),
+        "errorReadingCSVFile":
+            MessageLookupByLibrary.simpleMessage("Error reading CSV file: "),
+        "export": MessageLookupByLibrary.simpleMessage("Export"),
+        "exportToCSV": MessageLookupByLibrary.simpleMessage("Export to CSV"),
+        "failedToExport":
+            MessageLookupByLibrary.simpleMessage("Failed to export: "),
+        "fileStorageOption":
+            MessageLookupByLibrary.simpleMessage("File Storage Option"),
+        "folderPath": MessageLookupByLibrary.simpleMessage("Folder Path"),
+        "folderPathNotSetInSettings": MessageLookupByLibrary.simpleMessage(
+            "Folder path not set in settings."),
+        "fuelPriceRate":
+            MessageLookupByLibrary.simpleMessage("Fuel Price Rate (BDT)"),
+        "fuelRate": MessageLookupByLibrary.simpleMessage("Fuel Rate:"),
+        "fuelType": MessageLookupByLibrary.simpleMessage("Fuel Type"),
+        "googleDrive": MessageLookupByLibrary.simpleMessage("Google Drive"),
+        "import": MessageLookupByLibrary.simpleMessage("Import"),
+        "importData": MessageLookupByLibrary.simpleMessage("Import Data"),
+        "lastRefuelDetails":
+            MessageLookupByLibrary.simpleMessage("Last Refuel Details"),
+        "lastRefuelVolume":
+            MessageLookupByLibrary.simpleMessage("Last Refuel Volume"),
+        "lastTimeMileage":
+            MessageLookupByLibrary.simpleMessage("Last Time Mileage"),
+        "local": MessageLookupByLibrary.simpleMessage("Local"),
+        "maximumTankCapacity": MessageLookupByLibrary.simpleMessage(
+            "Maximum Tank Capacity (litres)"),
+        "noDataPreviewAvailable":
+            MessageLookupByLibrary.simpleMessage("No Data Preview Available"),
+        "odometer": MessageLookupByLibrary.simpleMessage("Odometer:"),
+        "odometerReading":
+            MessageLookupByLibrary.simpleMessage("Odometer Reading (km)"),
+        "paidAmount": MessageLookupByLibrary.simpleMessage("Paid Amount (BDT)"),
+        "runningAverageMileage":
+            MessageLookupByLibrary.simpleMessage("Running Average Mileage"),
+        "save": MessageLookupByLibrary.simpleMessage("Save"),
+        "saveSettings": MessageLookupByLibrary.simpleMessage("Save Settings"),
+        "savings": MessageLookupByLibrary.simpleMessage("Savings/Loss"),
+        "selectCSVFile":
+            MessageLookupByLibrary.simpleMessage("Select CSV File"),
+        "selectedFile": MessageLookupByLibrary.simpleMessage("Selected File"),
+        "settings": MessageLookupByLibrary.simpleMessage("Settings"),
+        "settingsSaved":
+            MessageLookupByLibrary.simpleMessage("Settings saved."),
+        "summary": MessageLookupByLibrary.simpleMessage("Summary"),
+        "totalPrice": MessageLookupByLibrary.simpleMessage("Total Price:"),
+        "totalVolume":
+            MessageLookupByLibrary.simpleMessage("Total Volume (litres)"),
+        "volume": MessageLookupByLibrary.simpleMessage("Volume:")
+      };
 }

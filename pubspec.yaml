@@ -1,33 +1,49 @@
+# Application metadata
 name: fuel_tracker
 description: "Fuel Consumption Tracker by https://github.com/pollob666"
 publish_to: 'none'
 version: 1.0.0+1
 
+# Environment constraints
 environment:
-  sdk: ^3.6.2
+  sdk: '>=3.6.2 <4.0.0'
 
+# Application dependencies
 dependencies:
+  # Core Flutter packages
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+
+  # Internationalization
   intl: ^0.20.2
-  sqflite: ^2.4.1
+
+  # Database and local storage
+  sqflite: ^2.3.4
   path_provider: ^2.1.5
   path: ^1.9.0
-  shared_preferences: ^2.5.2
+  shared_preferences: ^2.3.1
+
+  # File and data handling
   file_picker: ^10.3.3
   csv: ^6.0.0
 
+  # UI and theming
+  dynamic_color: ^1.8.0
+
+# Development-only dependencies
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  intl_utils: ^2.8.10
+  intl_utils: ^2.8.7
 
+# Flutter-specific configurations
 flutter:
   uses-material-design: true
 
+# Internationalization configuration
 flutter_intl:
   enabled: true
   class_name: AppLocalizations

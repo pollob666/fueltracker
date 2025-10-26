@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
-import 'package:fuel_tracker/l10n/l10n.dart'; // Import localization
+import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/l10n/l10n_utils.dart';
 import 'package:fuel_tracker/main.dart';
 
@@ -18,14 +18,16 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _maxVolumeController = TextEditingController();
   String _storageOption = AppSettings.storageOption;
   final TextEditingController _folderController = TextEditingController();
-  Locale? _currentLocale; // Store the current locale
+  Locale? _currentLocale;
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   void initState() {
     super.initState();
     _maxVolumeController.text = AppSettings.maxVolume.toString();
     _folderController.text = _getCurrentFolderPath();
-    _currentLocale = L10n.all.first; // Initialize to the first supported locale
+    _currentLocale = L10n.all.first;
+    _themeMode = AppSettings.themeMode;
   }
 
   String _getCurrentFolderPath() {
@@ -64,7 +66,9 @@ class _SettingsPageState extends State<SettingsPage> {
       } else if (_storageOption == 'Dropbox') {
         AppSettings.dropboxFolderPath = _folderController.text;
       }
+      AppSettings.themeMode = _themeMode;
       await AppSettings.saveSettings();
+      MyApp.setThemeMode(context, _themeMode);
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).settingsSaved)));
     }
@@ -72,81 +76,113 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).settings)),
       drawer: const MyDrawer(),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _maxVolumeController,
-                decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context).maximumTankCapacity),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return AppLocalizations.of(context).enterMaximumCapacity;
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _storageOption,
-                items: ["Local", "Google Drive", "Dropbox"]
-                    .map((option) => DropdownMenuItem(
-                  value: option,
-                  child: Text(AppLocalizations.of(context).local),
-                ))
-                    .toList(),
-                onChanged: (val) {
-                  setState(() {
-                    _storageOption = val!;
-                    _folderController.text = _getCurrentFolderPath();
-                  });
-                },
-                decoration:
-                InputDecoration(labelText: AppLocalizations.of(context).fileStorageOption),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _folderController,
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context).folderPath,
-                  suffixIcon: IconButton(
-                      icon: const Icon(Icons.folder_open),
-                      onPressed: _pickFolder),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _maxVolumeController,
+                  decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).maximumTankCapacity),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return AppLocalizations.of(context).enterMaximumCapacity;
+                    }
+                    return null;
+                  },
                 ),
-                readOnly: true,
-              ),
-              const SizedBox(height: 16),
-              // Space for language toggle
-              DropdownButton<Locale>( // Language toggle dropdown
-                value: _currentLocale,
-                items: L10n.all.map((locale) => DropdownMenuItem<Locale>(
-                  value: locale,
-                  child: Text(L10n.getLanguageName(locale)), // Display language name
-                )).toList(),
-                onChanged: (locale) {
-                  if (locale != null) {
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _storageOption,
+                  items: ["Local", "Google Drive", "Dropbox"]
+                      .map((option) => DropdownMenuItem(
+                            value: option,
+                            child: Text(AppLocalizations.of(context).local),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
                     setState(() {
-                      _currentLocale = locale;
-                      // Update the locale in the MaterialApp
-                      MyApp.setLocale(context, locale);
+                      _storageOption = val!;
+                      _folderController.text = _getCurrentFolderPath();
                     });
-                  }
-                },
-                hint: const Text("Select Language"), // Placeholder text
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _saveSettings,
-                child: Text(AppLocalizations.of(context).saveSettings),
-              ),
-            ],
+                  },
+                  decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).fileStorageOption),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _folderController,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context).folderPath,
+                    suffixIcon: IconButton(
+                        icon: const Icon(Icons.folder_open),
+                        onPressed: _pickFolder),
+                  ),
+                  readOnly: true,
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<Locale>(
+                  value: _currentLocale,
+                  items: L10n.all
+                      .map((locale) => DropdownMenuItem<Locale>(
+                            value: locale,
+                            child: Text(L10n.getLanguageName(locale)),
+                          ))
+                      .toList(),
+                  onChanged: (locale) {
+                    if (locale != null) {
+                      setState(() {
+                        _currentLocale = locale;
+                        MyApp.setLocale(context, locale);
+                      });
+                    }
+                  },
+                  hint: const Text("Select Language"),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  title: Text('Theme', style: theme.textTheme.titleMedium),
+                  trailing: DropdownButton<ThemeMode>(
+                    value: _themeMode,
+                    items: const [
+                      DropdownMenuItem(
+                        value: ThemeMode.light,
+                        child: Text('Light'),
+                      ),
+                      DropdownMenuItem(
+                        value: ThemeMode.dark,
+                        child: Text('Dark'),
+                      ),
+                      DropdownMenuItem(
+                        value: ThemeMode.system,
+                        child: Text('System'),
+                      ),
+                    ],
+                    onChanged: (ThemeMode? themeMode) {
+                      if (themeMode != null) {
+                        setState(() {
+                          _themeMode = themeMode!;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _saveSettings,
+                  child: Text(AppLocalizations.of(context).saveSettings),
+                ),
+              ],
+            ),
           ),
         ),
       ),

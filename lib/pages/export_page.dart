@@ -35,13 +35,13 @@ class _ExportPageState extends State<ExportPage> {
         AppLocalizations.of(context).paidAmount, // Localized
       ],
       ...records.map((r) => [
-        r.date.toIso8601String(),
-        r.odometer.toStringAsFixed(2),
-        r.fuelType,
-        r.rate.toStringAsFixed(2),
-        r.volume.toStringAsFixed(2),
-        r.paidAmount.toStringAsFixed(2),
-      ])
+            r.date.toIso8601String(),
+            r.odometer.toStringAsFixed(2),
+            r.fuelType,
+            r.rate.toStringAsFixed(2),
+            r.volume.toStringAsFixed(2),
+            r.paidAmount.toStringAsFixed(2),
+          ])
     ];
 
     String csv = const ListToCsvConverter().convert(csvData);
@@ -81,20 +81,24 @@ class _ExportPageState extends State<ExportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).exportToCSV)), // Localized
       drawer: const MyDrawer(),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            ElevatedButton(
-              onPressed: _exporting ? null : _exportData,
-              child: Text(AppLocalizations.of(context).exportToCSV), // Localized
-            ),
-            const SizedBox(height: 16),
-            Text(_message), // Message is already localized in _exportData
-          ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              ElevatedButton(
+                onPressed: _exporting ? null : _exportData,
+                child: Text(AppLocalizations.of(context).exportToCSV), // Localized
+              ),
+              const SizedBox(height: 16),
+              Text(_message, style: theme.textTheme.titleMedium), // Message is already localized in _exportData
+            ],
+          ),
         ),
       ),
     );

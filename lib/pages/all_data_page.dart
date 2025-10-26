@@ -30,16 +30,10 @@ class _AllDataPageState extends State<AllDataPage> {
     });
   }
 
-  Color getRowColor(FuelRecord record) {
-    double expected = record.volume * record.rate;
-    if (record.paidAmount < expected) return Colors.green[200]!;
-    if (record.paidAmount > expected) return Colors.pink[200]!;
-    return Colors.white;
-  }
-
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    final theme = Theme.of(context);
 
     // Calculate summary values if records exist, else default to 0.
     double maxOdometer =
@@ -61,37 +55,16 @@ class _AllDataPageState extends State<AllDataPage> {
     // Create the summary row.
     final DataRow summaryRow = DataRow(
       // Using a different color or text style for differentiation.
-      color: MaterialStateProperty.all(Colors.grey[300]),
+      color: MaterialStateProperty.all(theme.colorScheme.surfaceVariant),
       cells: [
-        DataCell(Text(
-          'Summary',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        )),
-        DataCell(Text(
-          maxOdometer.toStringAsFixed(2),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        )),
+        DataCell(Text('Summary', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(maxOdometer.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
         DataCell(const Text('')), // fuelType column left empty.
-        DataCell(Text(
-          avgRate.toStringAsFixed(2),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        )),
-        DataCell(Text(
-          sumVolume.toStringAsFixed(2),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        )),
-        DataCell(Text(
-          sumPaid.toStringAsFixed(2),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        )),
-        DataCell(Text(
-          sumActualBill.toStringAsFixed(2),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        )),
-        DataCell(Text(
-          sumSavings.toStringAsFixed(2),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        )),
+        DataCell(Text(avgRate.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumVolume.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumPaid.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumActualBill.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumSavings.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
         DataCell(const Text('')), // Empty cell for the new column
       ],
     );
@@ -113,8 +86,16 @@ class _AllDataPageState extends State<AllDataPage> {
       }
 
       dataRows.add(DataRow(
-        color: MaterialStateProperty.resolveWith<Color?>(
-            (states) => getRowColor(record)),
+        color: MaterialStateProperty.resolveWith<Color?>((states) {
+          double expected = record.volume * record.rate;
+          if (record.paidAmount < expected) {
+            return theme.colorScheme.tertiaryContainer.withOpacity(0.3);
+          }
+          if (record.paidAmount > expected) {
+            return theme.colorScheme.errorContainer.withOpacity(0.3);
+          }
+          return null;
+        }),
         cells: [
           DataCell(Text(record.date.toLocal().toString().substring(0, 16))),
           DataCell(Text(record.odometer.toStringAsFixed(2))),

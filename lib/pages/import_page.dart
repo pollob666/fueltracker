@@ -91,61 +91,64 @@ class _ImportPageState extends State<ImportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).import)), // Localized
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed: _pickFile,
-            child: Text(AppLocalizations.of(context).selectCSVFile), // Localized
-          ),
-          if (_filePath != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                  '${AppLocalizations.of(context).selectedFile}: $_filePath',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)), // Localized
-            ),
-          Expanded(
-            child: _previewData.isNotEmpty
-                ? SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: [
-                  DataColumn(label: Text(
-                      AppLocalizations.of(context).dateAndTime)), // Localized
-                  DataColumn(label: Text(
-                      AppLocalizations.of(context).odometerReading)), // Localized
-                  DataColumn(label: Text(
-                      AppLocalizations.of(context).fuelType)), // Localized
-                  DataColumn(label: Text(
-                      AppLocalizations.of(context).fuelPriceRate)), // Localized
-                  DataColumn(label: Text(
-                      AppLocalizations.of(context).totalVolume)), // Localized
-                  DataColumn(label: Text(
-                      AppLocalizations.of(context).paidAmount)), // Localized
-                ],
-                rows: _previewData.skip(1).map((row) {
-                  return DataRow(cells: row
-                      .map((cell) => DataCell(Text(cell.toString())))
-                      .toList());
-                }).toList(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              ElevatedButton(
+                onPressed: _pickFile,
+                child: Text(AppLocalizations.of(context).selectCSVFile), // Localized
               ),
-            )
-                : Center(
-                child: Text(AppLocalizations.of(context)
-                    .noDataPreviewAvailable)), // Localized
+              if (_filePath != null)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                      '${AppLocalizations.of(context).selectedFile}: $_filePath',
+                      style: theme.textTheme.titleMedium), // Localized
+                ),
+              _previewData.isNotEmpty
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: [
+                          DataColumn(label: Text(
+                              AppLocalizations.of(context).dateAndTime)), // Localized
+                          DataColumn(label: Text(
+                              AppLocalizations.of(context).odometerReading)), // Localized
+                          DataColumn(label: Text(
+                              AppLocalizations.of(context).fuelType)), // Localized
+                          DataColumn(label: Text(
+                              AppLocalizations.of(context).fuelPriceRate)), // Localized
+                          DataColumn(label: Text(
+                              AppLocalizations.of(context).totalVolume)), // Localized
+                          DataColumn(label: Text(
+                              AppLocalizations.of(context).paidAmount)), // Localized
+                        ],
+                        rows: _previewData.skip(1).map((row) {
+                          return DataRow(cells: row
+                              .map((cell) => DataCell(Text(cell.toString())))
+                              .toList());
+                        }).toList(),
+                      ),
+                    )
+                  : Center(
+                      child: Text(AppLocalizations.of(context)
+                          .noDataPreviewAvailable)), // Localized
+              if (_previewData.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ElevatedButton(
+                    onPressed: _importData,
+                    child: Text(AppLocalizations.of(context).importData), // Localized
+                  ),
+                ),
+            ],
           ),
-          if (_previewData.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: _importData,
-                child: Text(AppLocalizations.of(context).importData), // Localized
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

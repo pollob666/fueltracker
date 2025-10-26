@@ -90,129 +90,132 @@ class _AddDataPageState extends State<AddDataPage> {
   @override
   Widget build(BuildContext context) {
     double maxVolume = AppSettings.maxVolume;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).addFuelData)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        "${AppLocalizations.of(context).dateAndTime}: ${_selectedDate.toLocal().toString().substring(0, 16)}",
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "${AppLocalizations.of(context).dateAndTime}: ${_selectedDate.toLocal().toString().substring(0, 16)}",
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: _pickDate,
-                    ),
-                  ],
-                ),
-                TextFormField(
-                  controller: _odometerController,
-                  decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).odometerReading),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return AppLocalizations.of(context).enterOdometerReading; // Localized
-                    }
-                    return null;
-                  },
-                ),
-                DropdownButtonFormField<String>(
-                  value: _selectedFuelType,
-                  items: ["Octane", "Petrol"]
-                      .map((fuel) => DropdownMenuItem(
-                    value: fuel,
-                    child: Text(fuel),
-                  ))
-                      .toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedFuelType = val!;
-                    });
-                  },
-                  decoration:
-                  InputDecoration(labelText: AppLocalizations.of(context).fuelType),
-                ),
-                TextFormField(
-                  controller: _rateController,
-                  decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).fuelPriceRate),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return AppLocalizations.of(context).enterFuelPriceRate; // Localized
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                Text(
-                    "${AppLocalizations.of(context).totalVolume}: ${_volume.toStringAsFixed(2)}"),
-                Slider(
-                  value: _volume,
-                  min: 0,
-                  max: maxVolume,
-                  divisions: (maxVolume * 100).toInt(),
-                  label: _volume.toStringAsFixed(2),
-                  onChanged: (val) {
-                    setState(() {
-                      _volume = double.parse(val.toStringAsFixed(2));
-                      _volumeController.text = _volume.toStringAsFixed(2);
-                    });
-                  },
-                ),
-                TextFormField(
-                  controller: _volumeController,
-                  decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).totalVolume),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return AppLocalizations.of(context).enterTotalVolume; // Localized
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _paidAmountController,
-                  decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).paidAmount),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return AppLocalizations.of(context).enterPaidAmount; // Localized
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      await _saveLastValues();
-                      FuelRecord record = FuelRecord(
-                        date: _selectedDate,
-                        odometer: double.parse(_odometerController.text),
-                        fuelType: _selectedFuelType,
-                        rate: double.parse(_rateController.text),
-                        volume: _volume,
-                        paidAmount: double.parse(_paidAmountController.text),
-                      );
-                      await DatabaseHelper.instance.insertFuelRecord(record);
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: Text(AppLocalizations.of(context).save),
-                ),
-              ],
+                      IconButton(
+                        icon: const Icon(Icons.calendar_today),
+                        onPressed: _pickDate,
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    controller: _odometerController,
+                    decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).odometerReading),
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppLocalizations.of(context).enterOdometerReading; // Localized
+                      }
+                      return null;
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: _selectedFuelType,
+                    items: ["Octane", "Petrol"]
+                        .map((fuel) => DropdownMenuItem(
+                              value: fuel,
+                              child: Text(fuel),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedFuelType = val!;
+                      });
+                    },
+                    decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).fuelType),
+                  ),
+                  TextFormField(
+                    controller: _rateController,
+                    decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).fuelPriceRate),
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppLocalizations.of(context).enterFuelPriceRate; // Localized
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                      "${AppLocalizations.of(context).totalVolume}: ${_volume.toStringAsFixed(2)}"),
+                  Slider(
+                    value: _volume,
+                    min: 0,
+                    max: maxVolume,
+                    divisions: (maxVolume * 100).toInt(),
+                    label: _volume.toStringAsFixed(2),
+                    onChanged: (val) {
+                      setState(() {
+                        _volume = double.parse(val.toStringAsFixed(2));
+                        _volumeController.text = _volume.toStringAsFixed(2);
+                      });
+                    },
+                  ),
+                  TextFormField(
+                    controller: _volumeController,
+                    decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).totalVolume),
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppLocalizations.of(context).enterTotalVolume; // Localized
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: _paidAmountController,
+                    decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).paidAmount),
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppLocalizations.of(context).enterPaidAmount; // Localized
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        await _saveLastValues();
+                        FuelRecord record = FuelRecord(
+                          date: _selectedDate,
+                          odometer: double.parse(_odometerController.text),
+                          fuelType: _selectedFuelType,
+                          rate: double.parse(_rateController.text),
+                          volume: _volume,
+                          paidAmount: double.parse(_paidAmountController.text),
+                        );
+                        await DatabaseHelper.instance.insertFuelRecord(record);
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Text(AppLocalizations.of(context).save),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

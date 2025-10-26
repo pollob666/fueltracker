@@ -18,10 +18,8 @@ class AppLocalizations {
   static AppLocalizations? _current;
 
   static AppLocalizations get current {
-    assert(
-      _current != null,
-      'No instance of AppLocalizations was loaded. Try to initialize the AppLocalizations delegate before accessing AppLocalizations.current.',
-    );
+    assert(_current != null,
+        'No instance of AppLocalizations was loaded. Try to initialize the AppLocalizations delegate before accessing AppLocalizations.current.');
     return _current!;
   }
 
@@ -43,10 +41,8 @@ class AppLocalizations {
 
   static AppLocalizations of(BuildContext context) {
     final instance = AppLocalizations.maybeOf(context);
-    assert(
-      instance != null,
-      'No instance of AppLocalizations present in the widget tree. Did you add AppLocalizations.delegate in localizationsDelegates?',
-    );
+    assert(instance != null,
+        'No instance of AppLocalizations present in the widget tree. Did you add AppLocalizations.delegate in localizationsDelegates?');
     return instance!;
   }
 
@@ -66,27 +62,52 @@ class AppLocalizations {
 
   /// `Dashboard`
   String get dashboard {
-    return Intl.message('Dashboard', name: 'dashboard', desc: '', args: []);
+    return Intl.message(
+      'Dashboard',
+      name: 'dashboard',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `All Data`
   String get allData {
-    return Intl.message('All Data', name: 'allData', desc: '', args: []);
+    return Intl.message(
+      'All Data',
+      name: 'allData',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Import`
   String get import {
-    return Intl.message('Import', name: 'import', desc: '', args: []);
+    return Intl.message(
+      'Import',
+      name: 'import',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Export`
   String get export {
-    return Intl.message('Export', name: 'export', desc: '', args: []);
+    return Intl.message(
+      'Export',
+      name: 'export',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Settings`
   String get settings {
-    return Intl.message('Settings', name: 'settings', desc: '', args: []);
+    return Intl.message(
+      'Settings',
+      name: 'settings',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Add Fuel Data`
@@ -101,7 +122,12 @@ class AppLocalizations {
 
   /// `Date & Time`
   String get dateAndTime {
-    return Intl.message('Date & Time', name: 'dateAndTime', desc: '', args: []);
+    return Intl.message(
+      'Date & Time',
+      name: 'dateAndTime',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Odometer Reading (km)`
@@ -116,7 +142,12 @@ class AppLocalizations {
 
   /// `Fuel Type`
   String get fuelType {
-    return Intl.message('Fuel Type', name: 'fuelType', desc: '', args: []);
+    return Intl.message(
+      'Fuel Type',
+      name: 'fuelType',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Fuel Price Rate (BDT)`
@@ -151,7 +182,12 @@ class AppLocalizations {
 
   /// `Save`
   String get save {
-    return Intl.message('Save', name: 'save', desc: '', args: []);
+    return Intl.message(
+      'Save',
+      name: 'save',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Running Average Mileage`
@@ -196,7 +232,12 @@ class AppLocalizations {
 
   /// `Folder Path`
   String get folderPath {
-    return Intl.message('Folder Path', name: 'folderPath', desc: '', args: []);
+    return Intl.message(
+      'Folder Path',
+      name: 'folderPath',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Save Settings`
@@ -251,7 +292,12 @@ class AppLocalizations {
 
   /// `Import Data`
   String get importData {
-    return Intl.message('Import Data', name: 'importData', desc: '', args: []);
+    return Intl.message(
+      'Import Data',
+      name: 'importData',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Data Imported Successfully!`
@@ -386,7 +432,12 @@ class AppLocalizations {
 
   /// `Local`
   String get local {
-    return Intl.message('Local', name: 'local', desc: '', args: []);
+    return Intl.message(
+      'Local',
+      name: 'local',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Google Drive`
@@ -401,7 +452,12 @@ class AppLocalizations {
 
   /// `Dropbox`
   String get dropbox {
-    return Intl.message('Dropbox', name: 'dropbox', desc: '', args: []);
+    return Intl.message(
+      'Dropbox',
+      name: 'dropbox',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `File Storage Option`
@@ -416,12 +472,22 @@ class AppLocalizations {
 
   /// `Actual Bill`
   String get actualBill {
-    return Intl.message('Actual Bill', name: 'actualBill', desc: '', args: []);
+    return Intl.message(
+      'Actual Bill',
+      name: 'actualBill',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Savings/Loss`
   String get savings {
-    return Intl.message('Savings/Loss', name: 'savings', desc: '', args: []);
+    return Intl.message(
+      'Savings/Loss',
+      name: 'savings',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Average Mileage`
@@ -446,27 +512,52 @@ class AppLocalizations {
 
   /// `Volume:`
   String get volume {
-    return Intl.message('Volume:', name: 'volume', desc: '', args: []);
+    return Intl.message(
+      'Volume:',
+      name: 'volume',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Total Price:`
   String get totalPrice {
-    return Intl.message('Total Price:', name: 'totalPrice', desc: '', args: []);
+    return Intl.message(
+      'Total Price:',
+      name: 'totalPrice',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Odometer:`
   String get odometer {
-    return Intl.message('Odometer:', name: 'odometer', desc: '', args: []);
+    return Intl.message(
+      'Odometer:',
+      name: 'odometer',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Fuel Rate:`
   String get fuelRate {
-    return Intl.message('Fuel Rate:', name: 'fuelRate', desc: '', args: []);
+    return Intl.message(
+      'Fuel Rate:',
+      name: 'fuelRate',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Summary`
   String get summary {
-    return Intl.message('Summary', name: 'summary', desc: '', args: []);
+    return Intl.message(
+      'Summary',
+      name: 'summary',
+      desc: '',
+      args: [],
+    );
   }
 }
 
