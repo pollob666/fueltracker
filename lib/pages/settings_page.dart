@@ -20,6 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _folderController = TextEditingController();
   Locale? _currentLocale;
   ThemeMode _themeMode = ThemeMode.system;
+  Map<String, TextEditingController> _priceControllers = {};
 
   @override
   void initState() {
@@ -28,6 +29,10 @@ class _SettingsPageState extends State<SettingsPage> {
     _folderController.text = _getCurrentFolderPath();
     _currentLocale = L10n.all.first;
     _themeMode = AppSettings.themeMode;
+
+    AppSettings.defaultFuelPrices.forEach((fuelType, price) {
+      _priceControllers[fuelType] = TextEditingController(text: price.toString());
+    });
   }
 
   String _getCurrentFolderPath() {
@@ -52,6 +57,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     _maxVolumeController.dispose();
     _folderController.dispose();
+    _priceControllers.values.forEach((controller) => controller.dispose());
     super.dispose();
   }
 
@@ -67,6 +73,11 @@ class _SettingsPageState extends State<SettingsPage> {
         AppSettings.dropboxFolderPath = _folderController.text;
       }
       AppSettings.themeMode = _themeMode;
+
+      _priceControllers.forEach((fuelType, controller) {
+        AppSettings.defaultFuelPrices[fuelType] = double.tryParse(controller.text) ?? 0.0;
+      });
+
       await AppSettings.saveSettings();
       MyApp.setThemeMode(context, _themeMode);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,102 +97,116 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.all(16.0),
           child: Form(
             key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: _maxVolumeController,
-                  decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).maximumTankCapacity),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return AppLocalizations.of(context).enterMaximumCapacity;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _storageOption,
-                  items: ["Local", "Google Drive", "Dropbox"]
-                      .map((option) => DropdownMenuItem(
-                            value: option,
-                            child: Text(AppLocalizations.of(context).local),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _storageOption = val!;
-                      _folderController.text = _getCurrentFolderPath();
-                    });
-                  },
-                  decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).fileStorageOption),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _folderController,
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context).folderPath,
-                    suffixIcon: IconButton(
-                        icon: const Icon(Icons.folder_open),
-                        onPressed: _pickFolder),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _maxVolumeController,
+                    decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).maximumTankCapacity),
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppLocalizations.of(context).enterMaximumCapacity;
+                      }
+                      return null;
+                    },
                   ),
-                  readOnly: true,
-                ),
-                const SizedBox(height: 16),
-                DropdownButton<Locale>(
-                  value: _currentLocale,
-                  items: L10n.all
-                      .map((locale) => DropdownMenuItem<Locale>(
-                            value: locale,
-                            child: Text(L10n.getLanguageName(locale)),
-                          ))
-                      .toList(),
-                  onChanged: (locale) {
-                    if (locale != null) {
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: _storageOption,
+                    items: ["Local", "Google Drive", "Dropbox"]
+                        .map((option) => DropdownMenuItem(
+                              value: option,
+                              child: Text(AppLocalizations.of(context).local),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
                       setState(() {
-                        _currentLocale = locale;
-                        MyApp.setLocale(context, locale);
+                        _storageOption = val!;
+                        _folderController.text = _getCurrentFolderPath();
                       });
-                    }
-                  },
-                  hint: const Text("Select Language"),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  title: Text('Theme', style: theme.textTheme.titleMedium),
-                  trailing: DropdownButton<ThemeMode>(
-                    value: _themeMode,
-                    items: const [
-                      DropdownMenuItem(
-                        value: ThemeMode.light,
-                        child: Text('Light'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThemeMode.dark,
-                        child: Text('Dark'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThemeMode.system,
-                        child: Text('System'),
-                      ),
-                    ],
-                    onChanged: (ThemeMode? themeMode) {
-                      if (themeMode != null) {
+                    },
+                    decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).fileStorageOption),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _folderController,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).folderPath,
+                      suffixIcon: IconButton(
+                          icon: const Icon(Icons.folder_open),
+                          onPressed: _pickFolder),
+                    ),
+                    readOnly: true,
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButton<Locale>(
+                    value: _currentLocale,
+                    items: L10n.all
+                        .map((locale) => DropdownMenuItem<Locale>(
+                              value: locale,
+                              child: Text(L10n.getLanguageName(locale)),
+                            ))
+                        .toList(),
+                    onChanged: (locale) {
+                      if (locale != null) {
                         setState(() {
-                          _themeMode = themeMode!;
+                          _currentLocale = locale;
+                          MyApp.setLocale(context, locale);
                         });
                       }
                     },
+                    hint: const Text("Select Language"),
                   ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _saveSettings,
-                  child: Text(AppLocalizations.of(context).saveSettings),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  ListTile(
+                    title: Text('Theme', style: theme.textTheme.titleMedium),
+                    trailing: DropdownButton<ThemeMode>(
+                      value: _themeMode,
+                      items: const [
+                        DropdownMenuItem(
+                          value: ThemeMode.light,
+                          child: Text('Light'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.dark,
+                          child: Text('Dark'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.system,
+                          child: Text('System'),
+                        ),
+                      ],
+                      onChanged: (ThemeMode? themeMode) {
+                        if (themeMode != null) {
+                          setState(() {
+                            _themeMode = themeMode!;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Default Fuel Prices', style: theme.textTheme.titleLarge),
+                  ...["Octane", "Petrol"].map((fuelType) {
+                    if (!_priceControllers.containsKey(fuelType)) {
+                      _priceControllers[fuelType] = TextEditingController();
+                    }
+                    return TextFormField(
+                      controller: _priceControllers[fuelType],
+                      decoration: InputDecoration(labelText: fuelType),
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    );
+                  }).toList(),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _saveSettings,
+                    child: Text(AppLocalizations.of(context).saveSettings),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

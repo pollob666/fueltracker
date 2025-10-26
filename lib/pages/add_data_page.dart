@@ -31,6 +31,8 @@ class _AddDataPageState extends State<AddDataPage> {
 
     _rateController.addListener(_calculateVolume);
     _paidAmountController.addListener(_calculateVolume);
+
+    _updateRateToDefault();
   }
 
   void _calculateVolume() {
@@ -47,14 +49,25 @@ class _AddDataPageState extends State<AddDataPage> {
 
   Future<void> _loadLastValues() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _rateController.text = prefs.getString('last_fuel_price') ?? '';
-    });
+    if (mounted) {
+      setState(() {
+        _rateController.text = prefs.getString('last_fuel_price') ?? '';
+        _updateRateToDefault();
+      });
+    }
   }
 
   Future<void> _saveLastValues() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_fuel_price', _rateController.text);
+  }
+
+  void _updateRateToDefault() {
+    if (AppSettings.defaultFuelPrices.containsKey(_selectedFuelType)) {
+      setState(() {
+        _rateController.text = AppSettings.defaultFuelPrices[_selectedFuelType]!.toString();
+      });
+    }
   }
 
   @override
@@ -138,6 +151,7 @@ class _AddDataPageState extends State<AddDataPage> {
                     onChanged: (val) {
                       setState(() {
                         _selectedFuelType = val!;
+                        _updateRateToDefault();
                       });
                     },
                     decoration: InputDecoration(
