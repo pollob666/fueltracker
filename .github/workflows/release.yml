@@ -1,0 +1,79 @@
+# GitHub Actions workflow for building and releasing Flutter APKs.
+#
+# This workflow is triggered on every push to the 'release' branch.
+# It builds a signed release APK, renames it with build information,
+# and then creates a new GitHub Release, attaching the APK as an artifact.
+#
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check out the repository code.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up the Java Development Kit (JDK).
+      # Flutter requires this for Android builds.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Step 3: Set up the Flutter SDK.
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      # Step 4: Install Flutter dependencies.
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Step 5: Decode the keystore and create the key.properties file.
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo $KEYSTORE_BASE64 | base64 --decode > android/app/release.jks
+          echo "storeFile=release.jks" > android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+          echo "storePassword=$STORE_PASSWORD" >> android/key.properties
+
+      # Step 6: Build the signed release APK.
+      - name: Build signed release APK
+        run: flutter build apk --release
+
+      # Step 7: Rename the artifact to include build info.
+      - name: Rename APK
+        run: |
+          BUILD_DATE=$(date +'%Y-%m-%dT%H%M%SZ')
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${{ github.run_number }}-${BUILD_DATE}.apk
+
+      # Step 8: Create a GitHub Release and upload the APK.
+      - name: Create Release and Upload Artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          # The name of the tag.
+          tag_name: build-${{ github.run_number }}
+          # The name of the release.
+          name: "Release ${{ github.run_number }}"
+          # The body of the release.
+          body: |
+            Automated release for build ${{ github.run_number }}.
+            - Release APK (signed)
+          # A glob pattern to the file to upload.
+          files: build/app/outputs/flutter-apk/fuelTracker-release-*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
