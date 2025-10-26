@@ -15,7 +15,7 @@
   "paidAmount": "পরিশোধিত পরিমাণ (বিডিটি)",
   "save": "সংরক্ষণ করুন",
   "runningAverageMileage": "চলমান গড় মাইলেজ",
-  "lastTimeMileage": "শেষবারের মাইলেজ",
+  "lastTimeMileage": "বর্তমান চলমান মাইলেজ",
   "lastRefuelVolume": "শেষ রিফুয়েল ভলিউম",
   "exportToCSV": "সিএসভি-তে এক্সপোর্ট করুন",
   "folderPath": "ফোল্ডারের পথ",

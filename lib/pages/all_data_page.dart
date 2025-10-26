@@ -125,12 +125,11 @@ class _AllDataPageState extends State<AllDataPage> {
     return Scaffold(
       appBar: AppBar(title: Text(localizations.allData)),
       drawer: const MyDrawer(),
-      body: Scrollbar(
-        child: SingleChildScrollView(
-          // Vertical scroll view
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
+      body: InteractiveViewer(
+        constrained: false,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 100.0),
+          child: DataTable(
               columns: [
                 DataColumn(label: Text(localizations.dateAndTime)),
                 DataColumn(label: Text(localizations.odometerReading)),
@@ -143,8 +142,7 @@ class _AllDataPageState extends State<AllDataPage> {
               ],
               rows: allRows,
             ),
-          ),
-        ),
+      ),
       ),
     );
   }

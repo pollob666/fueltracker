@@ -15,7 +15,7 @@
   "paidAmount": "Paid Amount (BDT)",
   "save": "Save",
   "runningAverageMileage": "Running Average Mileage",
-  "lastTimeMileage": "Last Time Mileage",
+  "lastTimeMileage": "Current Running Mileage",
   "lastRefuelVolume": "Last Refuel Volume",
   "exportToCSV": "Export to CSV",
   "folderPath": "Folder Path",

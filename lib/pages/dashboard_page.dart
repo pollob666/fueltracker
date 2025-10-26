@@ -28,44 +28,44 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
-  double calculateLastMileage(List<FuelRecord> records) {
+  double calculateCurrentRunningMileage(List<FuelRecord> records) {
     if (records.length < 2) {
       return 0;
     }
     double lastOdometer = records.last.odometer;
     double previousOdometer = records[records.length - 2].odometer;
-    // double previousVolume = records[records.length - 2].volume;
-    //fixed the calculation to use latest volume
-    double lastVolume = records.last.volume;
+    double previousVolume = records[records.length - 2].volume;
 
-    if (lastVolume == 0) return 0; // Avoid division by zero
+    if (previousVolume == 0) return 0; // Avoid division by zero
 
-    return (lastOdometer - previousOdometer) / lastVolume;
+    return (lastOdometer - previousOdometer) / previousVolume;
   }
 
   double calculateRunningAverage(List<FuelRecord> records) {
-    if (records.length < 3) {
+    if (records.length < 2) {
       return 0; // Not enough data for running average
     }
 
     List<double> mileages = [];
     for (int i = 1; i < records.length; i++) {
       double diff = records[i].odometer - records[i - 1].odometer;
-      double mileage = diff / records[i].volume;
-      mileages.add(mileage);
+      if (records[i - 1].volume > 0) {
+        double mileage = diff / records[i - 1].volume;
+        mileages.add(mileage);
+      }
     }
 
-    double runningAverage = mileages[0]; // Initialize with the first mileage
-
-    for (int i = 1; i < mileages.length; i++) {
-      runningAverage = (runningAverage + mileages[i]) / 2;
+    if (mileages.isEmpty) {
+      return 0;
     }
-    return runningAverage;
+
+    double totalMileage = mileages.reduce((a, b) => a + b);
+    return totalMileage / mileages.length;
   }
 
   @override
   Widget build(BuildContext context) {
-    double lastMileage = calculateLastMileage(records);
+    double currentRunningMileage = calculateCurrentRunningMileage(records);
     double runningAverage = calculateRunningAverage(records);
     double lastRefuelVolume = records.isNotEmpty ? records.last.volume : 0;
 
@@ -107,7 +107,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           Text(localizations.lastTimeMileage),
                           const SizedBox(height: 8),
                           Text(
-                            "${lastMileage.toStringAsFixed(2)} km/l",
+                            "${currentRunningMileage.toStringAsFixed(2)} km/l",
                             style: const TextStyle(fontSize: 24),
                           ),
                         ],
