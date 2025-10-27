@@ -3,35 +3,23 @@
 
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
-import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class VehicleService {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
-  final FuelTypeService _fuelTypeService = FuelTypeService();
+  static const String _defaultVehicleKey = 'default_vehicle';
 
   Future<List<Vehicle>> getVehicles() async {
-    final vehicles = await _dbHelper.getVehicles();
-    if (vehicles.isEmpty) {
-      await _addDefaultVehicle();
-      return _dbHelper.getVehicles();
-    }
-    return vehicles;
+    return await _dbHelper.getVehicles();
   }
 
-  Future<void> _addDefaultVehicle() async {
-    final fuelTypes = await _fuelTypeService.getFuelTypes();
-    if (fuelTypes.isNotEmpty) {
-      final defaultVehicle = Vehicle(
-        name: 'Default Vehicle',
-        type: VehicleType.car,
-        primaryFuelTypeId: fuelTypes.first.id!,
-      );
-      await _dbHelper.insertVehicle(defaultVehicle);
-    }
+  Future<int?> getDefaultVehicle() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_defaultVehicleKey);
   }
 
-  Future<Vehicle?> getVehicleById(int id) async {
-    final allVehicles = await getVehicles();
-    return allVehicles.firstWhere((vehicle) => vehicle.id == id);
+  Future<void> setDefaultVehicle(int vehicleId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_defaultVehicleKey, vehicleId);
   }
 }

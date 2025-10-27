@@ -3,13 +3,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
+import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
+import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
-import 'package:fuel_tracker/l10n/l10n.dart';
+
 import 'add_data_page.dart';
 import 'settings_page.dart';
 
@@ -41,22 +43,25 @@ class _DashboardPageState extends State<DashboardPage> {
     var recs = await DatabaseHelper.instance.getFuelRecords();
     var fuelTypes = await _fuelTypeService.getFuelTypes();
     var vehicles = await _vehicleService.getVehicles();
+    var defaultVehicleId = await _vehicleService.getDefaultVehicle();
 
     recs.sort((a, b) => a.date.compareTo(b.date));
 
-    setState(() {
-      _allRecords = recs;
-      _fuelTypeMap = {for (var ft in fuelTypes) ft.id!: ft};
-      _vehicles = vehicles;
-      _vehicleMap = {for (var v in vehicles) v.id!: v};
+    if (mounted) {
+      setState(() {
+        _allRecords = recs;
+        _fuelTypeMap = {for (var ft in fuelTypes) ft.id!: ft};
+        _vehicles = vehicles;
+        _vehicleMap = {for (var v in vehicles) v.id!: v};
 
-      if (_vehicles.isNotEmpty) {
-        _selectedVehicleId = _vehicles.first.id;
-        _filterRecords();
-      } else {
-        _filteredRecords = [];
-      }
-    });
+        if (vehicles.isNotEmpty) {
+          _selectedVehicleId = defaultVehicleId ?? vehicles.first.id;
+          _filterRecords();
+        } else {
+          _filteredRecords = [];
+        }
+      });
+    }
   }
 
   void _filterRecords() {
@@ -121,7 +126,8 @@ class _DashboardPageState extends State<DashboardPage> {
     return totalCost / totalDistance;
   }
 
-  Widget _buildMileageCard(BuildContext context, String title, double value, String unit, Color backgroundColor, Color onBackgroundColor, Color valueColor) {
+  Widget _buildMileageCard(BuildContext context, String title, double value, String unit,
+      Color backgroundColor, Color onBackgroundColor, Color valueColor) {
     final theme = Theme.of(context);
     return Expanded(
       child: Card(
@@ -154,7 +160,8 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildCostCard(BuildContext context, String title, double value, String unit, Color backgroundColor, Color onBackgroundColor, Color valueColor) {
+  Widget _buildCostCard(BuildContext context, String title, double value, String unit,
+      Color backgroundColor, Color onBackgroundColor, Color valueColor) {
     final theme = Theme.of(context);
     return Expanded(
       child: Card(
@@ -193,6 +200,32 @@ class _DashboardPageState extends State<DashboardPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    if (_vehicles.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(localizations.appTitle)),
+        drawer: const MyDrawer(),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(localizations.noVehiclesMessage, style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AddVehiclePage()),
+                  );
+                  _loadInitialData();
+                },
+                child: Text(localizations.addVehicle),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final lastRecord = _filteredRecords.isNotEmpty ? _filteredRecords.last : null;
     final fuelTypeName = lastRecord != null
         ? _fuelTypeMap[lastRecord.fuelTypeId]?.name ?? localizations.notAvailable
@@ -212,30 +245,71 @@ class _DashboardPageState extends State<DashboardPage> {
         final unit = primaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
         mileageCards.add(Row(
           children: [
-            _buildMileageCard(context, '${primaryFuelType.name} ${localizations.runningAverageMileage}', calculateRunningAverage(records), unit, colorScheme.primaryContainer, colorScheme.onPrimaryContainer, colorScheme.primary),
+            _buildMileageCard(
+                context,
+                '${primaryFuelType.name} ${localizations.runningAverageMileage}',
+                calculateRunningAverage(records),
+                unit,
+                colorScheme.primaryContainer,
+                colorScheme.onPrimaryContainer,
+                colorScheme.primary),
             const SizedBox(width: 16),
-             _buildMileageCard(context, '${primaryFuelType.name} ${localizations.lastTimeMileage}', calculateCurrentRunningMileage(records), unit, colorScheme.secondaryContainer, colorScheme.onSecondaryContainer, colorScheme.secondary),
+            _buildMileageCard(
+                context,
+                '${primaryFuelType.name} ${localizations.lastTimeMileage}',
+                calculateCurrentRunningMileage(records),
+                unit,
+                colorScheme.secondaryContainer,
+                colorScheme.onSecondaryContainer,
+                colorScheme.secondary),
           ],
         ));
 
-        costCards.add(_buildCostCard(context, '${primaryFuelType.name} ${localizations.costPerKm}', calculateCostPerKm(records), 'BDT/km', colorScheme.primaryContainer, colorScheme.onPrimaryContainer, colorScheme.primary));
-
+        costCards.add(_buildCostCard(
+            context,
+            '${primaryFuelType.name} ${localizations.costPerKm}',
+            calculateCostPerKm(records),
+            'BDT/km',
+            colorScheme.primaryContainer,
+            colorScheme.onPrimaryContainer,
+            colorScheme.primary));
       }
 
       final secondaryFuelType = _fuelTypeMap[selectedVehicle.secondaryFuelTypeId];
       if (secondaryFuelType != null) {
         final records = _filteredRecords.where((r) => r.fuelTypeId == secondaryFuelType.id).toList();
         final unit = secondaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
-         mileageCards.add(const SizedBox(height: 16));
+        mileageCards.add(const SizedBox(height: 16));
         mileageCards.add(Row(
           children: [
-            _buildMileageCard(context, '${secondaryFuelType.name} ${localizations.runningAverageMileage}', calculateRunningAverage(records), unit, colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer, colorScheme.tertiary),
-             const SizedBox(width: 16),
-            _buildMileageCard(context, '${secondaryFuelType.name} ${localizations.lastTimeMileage}', calculateCurrentRunningMileage(records), unit, colorScheme.errorContainer, colorScheme.onErrorContainer, colorScheme.error),
+            _buildMileageCard(
+                context,
+                '${secondaryFuelType.name} ${localizations.runningAverageMileage}',
+                calculateRunningAverage(records),
+                unit,
+                colorScheme.tertiaryContainer,
+                colorScheme.onTertiaryContainer,
+                colorScheme.tertiary),
+            const SizedBox(width: 16),
+            _buildMileageCard(
+                context,
+                '${secondaryFuelType.name} ${localizations.lastTimeMileage}',
+                calculateCurrentRunningMileage(records),
+                unit,
+                colorScheme.errorContainer,
+                colorScheme.onErrorContainer,
+                colorScheme.error),
           ],
         ));
         costCards.add(const SizedBox(width: 16));
-        costCards.add(_buildCostCard(context, '${secondaryFuelType.name} ${localizations.costPerKm}', calculateCostPerKm(records), 'BDT/km', colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer, colorScheme.tertiary));
+        costCards.add(_buildCostCard(
+            context,
+            '${secondaryFuelType.name} ${localizations.costPerKm}',
+            calculateCostPerKm(records),
+            'BDT/km',
+            colorScheme.tertiaryContainer,
+            colorScheme.onTertiaryContainer,
+            colorScheme.tertiary));
       }
     }
 
@@ -283,7 +357,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(height: 16),
                 ...mileageCards,
                 const SizedBox(height: 24),
-                 Card(
+                Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -370,16 +444,13 @@ class _DashboardPageState extends State<DashboardPage> {
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add),
                   onPressed: () async {
-                    await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const AddDataPage()));
+                    await Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => const AddDataPage()));
                     _loadInitialData();
                   },
                   label: Text(localizations.addFuelData),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     textStyle: theme.textTheme.titleLarge,
                   ),
                 ),
@@ -392,9 +463,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildInfoTile(BuildContext context,
-      {required String label,
-      required String value,
-      required IconData icon}) {
+      {required String label, required String value, required IconData icon}) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 

@@ -59,18 +59,20 @@ jobs:
       - name: Build signed release APK
         run: flutter build apk --release
 
-      # Step 7: Rename the artifact to include build info.
-      - name: Rename APK
+      # Step 7: Rename the artifact to include build info and set the release name.
+      - name: Rename APK and Set Release Name
         run: |
-          BUILD_DATE=$(date +'%Y-%m-%dT%H%M%SZ')
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${{ github.run_number }}-${BUILD_DATE}.apk
+          BUILD_DATE_ISO=$(date +'%Y-%m-%dT%H%M%SZ')
+          BUILD_DATE_SIMPLE=$(date +'%Y%m%d')
+          echo "RELEASE_NAME=Release-${BUILD_DATE_SIMPLE}-${{ github.run_number }}" >> $GITHUB_ENV
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${BUILD_DATE_ISO}-${{ github.run_number }}.apk
 
       # Step 8: Create a GitHub Release and upload the APK.
       - name: Create Release and Upload Artifact
         uses: softprops/action-gh-release@v2 # Updated from v1 to v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: "Release ${{ github.run_number }}"
+          name: ${{ env.RELEASE_NAME }}
           body: |
             Automated release for build ${{ github.run_number }}.
             - Release APK (signed)

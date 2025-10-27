@@ -45,8 +45,6 @@ class MessageLookup extends MessageLookupByLibrary {
         "dataImportedSuccessfully": MessageLookupByLibrary.simpleMessage(
             "ডেটা সফলভাবে ইম্পোর্ট করা হয়েছে!"),
         "dateAndTime": MessageLookupByLibrary.simpleMessage("তারিখ ও সময়"),
-        "defaultFuelPrices":
-            MessageLookupByLibrary.simpleMessage("ডিফল্ট জ্বালানির দাম"),
         "defaultVehicle":
             MessageLookupByLibrary.simpleMessage("ডিফল্ট যানবাহন"),
         "dropbox": MessageLookupByLibrary.simpleMessage("Dropbox"),
@@ -104,8 +102,6 @@ class MessageLookup extends MessageLookupByLibrary {
         "motorcycle": MessageLookupByLibrary.simpleMessage("মোটরসাইকেল"),
         "noDataPreviewAvailable": MessageLookupByLibrary.simpleMessage(
             "কোনও ডেটা প্রিভিউ পাওয়া যায় নি"),
-        "noVehiclesMessage": MessageLookupByLibrary.simpleMessage(
-            "স্বাগতম! শুরু করতে আপনার প্রথম যান যোগ করুন।"),
         "notAvailable": MessageLookupByLibrary.simpleMessage("প্রযোজ্য নয়"),
         "odometer": MessageLookupByLibrary.simpleMessage("ওডোমিটার:"),
         "odometerReading":

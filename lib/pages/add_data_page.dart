@@ -50,12 +50,16 @@ class _AddDataPageState extends State<AddDataPage> {
   }
 
   Future<void> _loadInitialData() async {
-    _vehicles = await _vehicleService.getVehicles();
-    _allFuelTypes = await _fuelTypeService.getFuelTypes();
-    if (_vehicles.isNotEmpty) {
+    final vehicles = await _vehicleService.getVehicles();
+    final allFuelTypes = await _fuelTypeService.getFuelTypes();
+    if (mounted) {
       setState(() {
-        _selectedVehicleId = _vehicles.first.id;
-        _updateAvailableFuelTypes();
+        _vehicles = vehicles;
+        _allFuelTypes = allFuelTypes;
+        if (_vehicles.isNotEmpty) {
+          _selectedVehicleId = _vehicles.first.id;
+          _updateAvailableFuelTypes();
+        }
       });
     }
   }
@@ -64,16 +68,19 @@ class _AddDataPageState extends State<AddDataPage> {
     if (_selectedVehicleId == null || _vehicles.isEmpty) return;
 
     final selectedVehicle = _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
-    _availableFuelTypes = _allFuelTypes.where((ft) {
+    final availableFuelTypes = _allFuelTypes.where((ft) {
       return ft.id == selectedVehicle.primaryFuelTypeId ||
           ft.id == selectedVehicle.secondaryFuelTypeId;
     }).toList();
 
-    if (_availableFuelTypes.isNotEmpty) {
-      setState(() {
+    setState(() {
+      _availableFuelTypes = availableFuelTypes;
+      if (_availableFuelTypes.isNotEmpty) {
         _selectedFuelTypeId = _availableFuelTypes.first.id;
-      });
-    }
+        final fuelName = _availableFuelTypes.first.name;
+        _rateController.text = AppSettings.defaultFuelPrices[fuelName]?.toString() ?? '';
+      }
+    });
   }
 
   void _calculateVolume() {
@@ -173,7 +180,7 @@ class _AddDataPageState extends State<AddDataPage> {
                     },
                   ),
                   DropdownButtonFormField<int>(
-                    initialValue: _selectedVehicleId,
+                    value: _selectedVehicleId,
                     items: _vehicles
                         .map((vehicle) => DropdownMenuItem(
                               value: vehicle.id,
@@ -190,7 +197,7 @@ class _AddDataPageState extends State<AddDataPage> {
                         labelText: AppLocalizations.of(context).vehicle),
                   ),
                   DropdownButtonFormField<int>(
-                    initialValue: _selectedFuelTypeId,
+                    value: _selectedFuelTypeId,
                     items: _availableFuelTypes
                         .map((fuel) => DropdownMenuItem(
                               value: fuel.id,
@@ -200,6 +207,8 @@ class _AddDataPageState extends State<AddDataPage> {
                     onChanged: (val) {
                       setState(() {
                         _selectedFuelTypeId = val!;
+                        final fuelName = _availableFuelTypes.firstWhere((ft) => ft.id == val).name;
+                        _rateController.text = AppSettings.defaultFuelPrices[fuelName]?.toString() ?? '';
                       });
                     },
                     decoration: InputDecoration(

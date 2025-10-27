@@ -44,8 +44,6 @@ class MessageLookup extends MessageLookupByLibrary {
         "dataImportedSuccessfully":
             MessageLookupByLibrary.simpleMessage("Data Imported Successfully!"),
         "dateAndTime": MessageLookupByLibrary.simpleMessage("Date & Time"),
-        "defaultFuelPrices":
-            MessageLookupByLibrary.simpleMessage("Default Fuel Prices"),
         "defaultVehicle":
             MessageLookupByLibrary.simpleMessage("Default Vehicle"),
         "dropbox": MessageLookupByLibrary.simpleMessage("Dropbox"),
@@ -101,8 +99,6 @@ class MessageLookup extends MessageLookupByLibrary {
         "motorcycle": MessageLookupByLibrary.simpleMessage("Motorcycle"),
         "noDataPreviewAvailable":
             MessageLookupByLibrary.simpleMessage("No Data Preview Available"),
-        "noVehiclesMessage": MessageLookupByLibrary.simpleMessage(
-            "Welcome! Add your first vehicle to get started."),
         "notAvailable": MessageLookupByLibrary.simpleMessage("N/A"),
         "odometer": MessageLookupByLibrary.simpleMessage("Odometer:"),
         "odometerReading":

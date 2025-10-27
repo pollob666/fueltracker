@@ -3,6 +3,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fuel_tracker/models/fuel_type.dart';
+import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
@@ -23,6 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _folderController = TextEditingController();
   Locale? _currentLocale;
   ThemeMode _themeMode = ThemeMode.system;
+  final FuelTypeService _fuelTypeService = FuelTypeService();
+  List<FuelType> _fuelTypes = [];
+  final Map<String, TextEditingController> _priceControllers = {};
 
   @override
   void initState() {
@@ -31,6 +36,17 @@ class _SettingsPageState extends State<SettingsPage> {
     _folderController.text = _getCurrentFolderPath();
     _currentLocale = L10n.all.first;
     _themeMode = AppSettings.themeMode;
+    _loadFuelTypes();
+  }
+
+  Future<void> _loadFuelTypes() async {
+    _fuelTypes = await _fuelTypeService.getFuelTypes();
+    for (var ft in _fuelTypes) {
+      _priceControllers[ft.name] = TextEditingController(
+        text: AppSettings.defaultFuelPrices[ft.name]?.toString() ?? '',
+      );
+    }
+    setState(() {});
   }
 
   String _getCurrentFolderPath() {
@@ -55,6 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     _maxVolumeController.dispose();
     _folderController.dispose();
+    _priceControllers.values.forEach((controller) => controller.dispose());
     super.dispose();
   }
 
@@ -70,11 +87,19 @@ class _SettingsPageState extends State<SettingsPage> {
         AppSettings.dropboxFolderPath = _folderController.text;
       }
       AppSettings.themeMode = _themeMode;
+      _priceControllers.forEach((name, controller) {
+        final price = double.tryParse(controller.text);
+        if (price != null) {
+          AppSettings.defaultFuelPrices[name] = price;
+        }
+      });
 
       await AppSettings.saveSettings();
-      MyApp.setThemeMode(context, _themeMode);
-      ScaffoldMessenger.of(context).showSnackBar(
+      if(mounted){
+        MyApp.setThemeMode(context, _themeMode);
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).settingsSaved)));
+      }
     }
   }
 
@@ -105,6 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
             key: _formKey,
             child: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextFormField(
                     controller: _maxVolumeController,
@@ -188,12 +214,22 @@ class _SettingsPageState extends State<SettingsPage> {
                       onChanged: (ThemeMode? themeMode) {
                         if (themeMode != null) {
                           setState(() {
-                            _themeMode = themeMode!;
+                            _themeMode = themeMode;
                           });
                         }
                       },
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Text(AppLocalizations.of(context).defaultFuelPrices, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  ..._fuelTypes.map((ft) {
+                    return TextFormField(
+                      controller: _priceControllers[ft.name],
+                      decoration: InputDecoration(labelText: ft.name),
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    );
+                  }).toList(),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _saveSettings,

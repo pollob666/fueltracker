@@ -34,6 +34,7 @@ dependencies:
 
   # UI and theming
   dynamic_color: ^1.8.0
+  flutter_launcher_icons: ^0.14.4 # Generates launcher icons for Android and iOS.
 
 # Development-only dependencies
 dev_dependencies:
@@ -44,7 +45,11 @@ dev_dependencies:
 
 # Flutter-specific configurations
 flutter:
+  generate: true # Enables generation of AppLocalizations using `flutter gen-l10n`.
   uses-material-design: true
+
+  assets:
+    - assets/fuelTracker.png
 
 # Internationalization configuration
 flutter_intl:
@@ -53,3 +58,13 @@ flutter_intl:
   main_locale: en
   arb_dir: lib/l10n
   output_dir: lib/l10n
+
+flutter_launcher_icons:
+  android: "launcher_icon" # Master Android icon name (without extension).
+  ios: true                # Generate iOS icons.
+  min_sdk_android: 21 # android min sdk min: 21
+  image_path: "assets/fuelTracker.png" # Path to the master icon image.
+#  remove_alpha_ios: true   # Remove alpha channel for iOS icons.
+#  adaptive_icon_background: "assets/images/ic_launcher-bg.png" # Background for Android adaptive icons.
+#  adaptive_icon_foreground: "assets/images/ic_launcher-fg.png" # Foreground for Android adaptive icons.
+#  adaptive_icon_monochrome: "assets/images/ic_launcher-mono.png" # Monochrome icon for Android adaptive icons (e.g., for themed icons in Android 13+).

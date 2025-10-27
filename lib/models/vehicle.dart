@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
-import 'package:fuel_tracker/models/fuel_type.dart';
 
 enum VehicleType {
-  car,
+  carOrSedan,
   motorcycle,
-  truck,
+  scooterOrMoped,
+  suv,
+  pickupOrTruck,
 }
 
 class Vehicle {
