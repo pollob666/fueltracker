@@ -18,9 +18,9 @@ class MyDrawer extends StatelessWidget {
     return Drawer(
       child: ListView(
         children: [
-          DrawerHeader(child: Text(AppLocalizations.of(context).appTitle, style: const TextStyle(fontSize: 24))),
+          DrawerHeader(child: Text(AppLocalizations.of(context)!.appTitle, style: const TextStyle(fontSize: 24))),
           ListTile(
-            title: Text(AppLocalizations.of(context).dashboard),
+            title: Text(AppLocalizations.of(context)!.dashboard),
             onTap: () {
               Navigator.pushReplacement(
                   context,
@@ -29,35 +29,35 @@ class MyDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context).allData),
+            title: Text(AppLocalizations.of(context)!.allData),
             onTap: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const AllDataPage()));
             },
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context).manageVehicles),
+            title: Text(AppLocalizations.of(context)!.manageVehicles),
             onTap: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const ManageVehiclesPage()));
             },
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context).import),
+            title: Text(AppLocalizations.of(context)!.import),
             onTap: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const ImportPage()));
             },
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context).export),
+            title: Text(AppLocalizations.of(context)!.export),
             onTap: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const ExportPage()));
             },
           ),
           ListTile(
-            title: Text(AppLocalizations.of(context).settings),
+            title: Text(AppLocalizations.of(context)!.settings),
             onTap: () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const SettingsPage()));

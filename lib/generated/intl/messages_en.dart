@@ -30,6 +30,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Fuel Consumption Tracker"),
         "averageMileage":
             MessageLookupByLibrary.simpleMessage("Average Mileage"),
+        "cancel": MessageLookupByLibrary.simpleMessage("Cancel"),
         "carOrSedan": MessageLookupByLibrary.simpleMessage("Car/Sedan"),
         "comingSoon": MessageLookupByLibrary.simpleMessage("Coming Soon"),
         "costEfficiency":
@@ -44,6 +45,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "dataImportedSuccessfully":
             MessageLookupByLibrary.simpleMessage("Data Imported Successfully!"),
         "dateAndTime": MessageLookupByLibrary.simpleMessage("Date & Time"),
+        "defaultFuelPrices":
+            MessageLookupByLibrary.simpleMessage("Default Fuel Prices"),
         "defaultVehicle":
             MessageLookupByLibrary.simpleMessage("Default Vehicle"),
         "dropbox": MessageLookupByLibrary.simpleMessage("Dropbox"),
@@ -85,6 +88,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "googleDrive": MessageLookupByLibrary.simpleMessage("Google Drive"),
         "import": MessageLookupByLibrary.simpleMessage("Import"),
         "importData": MessageLookupByLibrary.simpleMessage("Import Data"),
+        "importToVehicle":
+            MessageLookupByLibrary.simpleMessage("Import to Vehicle"),
         "lastRefuelDetails":
             MessageLookupByLibrary.simpleMessage("Last Refuel Details"),
         "lastRefuelVolume":
@@ -99,12 +104,19 @@ class MessageLookup extends MessageLookupByLibrary {
         "motorcycle": MessageLookupByLibrary.simpleMessage("Motorcycle"),
         "noDataPreviewAvailable":
             MessageLookupByLibrary.simpleMessage("No Data Preview Available"),
+        "noVehiclesFound": MessageLookupByLibrary.simpleMessage(
+            "No vehicles found. Please add a vehicle first."),
+        "noVehiclesMessage": MessageLookupByLibrary.simpleMessage(
+            "Welcome! Add your first vehicle to get started."),
         "notAvailable": MessageLookupByLibrary.simpleMessage("N/A"),
         "odometer": MessageLookupByLibrary.simpleMessage("Odometer:"),
         "odometerReading":
             MessageLookupByLibrary.simpleMessage("Odometer Reading (km)"),
+        "ok": MessageLookupByLibrary.simpleMessage("OK"),
         "paidAmount": MessageLookupByLibrary.simpleMessage("Paid Amount (BDT)"),
         "pickupOrTruck": MessageLookupByLibrary.simpleMessage("Pick-up/Truck"),
+        "pleaseSelectVehicle": MessageLookupByLibrary.simpleMessage(
+            "Please select a vehicle to import the data into."),
         "primaryFuelCapacity":
             MessageLookupByLibrary.simpleMessage("Primary Fuel Capacity"),
         "primaryFuelType":

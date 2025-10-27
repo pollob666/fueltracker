@@ -819,6 +819,76 @@ class S {
       args: [],
     );
   }
+
+  /// `Welcome! Add your first vehicle to get started.`
+  String get noVehiclesMessage {
+    return Intl.message(
+      'Welcome! Add your first vehicle to get started.',
+      name: 'noVehiclesMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Default Fuel Prices`
+  String get defaultFuelPrices {
+    return Intl.message(
+      'Default Fuel Prices',
+      name: 'defaultFuelPrices',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import to Vehicle`
+  String get importToVehicle {
+    return Intl.message(
+      'Import to Vehicle',
+      name: 'importToVehicle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please select a vehicle to import the data into.`
+  String get pleaseSelectVehicle {
+    return Intl.message(
+      'Please select a vehicle to import the data into.',
+      name: 'pleaseSelectVehicle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No vehicles found. Please add a vehicle first.`
+  String get noVehiclesFound {
+    return Intl.message(
+      'No vehicles found. Please add a vehicle first.',
+      name: 'noVehiclesFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancel`
+  String get cancel {
+    return Intl.message(
+      'Cancel',
+      name: 'cancel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `OK`
+  String get ok {
+    return Intl.message(
+      'OK',
+      name: 'ok',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

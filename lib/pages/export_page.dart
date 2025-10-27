@@ -33,6 +33,9 @@ class _ExportPageState extends State<ExportPage> {
   final VehicleService _vehicleService = VehicleService();
 
   Future<void> _exportData() async {
+    final localizations = AppLocalizations.of(context);
+    if (!mounted || localizations == null) return;
+
     setState(() {
       _exporting = true;
       _message = "";
@@ -40,9 +43,10 @@ class _ExportPageState extends State<ExportPage> {
 
     String folderPath = AppSettings.localFolderPath;
     if (folderPath.isEmpty) {
+      if (!mounted) return;
       setState(() {
         _exporting = false;
-        _message = AppLocalizations.of(context).folderPathNotSetInSettings;
+        _message = localizations.folderPathNotSetInSettings;
       });
       return;
     }
@@ -50,22 +54,24 @@ class _ExportPageState extends State<ExportPage> {
     List<String> messages = [];
 
     if (_exportRefuelingData) {
-      messages.add(await _exportRefuelingDataAsCsv(folderPath));
+      messages.add(await _exportRefuelingDataAsCsv(folderPath, localizations));
     }
     if (_exportAppSettings) {
-      messages.add(await _exportAppSettingsAsJson(folderPath));
+      messages.add(await _exportAppSettingsAsJson(folderPath, localizations));
     }
     if (_exportVehicleInformation) {
-      messages.add(await _exportVehicleInformationAsCsv(folderPath));
+      messages.add(await _exportVehicleInformationAsCsv(folderPath, localizations));
     }
 
+    if (!mounted) return;
     setState(() {
       _exporting = false;
       _message = messages.join('\n');
     });
   }
 
-  Future<String> _exportRefuelingDataAsCsv(String folderPath) async {
+  Future<String> _exportRefuelingDataAsCsv(
+      String folderPath, AppLocalizations localizations) async {
     List<FuelRecord> records = await DatabaseHelper.instance.getFuelRecords();
     final fuelTypes = await _fuelTypeService.getFuelTypes();
     final vehicles = await _vehicleService.getVehicles();
@@ -74,13 +80,13 @@ class _ExportPageState extends State<ExportPage> {
 
     List<List<String>> csvData = [
       [
-        AppLocalizations.of(context).dateAndTime,
-        AppLocalizations.of(context).odometerReading,
-        AppLocalizations.of(context).vehicle,
-        AppLocalizations.of(context).fuelType,
-        AppLocalizations.of(context).fuelPriceRate,
-        AppLocalizations.of(context).totalVolume,
-        AppLocalizations.of(context).paidAmount,
+        localizations.dateAndTime,
+        localizations.odometerReading,
+        localizations.vehicle,
+        localizations.fuelType,
+        localizations.fuelPriceRate,
+        localizations.totalVolume,
+        localizations.paidAmount,
       ],
       ...records.map((r) => [
             r.date.toIso8601String(),
@@ -94,18 +100,20 @@ class _ExportPageState extends State<ExportPage> {
     ];
 
     String csv = const ListToCsvConverter().convert(csvData);
-    String fileName = "fuel_records_${DateTime.now().millisecondsSinceEpoch}.csv";
+    String fileName =
+        "fuel_records_${DateTime.now().millisecondsSinceEpoch}.csv";
     File file = File("$folderPath/$fileName");
 
     try {
       await file.writeAsString(csv);
-      return "${AppLocalizations.of(context).dataExportedTo} $fileName";
+      return "${localizations.dataExportedTo} $fileName";
     } catch (e) {
-      return "${AppLocalizations.of(context).failedToExport} $fileName: $e";
+      return "${localizations.failedToExport} $fileName: $e";
     }
   }
 
-  Future<String> _exportAppSettingsAsJson(String folderPath) async {
+  Future<String> _exportAppSettingsAsJson(
+      String folderPath, AppLocalizations localizations) async {
     final prefs = await SharedPreferences.getInstance();
     final settings = {
       'maxVolume': prefs.getDouble('maxVolume'),
@@ -117,18 +125,20 @@ class _ExportPageState extends State<ExportPage> {
     };
 
     String json = jsonEncode(settings);
-    String fileName = "app_settings_${DateTime.now().millisecondsSinceEpoch}.json";
+    String fileName =
+        "app_settings_${DateTime.now().millisecondsSinceEpoch}.json";
     File file = File("$folderPath/$fileName");
 
     try {
       await file.writeAsString(json);
-      return "${AppLocalizations.of(context).dataExportedTo} $fileName";
+      return "${localizations.dataExportedTo} $fileName";
     } catch (e) {
-      return "${AppLocalizations.of(context).failedToExport} $fileName: $e";
+      return "${localizations.failedToExport} $fileName: $e";
     }
   }
 
-  Future<String> _exportVehicleInformationAsCsv(String folderPath) async {
+  Future<String> _exportVehicleInformationAsCsv(
+      String folderPath, AppLocalizations localizations) async {
     List<Vehicle> vehicles = await _vehicleService.getVehicles();
     final fuelTypes = await _fuelTypeService.getFuelTypes();
     final fuelTypeMap = {for (var ft in fuelTypes) ft.id!: ft};
@@ -155,14 +165,15 @@ class _ExportPageState extends State<ExportPage> {
     ];
 
     String csv = const ListToCsvConverter().convert(csvData);
-    String fileName = "vehicle_information_${DateTime.now().millisecondsSinceEpoch}.csv";
+    String fileName =
+        "vehicle_information_${DateTime.now().millisecondsSinceEpoch}.csv";
     File file = File("$folderPath/$fileName");
 
     try {
       await file.writeAsString(csv);
-      return "${AppLocalizations.of(context).dataExportedTo} $fileName";
+      return "${localizations.dataExportedTo} $fileName";
     } catch (e) {
-      return "${AppLocalizations.of(context).failedToExport} $fileName: $e";
+      return "${localizations.failedToExport} $fileName: $e";
     }
   }
 
@@ -170,6 +181,10 @@ class _ExportPageState extends State<ExportPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final localizations = AppLocalizations.of(context);
+
+    if (localizations == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(localizations.export)),
@@ -180,7 +195,8 @@ class _ExportPageState extends State<ExportPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(localizations.selectDataToExport, style: theme.textTheme.titleLarge),
+              Text(localizations.selectDataToExport,
+                  style: theme.textTheme.titleLarge),
               const SizedBox(height: 16),
               CheckboxListTile(
                 title: Text(localizations.exportRefuelingData),

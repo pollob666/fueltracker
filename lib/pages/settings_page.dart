@@ -34,7 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _maxVolumeController.text = AppSettings.maxVolume.toString();
     _folderController.text = _getCurrentFolderPath();
-    _currentLocale = L10n.all.first;
+    _currentLocale = Locale(AppSettings.language);
     _themeMode = AppSettings.themeMode;
     _loadFuelTypes();
   }
@@ -71,7 +71,9 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     _maxVolumeController.dispose();
     _folderController.dispose();
-    _priceControllers.values.forEach((controller) => controller.dispose());
+    for (var controller in _priceControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -86,6 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
       } else if (_storageOption == 'Dropbox') {
         AppSettings.dropboxFolderPath = _folderController.text;
       }
+      AppSettings.language = _currentLocale!.languageCode;
       AppSettings.themeMode = _themeMode;
       _priceControllers.forEach((name, controller) {
         final price = double.tryParse(controller.text);
@@ -95,10 +98,11 @@ class _SettingsPageState extends State<SettingsPage> {
       });
 
       await AppSettings.saveSettings();
-      if(mounted){
+      if (mounted) {
+        MyApp.setLocale(context, _currentLocale!);
         MyApp.setThemeMode(context, _themeMode);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).settingsSaved)));
+            SnackBar(content: Text(AppLocalizations.of(context)!.settingsSaved)));
       }
     }
   }
@@ -106,11 +110,11 @@ class _SettingsPageState extends State<SettingsPage> {
   String _getStorageOptionLocalization(BuildContext context, String option) {
     switch (option) {
       case 'Local':
-        return AppLocalizations.of(context).local;
+        return AppLocalizations.of(context)!.local;
       case 'Google Drive':
-        return AppLocalizations.of(context).googleDrive;
+        return AppLocalizations.of(context)!.googleDrive;
       case 'Dropbox':
-        return AppLocalizations.of(context).dropbox;
+        return AppLocalizations.of(context)!.dropbox;
       default:
         return option;
     }
@@ -121,7 +125,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).settings)),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
       drawer: const MyDrawer(),
       body: SafeArea(
         child: Padding(
@@ -135,22 +139,25 @@ class _SettingsPageState extends State<SettingsPage> {
                   TextFormField(
                     controller: _maxVolumeController,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).maximumTankCapacity),
+                        labelText:
+                            AppLocalizations.of(context)!.maximumTankCapacity),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context).enterMaximumCapacity;
+                        return AppLocalizations.of(context)!
+                            .enterMaximumCapacity;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _storageOption,
+                    initialValue: _storageOption,
                     items: ["Local", "Google Drive", "Dropbox"]
                         .map((option) => DropdownMenuItem(
                               value: option,
-                              child: Text(_getStorageOptionLocalization(context, option)),
+                              child: Text(_getStorageOptionLocalization(
+                                  context, option)),
                             ))
                         .toList(),
                     onChanged: (val) {
@@ -160,13 +167,14 @@ class _SettingsPageState extends State<SettingsPage> {
                       });
                     },
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).fileStorageOption),
+                        labelText:
+                            AppLocalizations.of(context)!.fileStorageOption),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _folderController,
                     decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context).folderPath,
+                      labelText: AppLocalizations.of(context)!.folderPath,
                       suffixIcon: IconButton(
                           icon: const Icon(Icons.folder_open),
                           onPressed: _pickFolder),
@@ -176,17 +184,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 16),
                   DropdownButton<Locale>(
                     value: _currentLocale,
-                    items: L10n.all
+                    items: AppLocalizations.supportedLocales
                         .map((locale) => DropdownMenuItem<Locale>(
                               value: locale,
-                              child: Text(L10n.getLanguageName(locale)),
+                              child: Text(
+                                  L10n.getLanguageName(locale.languageCode)),
                             ))
                         .toList(),
                     onChanged: (locale) {
                       if (locale != null) {
                         setState(() {
                           _currentLocale = locale;
-                          MyApp.setLocale(context, locale);
                         });
                       }
                     },
@@ -221,7 +229,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(AppLocalizations.of(context).defaultFuelPrices, style: theme.textTheme.titleLarge),
+                  Text(AppLocalizations.of(context)!.defaultFuelPrices,
+                      style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
                   ..._fuelTypes.map((ft) {
                     return TextFormField(
@@ -229,11 +238,11 @@ class _SettingsPageState extends State<SettingsPage> {
                       decoration: InputDecoration(labelText: ft.name),
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _saveSettings,
-                    child: Text(AppLocalizations.of(context).saveSettings),
+                    child: Text(AppLocalizations.of(context)!.saveSettings),
                   ),
                 ],
               ),

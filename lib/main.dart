@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
-import 'package:fuel_tracker/l10n/l10n_utils.dart';
 import 'package:fuel_tracker/theme.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 
@@ -64,7 +63,7 @@ class _MyAppState extends State<MyApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: L10n.all,
+          supportedLocales: AppLocalizations.supportedLocales,
           locale: _locale,
           localeResolutionCallback: (locale, supportedLocales) {
             return supportedLocales.firstWhere(

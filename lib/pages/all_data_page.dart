@@ -43,16 +43,18 @@ class _AllDataPageState extends State<AllDataPage> {
 
     recs.sort((a, b) => b.date.compareTo(a.date));
 
-    setState(() {
-      _allRecords = recs;
-      _vehicles = vehicles;
-      _fuelTypeMap = {for (var ft in fuelTypes) ft.id!: ft};
-      _vehicleMap = {for (var v in vehicles) v.id!: v};
-      if (_vehicles.isNotEmpty) {
-        _selectedVehicleId = _vehicles.first.id;
-        _filterRecords();
-      }
-    });
+    if (mounted) {
+      setState(() {
+        _allRecords = recs;
+        _vehicles = vehicles;
+        _fuelTypeMap = {for (var ft in fuelTypes) ft.id!: ft};
+        _vehicleMap = {for (var v in vehicles) v.id!: v};
+        if (_vehicles.isNotEmpty) {
+          _selectedVehicleId = _vehicles.first.id;
+          _filterRecords();
+        }
+      });
+    }
   }
 
   void _filterRecords() {
@@ -61,13 +63,19 @@ class _AllDataPageState extends State<AllDataPage> {
     } else {
       _filteredRecords = _allRecords.where((r) => r.vehicleId == _selectedVehicleId).toList();
     }
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    if (localizations == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     double maxOdometer =
         _filteredRecords.isNotEmpty ? _filteredRecords.map((r) => r.odometer).reduce(max) : 0.0;
@@ -86,17 +94,38 @@ class _AllDataPageState extends State<AllDataPage> {
     double sumSavings = sumActualBill - sumPaid;
 
     final DataRow summaryRow = DataRow(
-      color: MaterialStateProperty.all(theme.colorScheme.surfaceVariant),
+      color: WidgetStateProperty.all(theme.colorScheme.surfaceContainerHighest),
       cells: [
-        DataCell(Text('Summary', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(Text(maxOdometer.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text('Summary',
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(maxOdometer.toStringAsFixed(2),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant))),
         DataCell(const Text('')), // Vehicle column
         DataCell(const Text('')), // FuelType column
-        DataCell(Text(avgRate.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(Text(sumVolume.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(Text(sumPaid.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(Text(sumActualBill.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(Text(sumSavings.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(avgRate.toStringAsFixed(2),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumVolume.toStringAsFixed(2),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumPaid.toStringAsFixed(2),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumActualBill.toStringAsFixed(2),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant))),
+        DataCell(Text(sumSavings.toStringAsFixed(2),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant))),
         DataCell(const Text('')), // Empty cell for the new column
       ],
     );
@@ -111,8 +140,8 @@ class _AllDataPageState extends State<AllDataPage> {
       if (i < _filteredRecords.length - 1) {
         final previousRecord = _filteredRecords[i + 1];
         if (previousRecord.volume > 0) {
-          averageMileage = (record.odometer - previousRecord.odometer) /
-              previousRecord.volume;
+          averageMileage =
+              (record.odometer - previousRecord.odometer) / previousRecord.volume;
         }
       }
 
@@ -120,13 +149,13 @@ class _AllDataPageState extends State<AllDataPage> {
       final vehicleName = _vehicleMap[record.vehicleId]?.name ?? localizations.notAvailable;
 
       dataRows.add(DataRow(
-        color: MaterialStateProperty.resolveWith<Color?>((states) {
+        color: WidgetStateProperty.resolveWith<Color?>((states) {
           double expected = record.volume * record.rate;
           if (record.paidAmount < expected) {
-            return theme.colorScheme.tertiaryContainer.withOpacity(0.3);
+            return theme.colorScheme.tertiaryContainer.withAlpha(77);
           }
           if (record.paidAmount > expected) {
-            return theme.colorScheme.errorContainer.withOpacity(0.3);
+            return theme.colorScheme.errorContainer.withAlpha(77);
           }
           return null;
         }),
@@ -155,7 +184,7 @@ class _AllDataPageState extends State<AllDataPage> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: DropdownButtonFormField<int>(
-              value: _selectedVehicleId,
+              initialValue: _selectedVehicleId,
               items: _vehicles.map((vehicle) {
                 return DropdownMenuItem<int>(
                   value: vehicle.id,
@@ -170,7 +199,7 @@ class _AllDataPageState extends State<AllDataPage> {
               },
               decoration: InputDecoration(
                 labelText: localizations.vehicle,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
           ),

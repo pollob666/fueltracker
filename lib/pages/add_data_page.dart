@@ -68,13 +68,26 @@ class _AddDataPageState extends State<AddDataPage> {
     if (_selectedVehicleId == null || _vehicles.isEmpty) return;
 
     final selectedVehicle = _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
-    final availableFuelTypes = _allFuelTypes.where((ft) {
-      return ft.id == selectedVehicle.primaryFuelTypeId ||
-          ft.id == selectedVehicle.secondaryFuelTypeId;
-    }).toList();
+    final availableFuelTypes = <FuelType>{};
+
+    final primaryFuelType = _allFuelTypes.firstWhere((ft) => ft.id == selectedVehicle.primaryFuelTypeId);
+    if (primaryFuelType.category == FuelCategory.gasoline) {
+      availableFuelTypes.addAll(_allFuelTypes.where((ft) => ft.category == FuelCategory.gasoline));
+    } else {
+      availableFuelTypes.add(primaryFuelType);
+    }
+
+    if (selectedVehicle.secondaryFuelTypeId != null) {
+      final secondaryFuelType = _allFuelTypes.firstWhere((ft) => ft.id == selectedVehicle.secondaryFuelTypeId);
+      if (secondaryFuelType.category == FuelCategory.gasoline) {
+        availableFuelTypes.addAll(_allFuelTypes.where((ft) => ft.category == FuelCategory.gasoline));
+      } else {
+        availableFuelTypes.add(secondaryFuelType);
+      }
+    }
 
     setState(() {
-      _availableFuelTypes = availableFuelTypes;
+      _availableFuelTypes = availableFuelTypes.toList();
       if (_availableFuelTypes.isNotEmpty) {
         _selectedFuelTypeId = _availableFuelTypes.first.id;
         final fuelName = _availableFuelTypes.first.name;
@@ -145,7 +158,7 @@ class _AddDataPageState extends State<AddDataPage> {
     double maxVolume = AppSettings.maxVolume;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).addFuelData)),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.addFuelData)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -158,7 +171,7 @@ class _AddDataPageState extends State<AddDataPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          "${AppLocalizations.of(context).dateAndTime}: ${_selectedDate.toLocal().toString().substring(0, 16)}",
+                          "${AppLocalizations.of(context)!.dateAndTime}: ${_selectedDate.toLocal().toString().substring(0, 16)}",
                         ),
                       ),
                       IconButton(
@@ -170,17 +183,17 @@ class _AddDataPageState extends State<AddDataPage> {
                   TextFormField(
                     controller: _odometerController,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).odometerReading),
+                        labelText: AppLocalizations.of(context)!.odometerReading),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context).enterOdometerReading;
+                        return AppLocalizations.of(context)!.enterOdometerReading;
                       }
                       return null;
                     },
                   ),
                   DropdownButtonFormField<int>(
-                    value: _selectedVehicleId,
+                    initialValue: _selectedVehicleId,
                     items: _vehicles
                         .map((vehicle) => DropdownMenuItem(
                               value: vehicle.id,
@@ -194,10 +207,10 @@ class _AddDataPageState extends State<AddDataPage> {
                       });
                     },
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).vehicle),
+                        labelText: AppLocalizations.of(context)!.vehicle),
                   ),
                   DropdownButtonFormField<int>(
-                    value: _selectedFuelTypeId,
+                    initialValue: _selectedFuelTypeId,
                     items: _availableFuelTypes
                         .map((fuel) => DropdownMenuItem(
                               value: fuel.id,
@@ -212,23 +225,23 @@ class _AddDataPageState extends State<AddDataPage> {
                       });
                     },
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).fuelType),
+                        labelText: AppLocalizations.of(context)!.fuelType),
                   ),
                   TextFormField(
                     controller: _rateController,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).fuelPriceRate),
+                        labelText: AppLocalizations.of(context)!.fuelPriceRate),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context).enterFuelPriceRate;
+                        return AppLocalizations.of(context)!.enterFuelPriceRate;
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   Text(
-                      "${AppLocalizations.of(context).totalVolume}: ${_volume.toStringAsFixed(2)}"),
+                      "${AppLocalizations.of(context)!.totalVolume}: ${_volume.toStringAsFixed(2)}"),
                   Slider(
                     value: _volume,
                     min: 0,
@@ -245,11 +258,11 @@ class _AddDataPageState extends State<AddDataPage> {
                   TextFormField(
                     controller: _volumeController,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).totalVolume),
+                        labelText: AppLocalizations.of(context)!.totalVolume),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context).enterTotalVolume;
+                        return AppLocalizations.of(context)!.enterTotalVolume;
                       }
                       return null;
                     },
@@ -257,11 +270,11 @@ class _AddDataPageState extends State<AddDataPage> {
                   TextFormField(
                     controller: _paidAmountController,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context).paidAmount),
+                        labelText: AppLocalizations.of(context)!.paidAmount),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context).enterPaidAmount;
+                        return AppLocalizations.of(context)!.enterPaidAmount;
                       }
                       return null;
                     },
@@ -281,11 +294,12 @@ class _AddDataPageState extends State<AddDataPage> {
                           paidAmount: double.parse(_paidAmountController.text),
                         );
                         await DatabaseHelper.instance.insertFuelRecord(record);
+                        final navigator = Navigator.of(context);
                         if (!mounted) return;
-                        Navigator.pop(context);
+                        navigator.pop();
                       }
                     },
-                    child: Text(AppLocalizations.of(context).save),
+                    child: Text(AppLocalizations.of(context)!.save),
                   ),
                 ],
               ),

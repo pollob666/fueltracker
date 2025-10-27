@@ -57,25 +57,32 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   }
 
   String _getVehicleTypeLocalization(BuildContext context, VehicleType type) {
+    final localizations = AppLocalizations.of(context);
+    if (localizations == null) {
+      return type.toString().split('.').last;
+    }
     switch (type) {
       case VehicleType.carOrSedan:
-        return AppLocalizations.of(context).carOrSedan;
+        return localizations.carOrSedan;
       case VehicleType.motorcycle:
-        return AppLocalizations.of(context).motorcycle;
+        return localizations.motorcycle;
       case VehicleType.scooterOrMoped:
-        return AppLocalizations.of(context).scooterOrMoped;
+        return localizations.scooterOrMoped;
       case VehicleType.suv:
-        return AppLocalizations.of(context).suv;
+        return localizations.suv;
       case VehicleType.pickupOrTruck:
-        return AppLocalizations.of(context).pickupOrTruck;
-      default:
-        return type.toString().split('.').last;
+        return localizations.pickupOrTruck;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    if (localizations == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -89,6 +96,37 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                if (widget.vehicle == null)
+                  Card(
+                    elevation: 4.0,
+                    color: theme.colorScheme.surfaceVariant,
+                    margin: const EdgeInsets.symmetric(vertical: 20.0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.directions_car_filled, size: 80, color: theme.colorScheme.primary),
+                          const SizedBox(height: 24),
+                          Text(
+                            localizations.welcomeToFuelTracker,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurfaceVariant),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            localizations.addFirstVehiclePrompt,
+                            style: theme.textTheme.bodyLarge
+                                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 TextFormField(
                   initialValue: _name,
                   decoration: InputDecoration(labelText: localizations.vehicleName),
@@ -97,7 +135,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                       value!.isEmpty ? 'Please enter a name' : null,
                 ),
                 DropdownButtonFormField<VehicleType>(
-                  value: _vehicleType,
+                  initialValue: _vehicleType,
                   items: VehicleType.values
                       .map((type) => DropdownMenuItem(
                             value: type,
@@ -112,7 +150,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   decoration: InputDecoration(labelText: localizations.vehicleType),
                 ),
                 DropdownButtonFormField<int>(
-                  value: _primaryFuelTypeId,
+                  initialValue: _primaryFuelTypeId,
                   items: _fuelTypes
                       .map((fuel) => DropdownMenuItem(
                             value: fuel.id,
@@ -134,7 +172,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                       _primaryFuelCapacity = value!.isEmpty ? null : double.tryParse(value),
                 ),
                 DropdownButtonFormField<int>(
-                  value: _secondaryFuelTypeId,
+                  initialValue: _secondaryFuelTypeId,
                   items: _fuelTypes
                       .map((fuel) => DropdownMenuItem(
                             value: fuel.id,
@@ -168,15 +206,22 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                         secondaryFuelTypeId: _secondaryFuelTypeId,
                         secondaryFuelCapacity: _secondaryFuelCapacity,
                       );
+                      final navigator = Navigator.of(context);
                       if (widget.vehicle == null) {
                         await DatabaseHelper.instance.insertVehicle(vehicle);
                       } else {
                         await DatabaseHelper.instance.updateVehicle(vehicle);
                       }
-                      if (!mounted) return;
-                      Navigator.pop(context);
+
+                      if (mounted) {
+                        navigator.pop();
+                      }
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                    textStyle: theme.textTheme.titleLarge,
+                  ),
                   child: Text(localizations.save),
                 ),
               ],

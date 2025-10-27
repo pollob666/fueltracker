@@ -200,27 +200,61 @@ class _DashboardPageState extends State<DashboardPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    if (localizations == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     if (_vehicles.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: Text(localizations.appTitle)),
         drawer: const MyDrawer(),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(localizations.noVehiclesMessage, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AddVehiclePage()),
-                  );
-                  _loadInitialData();
-                },
-                child: Text(localizations.addVehicle),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Card(
+              elevation: 4.0,
+              color: theme.colorScheme.surfaceVariant,
+              margin: const EdgeInsets.symmetric(vertical: 20.0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.directions_car_filled, size: 80, color: theme.colorScheme.primary),
+                    const SizedBox(height: 24),
+                    Text(
+                      localizations.welcomeToFuelTracker,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      localizations.addFirstVehiclePrompt,
+                      style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AddVehiclePage()),
+                        );
+                        _loadInitialData();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                        textStyle: theme.textTheme.titleLarge,
+                      ),
+                      child: Text(localizations.addVehicle),
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -336,7 +370,7 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               children: [
                 DropdownButtonFormField<int>(
-                  value: _selectedVehicleId,
+                  initialValue: _selectedVehicleId,
                   items: _vehicles.map((vehicle) {
                     return DropdownMenuItem<int>(
                       value: vehicle.id,
@@ -351,7 +385,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   },
                   decoration: InputDecoration(
                     labelText: localizations.vehicle,
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),

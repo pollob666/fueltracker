@@ -30,6 +30,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "appTitle":
             MessageLookupByLibrary.simpleMessage("জ্বালানি খরচ ট্র্যাকার"),
         "averageMileage": MessageLookupByLibrary.simpleMessage("গড় মাইলেج"),
+        "cancel": MessageLookupByLibrary.simpleMessage("বাতিল"),
         "carOrSedan": MessageLookupByLibrary.simpleMessage("কার/সেডান"),
         "comingSoon": MessageLookupByLibrary.simpleMessage("শীঘ্রই আসছে"),
         "costEfficiency":
@@ -90,12 +91,14 @@ class MessageLookup extends MessageLookupByLibrary {
         "import": MessageLookupByLibrary.simpleMessage("ইম্পোর্ট"),
         "importData":
             MessageLookupByLibrary.simpleMessage("ডেটা ইম্পোর্ট করুন"),
+        "importToVehicle":
+            MessageLookupByLibrary.simpleMessage("গাড়িতে ডেটা ইম্পোর্ট করুন"),
         "lastRefuelDetails":
             MessageLookupByLibrary.simpleMessage("শেষ রিফুয়েলের বিবরণ"),
         "lastRefuelVolume":
             MessageLookupByLibrary.simpleMessage("শেষ রিফুয়েল ভলিউম"),
         "lastTimeMileage":
-            MessageLookupByLibrary.simpleMessage("বর্তমান চলমান মাইলেজ"),
+            MessageLookupByLibrary.simpleMessage("বর্তমান মাইলেজ"),
         "local": MessageLookupByLibrary.simpleMessage("লোকাল স্টোরেজ"),
         "manageVehicles":
             MessageLookupByLibrary.simpleMessage("যানবাহন পরিচালনা"),
@@ -104,21 +107,26 @@ class MessageLookup extends MessageLookupByLibrary {
         "motorcycle": MessageLookupByLibrary.simpleMessage("মোটরসাইকেল"),
         "noDataPreviewAvailable": MessageLookupByLibrary.simpleMessage(
             "কোনও ডেটা প্রিভিউ পাওয়া যায় নি"),
+        "noVehiclesFound": MessageLookupByLibrary.simpleMessage(
+            "কোনও যানবাহন পাওয়া যায়নি। অনুগ্রহ করে প্রথমে একটি গাড়ি যোগ করুন।"),
         "noVehiclesMessage": MessageLookupByLibrary.simpleMessage(
             "স্বাগতম! শুরু করতে আপনার প্রথম যান যোগ করুন।"),
         "notAvailable": MessageLookupByLibrary.simpleMessage("প্রযোজ্য নয়"),
         "odometer": MessageLookupByLibrary.simpleMessage("ওডোমিটার:"),
         "odometerReading":
             MessageLookupByLibrary.simpleMessage("ওডোমিটার রিডিং (কিলোমিটার)"),
+        "ok": MessageLookupByLibrary.simpleMessage("ঠিক আছে"),
         "paidAmount":
             MessageLookupByLibrary.simpleMessage("পরিশোধিত পরিমাণ (টাকা)"),
         "pickupOrTruck": MessageLookupByLibrary.simpleMessage("পিকাপ/ট্রাক"),
+        "pleaseSelectVehicle": MessageLookupByLibrary.simpleMessage(
+            "ডেটা ইম্পোর্ট করার জন্য একটি গাড়ি নির্বাচন করুন।"),
         "primaryFuelCapacity": MessageLookupByLibrary.simpleMessage(
             "প্রাথমিক জ্বালানির ধারণক্ষমতা"),
         "primaryFuelType":
             MessageLookupByLibrary.simpleMessage("প্রাথমিক জ্বালানির প্রকার"),
         "runningAverageMileage":
-            MessageLookupByLibrary.simpleMessage("চলমান গড় মাইলেج"),
+            MessageLookupByLibrary.simpleMessage("চলমান গড়"),
         "save": MessageLookupByLibrary.simpleMessage("সেভ করুন"),
         "saveSettings": MessageLookupByLibrary.simpleMessage("সেটিংস সেভ করুন"),
         "savings": MessageLookupByLibrary.simpleMessage("বেচেছে (টাকা)"),

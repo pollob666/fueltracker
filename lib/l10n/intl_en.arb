@@ -78,5 +78,12 @@
   "defaultVehicle": "Default Vehicle",
   "editVehicle": "Edit Vehicle",
   "noVehiclesMessage": "Welcome! Add your first vehicle to get started.",
-  "defaultFuelPrices": "Default Fuel Prices"
+  "defaultFuelPrices": "Default Fuel Prices",
+  "importToVehicle": "Import to Vehicle",
+  "pleaseSelectVehicle": "Please select a vehicle to import the data into.",
+  "noVehiclesFound": "No vehicles found. Please add a vehicle first.",
+  "cancel": "Cancel",
+  "ok": "OK",
+  "welcomeToFuelTracker": "Welcome to Fuel Tracker!",
+  "addFirstVehiclePrompt": "Let's start by adding your first vehicle. It only takes a moment!"
 }

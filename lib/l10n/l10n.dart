@@ -1,870 +1,649 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'intl/messages_all.dart';
+import 'dart:async';
 
-// **************************************************************************
-// Generator: Flutter Intl IDE plugin
-// Made by Localizely
-// **************************************************************************
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
 
-// ignore_for_file: non_constant_identifier_names, lines_longer_than_80_chars
-// ignore_for_file: join_return_with_assignment, prefer_final_in_for_each
-// ignore_for_file: avoid_redundant_argument_values, avoid_escaping_inner_quotes
+import 'l10n_bn.dart';
+import 'l10n_en.dart';
 
-class AppLocalizations {
-  AppLocalizations();
+// ignore_for_file: type=lint
 
-  static AppLocalizations? _current;
+/// Callers can lookup localized strings with an instance of AppLocalizations
+/// returned by `AppLocalizations.of(context)`.
+///
+/// Applications need to include `AppLocalizations.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'l10n/l10n.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: AppLocalizations.localizationsDelegates,
+///   supportedLocales: AppLocalizations.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
+abstract class AppLocalizations {
+  AppLocalizations(String locale)
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
-  static AppLocalizations get current {
-    assert(_current != null,
-        'No instance of AppLocalizations was loaded. Try to initialize the AppLocalizations delegate before accessing AppLocalizations.current.');
-    return _current!;
-  }
+  final String localeName;
 
-  static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
-
-  static Future<AppLocalizations> load(Locale locale) {
-    final name = (locale.countryCode?.isEmpty ?? false)
-        ? locale.languageCode
-        : locale.toString();
-    final localeName = Intl.canonicalizedLocale(name);
-    return initializeMessages(localeName).then((_) {
-      Intl.defaultLocale = localeName;
-      final instance = AppLocalizations();
-      AppLocalizations._current = instance;
-
-      return instance;
-    });
-  }
-
-  static AppLocalizations of(BuildContext context) {
-    final instance = AppLocalizations.maybeOf(context);
-    assert(instance != null,
-        'No instance of AppLocalizations present in the widget tree. Did you add AppLocalizations.delegate in localizationsDelegates?');
-    return instance!;
-  }
-
-  static AppLocalizations? maybeOf(BuildContext context) {
+  static AppLocalizations? of(BuildContext context) {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  /// `Fuel Consumption Tracker`
-  String get appTitle {
-    return Intl.message(
-      'Fuel Consumption Tracker',
-      name: 'appTitle',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Dashboard`
-  String get dashboard {
-    return Intl.message(
-      'Dashboard',
-      name: 'dashboard',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `All Data`
-  String get allData {
-    return Intl.message(
-      'All Data',
-      name: 'allData',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Import`
-  String get import {
-    return Intl.message(
-      'Import',
-      name: 'import',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Export`
-  String get export {
-    return Intl.message(
-      'Export',
-      name: 'export',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Settings`
-  String get settings {
-    return Intl.message(
-      'Settings',
-      name: 'settings',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Add Fuel Data`
-  String get addFuelData {
-    return Intl.message(
-      'Add Fuel Data',
-      name: 'addFuelData',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Date & Time`
-  String get dateAndTime {
-    return Intl.message(
-      'Date & Time',
-      name: 'dateAndTime',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Odometer Reading (km)`
-  String get odometerReading {
-    return Intl.message(
-      'Odometer Reading (km)',
-      name: 'odometerReading',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Fuel Type`
-  String get fuelType {
-    return Intl.message(
-      'Fuel Type',
-      name: 'fuelType',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Fuel Price Rate (BDT)`
-  String get fuelPriceRate {
-    return Intl.message(
-      'Fuel Price Rate (BDT)',
-      name: 'fuelPriceRate',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Total Volume (litres)`
-  String get totalVolume {
-    return Intl.message(
-      'Total Volume (litres)',
-      name: 'totalVolume',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Paid Amount (BDT)`
-  String get paidAmount {
-    return Intl.message(
-      'Paid Amount (BDT)',
-      name: 'paidAmount',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Save`
-  String get save {
-    return Intl.message(
-      'Save',
-      name: 'save',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Running Average Mileage`
-  String get runningAverageMileage {
-    return Intl.message(
-      'Running Average Mileage',
-      name: 'runningAverageMileage',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Current Running Mileage`
-  String get lastTimeMileage {
-    return Intl.message(
-      'Current Running Mileage',
-      name: 'lastTimeMileage',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Last Refuel Volume`
-  String get lastRefuelVolume {
-    return Intl.message(
-      'Last Refuel Volume',
-      name: 'lastRefuelVolume',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Export to CSV`
-  String get exportToCSV {
-    return Intl.message(
-      'Export to CSV',
-      name: 'exportToCSV',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Folder Path`
-  String get folderPath {
-    return Intl.message(
-      'Folder Path',
-      name: 'folderPath',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Save Settings`
-  String get saveSettings {
-    return Intl.message(
-      'Save Settings',
-      name: 'saveSettings',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Maximum Tank Capacity (litres)`
-  String get maximumTankCapacity {
-    return Intl.message(
-      'Maximum Tank Capacity (litres)',
-      name: 'maximumTankCapacity',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Select CSV File`
-  String get selectCSVFile {
-    return Intl.message(
-      'Select CSV File',
-      name: 'selectCSVFile',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Selected File`
-  String get selectedFile {
-    return Intl.message(
-      'Selected File',
-      name: 'selectedFile',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `No Data Preview Available`
-  String get noDataPreviewAvailable {
-    return Intl.message(
-      'No Data Preview Available',
-      name: 'noDataPreviewAvailable',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Import Data`
-  String get importData {
-    return Intl.message(
-      'Import Data',
-      name: 'importData',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Data Imported Successfully!`
-  String get dataImportedSuccessfully {
-    return Intl.message(
-      'Data Imported Successfully!',
-      name: 'dataImportedSuccessfully',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Error importing data: `
-  String get errorImportingData {
-    return Intl.message(
-      'Error importing data: ',
-      name: 'errorImportingData',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Error reading CSV file: `
-  String get errorReadingCSVFile {
-    return Intl.message(
-      'Error reading CSV file: ',
-      name: 'errorReadingCSVFile',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `CSV file is empty or incorrectly formatted.`
-  String get csvFileEmptyOrIncorrectlyFormatted {
-    return Intl.message(
-      'CSV file is empty or incorrectly formatted.',
-      name: 'csvFileEmptyOrIncorrectlyFormatted',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Data exported to `
-  String get dataExportedTo {
-    return Intl.message(
-      'Data exported to ',
-      name: 'dataExportedTo',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Failed to export: `
-  String get failedToExport {
-    return Intl.message(
-      'Failed to export: ',
-      name: 'failedToExport',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Folder path not set in settings.`
-  String get folderPathNotSetInSettings {
-    return Intl.message(
-      'Folder path not set in settings.',
-      name: 'folderPathNotSetInSettings',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Settings saved.`
-  String get settingsSaved {
-    return Intl.message(
-      'Settings saved.',
-      name: 'settingsSaved',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Enter odometer reading`
-  String get enterOdometerReading {
-    return Intl.message(
-      'Enter odometer reading',
-      name: 'enterOdometerReading',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Enter fuel price rate`
-  String get enterFuelPriceRate {
-    return Intl.message(
-      'Enter fuel price rate',
-      name: 'enterFuelPriceRate',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Enter total volume`
-  String get enterTotalVolume {
-    return Intl.message(
-      'Enter total volume',
-      name: 'enterTotalVolume',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Enter paid amount`
-  String get enterPaidAmount {
-    return Intl.message(
-      'Enter paid amount',
-      name: 'enterPaidAmount',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Enter maximum capacity`
-  String get enterMaximumCapacity {
-    return Intl.message(
-      'Enter maximum capacity',
-      name: 'enterMaximumCapacity',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Local`
-  String get local {
-    return Intl.message(
-      'Local',
-      name: 'local',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Google Drive`
-  String get googleDrive {
-    return Intl.message(
-      'Google Drive',
-      name: 'googleDrive',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Dropbox`
-  String get dropbox {
-    return Intl.message(
-      'Dropbox',
-      name: 'dropbox',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `File Storage Option`
-  String get fileStorageOption {
-    return Intl.message(
-      'File Storage Option',
-      name: 'fileStorageOption',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Actual Bill`
-  String get actualBill {
-    return Intl.message(
-      'Actual Bill',
-      name: 'actualBill',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Savings/Loss`
-  String get savings {
-    return Intl.message(
-      'Savings/Loss',
-      name: 'savings',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Average Mileage`
-  String get averageMileage {
-    return Intl.message(
-      'Average Mileage',
-      name: 'averageMileage',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Last Refuel Details`
-  String get lastRefuelDetails {
-    return Intl.message(
-      'Last Refuel Details',
-      name: 'lastRefuelDetails',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Volume:`
-  String get volume {
-    return Intl.message(
-      'Volume:',
-      name: 'volume',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Total Price:`
-  String get totalPrice {
-    return Intl.message(
-      'Total Price:',
-      name: 'totalPrice',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Odometer:`
-  String get odometer {
-    return Intl.message(
-      'Odometer:',
-      name: 'odometer',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Fuel Rate:`
-  String get fuelRate {
-    return Intl.message(
-      'Fuel Rate:',
-      name: 'fuelRate',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Summary`
-  String get summary {
-    return Intl.message(
-      'Summary',
-      name: 'summary',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Cost-Efficiency`
-  String get costEfficiency {
-    return Intl.message(
-      'Cost-Efficiency',
-      name: 'costEfficiency',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Cost per km`
-  String get costPerKm {
-    return Intl.message(
-      'Cost per km',
-      name: 'costPerKm',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Coming Soon`
-  String get comingSoon {
-    return Intl.message(
-      'Coming Soon',
-      name: 'comingSoon',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `N/A`
-  String get notAvailable {
-    return Intl.message(
-      'N/A',
-      name: 'notAvailable',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Vehicle`
-  String get vehicle {
-    return Intl.message(
-      'Vehicle',
-      name: 'vehicle',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Export Refueling Data`
-  String get exportRefuelingData {
-    return Intl.message(
-      'Export Refueling Data',
-      name: 'exportRefuelingData',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Export App Settings`
-  String get exportAppSettings {
-    return Intl.message(
-      'Export App Settings',
-      name: 'exportAppSettings',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Export Vehicle Information`
-  String get exportVehicleInformation {
-    return Intl.message(
-      'Export Vehicle Information',
-      name: 'exportVehicleInformation',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Select data to export:`
-  String get selectDataToExport {
-    return Intl.message(
-      'Select data to export:',
-      name: 'selectDataToExport',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Manage Vehicles`
-  String get manageVehicles {
-    return Intl.message(
-      'Manage Vehicles',
-      name: 'manageVehicles',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Add Vehicle`
-  String get addVehicle {
-    return Intl.message(
-      'Add Vehicle',
-      name: 'addVehicle',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Vehicle Name`
-  String get vehicleName {
-    return Intl.message(
-      'Vehicle Name',
-      name: 'vehicleName',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Vehicle Type`
-  String get vehicleType {
-    return Intl.message(
-      'Vehicle Type',
-      name: 'vehicleType',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Primary Fuel Type`
-  String get primaryFuelType {
-    return Intl.message(
-      'Primary Fuel Type',
-      name: 'primaryFuelType',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Primary Fuel Capacity`
-  String get primaryFuelCapacity {
-    return Intl.message(
-      'Primary Fuel Capacity',
-      name: 'primaryFuelCapacity',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Secondary Fuel Type`
-  String get secondaryFuelType {
-    return Intl.message(
-      'Secondary Fuel Type',
-      name: 'secondaryFuelType',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Secondary Fuel Capacity`
-  String get secondaryFuelCapacity {
-    return Intl.message(
-      'Secondary Fuel Capacity',
-      name: 'secondaryFuelCapacity',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Car/Sedan`
-  String get carOrSedan {
-    return Intl.message(
-      'Car/Sedan',
-      name: 'carOrSedan',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Motorcycle`
-  String get motorcycle {
-    return Intl.message(
-      'Motorcycle',
-      name: 'motorcycle',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Scooter/Moped`
-  String get scooterOrMoped {
-    return Intl.message(
-      'Scooter/Moped',
-      name: 'scooterOrMoped',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `SUV`
-  String get suv {
-    return Intl.message(
-      'SUV',
-      name: 'suv',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Pick-up/Truck`
-  String get pickupOrTruck {
-    return Intl.message(
-      'Pick-up/Truck',
-      name: 'pickupOrTruck',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Edit`
-  String get edit {
-    return Intl.message(
-      'Edit',
-      name: 'edit',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Set as Default`
-  String get setAsDefault {
-    return Intl.message(
-      'Set as Default',
-      name: 'setAsDefault',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Default Vehicle`
-  String get defaultVehicle {
-    return Intl.message(
-      'Default Vehicle',
-      name: 'defaultVehicle',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Edit Vehicle`
-  String get editVehicle {
-    return Intl.message(
-      'Edit Vehicle',
-      name: 'editVehicle',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Welcome! Add your first vehicle to get started.`
-  String get noVehiclesMessage {
-    return Intl.message(
-      'Welcome! Add your first vehicle to get started.',
-      name: 'noVehiclesMessage',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Default Fuel Prices`
-  String get defaultFuelPrices {
-    return Intl.message(
-      'Default Fuel Prices',
-      name: 'defaultFuelPrices',
-      desc: '',
-      args: [],
-    );
-  }
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
+
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('bn'),
+    Locale('en')
+  ];
+
+  /// No description provided for @appTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Consumption Tracker'**
+  String get appTitle;
+
+  /// No description provided for @dashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get dashboard;
+
+  /// No description provided for @allData.
+  ///
+  /// In en, this message translates to:
+  /// **'All Data'**
+  String get allData;
+
+  /// No description provided for @import.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get import;
+
+  /// No description provided for @export.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get export;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @addFuelData.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Fuel Data'**
+  String get addFuelData;
+
+  /// No description provided for @dateAndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & Time'**
+  String get dateAndTime;
+
+  /// No description provided for @odometerReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer Reading (km)'**
+  String get odometerReading;
+
+  /// No description provided for @fuelType.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Type'**
+  String get fuelType;
+
+  /// No description provided for @fuelPriceRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Price Rate (BDT)'**
+  String get fuelPriceRate;
+
+  /// No description provided for @totalVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Volume (litres)'**
+  String get totalVolume;
+
+  /// No description provided for @paidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid Amount (BDT)'**
+  String get paidAmount;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @runningAverageMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Running Average Mileage'**
+  String get runningAverageMileage;
+
+  /// No description provided for @lastTimeMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Running Mileage'**
+  String get lastTimeMileage;
+
+  /// No description provided for @lastRefuelVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Refuel Volume'**
+  String get lastRefuelVolume;
+
+  /// No description provided for @exportToCSV.
+  ///
+  /// In en, this message translates to:
+  /// **'Export to CSV'**
+  String get exportToCSV;
+
+  /// No description provided for @folderPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder Path'**
+  String get folderPath;
+
+  /// No description provided for @saveSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Settings'**
+  String get saveSettings;
+
+  /// No description provided for @maximumTankCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum Tank Capacity (litres)'**
+  String get maximumTankCapacity;
+
+  /// No description provided for @selectCSVFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select CSV File'**
+  String get selectCSVFile;
+
+  /// No description provided for @selectedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected File'**
+  String get selectedFile;
+
+  /// No description provided for @noDataPreviewAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No Data Preview Available'**
+  String get noDataPreviewAvailable;
+
+  /// No description provided for @importData.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Data'**
+  String get importData;
+
+  /// No description provided for @dataImportedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Imported Successfully!'**
+  String get dataImportedSuccessfully;
+
+  /// No description provided for @errorImportingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Error importing data: '**
+  String get errorImportingData;
+
+  /// No description provided for @errorReadingCSVFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reading CSV file: '**
+  String get errorReadingCSVFile;
+
+  /// No description provided for @csvFileEmptyOrIncorrectlyFormatted.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV file is empty or incorrectly formatted.'**
+  String get csvFileEmptyOrIncorrectlyFormatted;
+
+  /// No description provided for @dataExportedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Data exported to '**
+  String get dataExportedTo;
+
+  /// No description provided for @failedToExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export: '**
+  String get failedToExport;
+
+  /// No description provided for @folderPathNotSetInSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder path not set in settings.'**
+  String get folderPathNotSetInSettings;
+
+  /// No description provided for @settingsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved.'**
+  String get settingsSaved;
+
+  /// No description provided for @enterOdometerReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter odometer reading'**
+  String get enterOdometerReading;
+
+  /// No description provided for @enterFuelPriceRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter fuel price rate'**
+  String get enterFuelPriceRate;
+
+  /// No description provided for @enterTotalVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter total volume'**
+  String get enterTotalVolume;
+
+  /// No description provided for @enterPaidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter paid amount'**
+  String get enterPaidAmount;
+
+  /// No description provided for @enterMaximumCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter maximum capacity'**
+  String get enterMaximumCapacity;
+
+  /// No description provided for @local.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get local;
+
+  /// No description provided for @googleDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Drive'**
+  String get googleDrive;
+
+  /// No description provided for @dropbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Dropbox'**
+  String get dropbox;
+
+  /// No description provided for @fileStorageOption.
+  ///
+  /// In en, this message translates to:
+  /// **'File Storage Option'**
+  String get fileStorageOption;
+
+  /// No description provided for @actualBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual Bill'**
+  String get actualBill;
+
+  /// No description provided for @savings.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings/Loss'**
+  String get savings;
+
+  /// No description provided for @averageMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average Mileage'**
+  String get averageMileage;
+
+  /// No description provided for @lastRefuelDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Refuel Details'**
+  String get lastRefuelDetails;
+
+  /// No description provided for @volume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume:'**
+  String get volume;
+
+  /// No description provided for @totalPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Price:'**
+  String get totalPrice;
+
+  /// No description provided for @odometer.
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer:'**
+  String get odometer;
+
+  /// No description provided for @fuelRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Rate:'**
+  String get fuelRate;
+
+  /// No description provided for @summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get summary;
+
+  /// No description provided for @costEfficiency.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost-Efficiency'**
+  String get costEfficiency;
+
+  /// No description provided for @costPerKm.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost per km'**
+  String get costPerKm;
+
+  /// No description provided for @comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming Soon'**
+  String get comingSoon;
+
+  /// No description provided for @notAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get notAvailable;
+
+  /// No description provided for @vehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle'**
+  String get vehicle;
+
+  /// No description provided for @exportRefuelingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Refueling Data'**
+  String get exportRefuelingData;
+
+  /// No description provided for @exportAppSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Export App Settings'**
+  String get exportAppSettings;
+
+  /// No description provided for @exportVehicleInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Vehicle Information'**
+  String get exportVehicleInformation;
+
+  /// No description provided for @selectDataToExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Select data to export:'**
+  String get selectDataToExport;
+
+  /// No description provided for @manageVehicles.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Vehicles'**
+  String get manageVehicles;
+
+  /// No description provided for @addVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Vehicle'**
+  String get addVehicle;
+
+  /// No description provided for @vehicleName.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Name'**
+  String get vehicleName;
+
+  /// No description provided for @vehicleType.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle Type'**
+  String get vehicleType;
+
+  /// No description provided for @primaryFuelType.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Fuel Type'**
+  String get primaryFuelType;
+
+  /// No description provided for @primaryFuelCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Fuel Capacity'**
+  String get primaryFuelCapacity;
+
+  /// No description provided for @secondaryFuelType.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary Fuel Type'**
+  String get secondaryFuelType;
+
+  /// No description provided for @secondaryFuelCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary Fuel Capacity'**
+  String get secondaryFuelCapacity;
+
+  /// No description provided for @carOrSedan.
+  ///
+  /// In en, this message translates to:
+  /// **'Car/Sedan'**
+  String get carOrSedan;
+
+  /// No description provided for @motorcycle.
+  ///
+  /// In en, this message translates to:
+  /// **'Motorcycle'**
+  String get motorcycle;
+
+  /// No description provided for @scooterOrMoped.
+  ///
+  /// In en, this message translates to:
+  /// **'Scooter/Moped'**
+  String get scooterOrMoped;
+
+  /// No description provided for @suv.
+  ///
+  /// In en, this message translates to:
+  /// **'SUV'**
+  String get suv;
+
+  /// No description provided for @pickupOrTruck.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick-up/Truck'**
+  String get pickupOrTruck;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @setAsDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as Default'**
+  String get setAsDefault;
+
+  /// No description provided for @defaultVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Vehicle'**
+  String get defaultVehicle;
+
+  /// No description provided for @editVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Vehicle'**
+  String get editVehicle;
+
+  /// No description provided for @noVehiclesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome! Add your first vehicle to get started.'**
+  String get noVehiclesMessage;
+
+  /// No description provided for @defaultFuelPrices.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Fuel Prices'**
+  String get defaultFuelPrices;
+
+  /// No description provided for @importToVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import to Vehicle'**
+  String get importToVehicle;
+
+  /// No description provided for @pleaseSelectVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a vehicle to import the data into.'**
+  String get pleaseSelectVehicle;
+
+  /// No description provided for @noVehiclesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No vehicles found. Please add a vehicle first.'**
+  String get noVehiclesFound;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @welcomeToFuelTracker.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Fuel Tracker!'**
+  String get welcomeToFuelTracker;
+
+  /// No description provided for @addFirstVehiclePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s start by adding your first vehicle. It only takes a moment!'**
+  String get addFirstVehiclePrompt;
 }
 
-class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {
-  const AppLocalizationDelegate();
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
 
-  List<Locale> get supportedLocales {
-    return const <Locale>[
-      Locale.fromSubtags(languageCode: 'en'),
-      Locale.fromSubtags(languageCode: 'bn'),
-      Locale.fromSubtags(languageCode: 'messages'),
-    ];
+  @override
+  Future<AppLocalizations> load(Locale locale) {
+    return SynchronousFuture<AppLocalizations>(lookupAppLocalizations(locale));
   }
 
   @override
-  bool isSupported(Locale locale) => _isSupported(locale);
-  @override
-  Future<AppLocalizations> load(Locale locale) => AppLocalizations.load(locale);
-  @override
-  bool shouldReload(AppLocalizationDelegate old) => false;
+  bool isSupported(Locale locale) =>
+      <String>['bn', 'en'].contains(locale.languageCode);
 
-  bool _isSupported(Locale locale) {
-    for (var supportedLocale in supportedLocales) {
-      if (supportedLocale.languageCode == locale.languageCode) {
-        return true;
-      }
-    }
-    return false;
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'bn':
+      return AppLocalizationsBn();
+    case 'en':
+      return AppLocalizationsEn();
   }
+
+  throw FlutterError(
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

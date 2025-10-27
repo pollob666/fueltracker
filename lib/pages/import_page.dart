@@ -53,17 +53,26 @@ class _ImportPageState extends State<ImportPage> {
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(AppLocalizations.of(context).csvFileEmptyOrIncorrectlyFormatted)));
+            content: Text(AppLocalizations.of(context)!.csvFileEmptyOrIncorrectlyFormatted)));
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("${AppLocalizations.of(context).errorReadingCSVFile}$e")));
+          SnackBar(content: Text("${AppLocalizations.of(context)!.errorReadingCSVFile}$e")));
     }
   }
 
   Future<void> _importData() async {
     if (_previewData.length < 2) return;
+
+    final headers = _previewData.first.map((e) => e.toString()).toList();
+    final bool hasVehicleColumn = headers.contains('Vehicle');
+
+    int? vehicleId;
+    if (!hasVehicleColumn) {
+      vehicleId = await _showVehicleSelectionDialog();
+      if (vehicleId == null) return;
+    }
 
     try {
       final fuelTypes = await _fuelTypeService.getFuelTypes();
@@ -73,23 +82,32 @@ class _ImportPageState extends State<ImportPage> {
 
       List<FuelRecord> entries = _previewData.skip(1).map((row) {
         try {
-          final vehicleName = row[2].toString();
-          final fuelTypeName = row[3].toString();
-          final vehicleId = vehicleMap[vehicleName];
+          int currentVehicleId;
+          int fuelTypeIndex;
+          if (hasVehicleColumn) {
+            final vehicleName = row[2].toString();
+            currentVehicleId = vehicleMap[vehicleName]!;
+            fuelTypeIndex = 3;
+          } else {
+            currentVehicleId = vehicleId!;
+            fuelTypeIndex = 2;
+          }
+
+          final fuelTypeName = row[fuelTypeIndex].toString();
           final fuelTypeId = fuelTypeMap[fuelTypeName];
 
-          if (vehicleId == null || fuelTypeId == null) {
+          if (fuelTypeId == null) {
             return null;
           }
 
           return FuelRecord(
             date: DateTime.parse(row[0]),
             odometer: double.tryParse(row[1].toString()) ?? 0,
-            vehicleId: vehicleId,
+            vehicleId: currentVehicleId,
             fuelTypeId: fuelTypeId,
-            rate: double.tryParse(row[4].toString()) ?? 0.0,
-            volume: double.tryParse(row[5].toString()) ?? 0.0,
-            paidAmount: double.tryParse(row[6].toString()) ?? 0.0,
+            rate: double.tryParse(row[fuelTypeIndex + 1].toString()) ?? 0.0,
+            volume: double.tryParse(row[fuelTypeIndex + 2].toString()) ?? 0.0,
+            paidAmount: double.tryParse(row[fuelTypeIndex + 3].toString()) ?? 0.0,
           );
         } catch (e) {
           return null;
@@ -102,7 +120,7 @@ class _ImportPageState extends State<ImportPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).dataImportedSuccessfully)));
+          SnackBar(content: Text(AppLocalizations.of(context)!.dataImportedSuccessfully)));
 
       setState(() {
         _previewData = [];
@@ -111,8 +129,63 @@ class _ImportPageState extends State<ImportPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("${AppLocalizations.of(context).errorImportingData}$e")));
+          SnackBar(content: Text("${AppLocalizations.of(context)!.errorImportingData}$e")));
     }
+  }
+
+  Future<int?> _showVehicleSelectionDialog() async {
+    final vehicles = await _vehicleService.getVehicles();
+    if (vehicles.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.noVehiclesFound)),
+        );
+      }
+      return null;
+    }
+
+    if (!mounted) return null;
+
+    int? selectedVehicleId = vehicles.first.id;
+
+    return showDialog<int>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: Text(AppLocalizations.of(context)!.importToVehicle),
+            content: DropdownButton<int>(
+              value: selectedVehicleId,
+              items: vehicles.map((vehicle) {
+                return DropdownMenuItem<int>(
+                  value: vehicle.id,
+                  child: Text(vehicle.name),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setState(() {
+                  selectedVehicleId = val;
+                });
+              },
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text(AppLocalizations.of(context)!.cancel),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text(AppLocalizations.of(context)!.ok),
+                onPressed: () {
+                  Navigator.of(context).pop(selectedVehicleId);
+                },
+              ),
+            ],
+          );
+        });
+      },
+    );
   }
 
   List<DataColumn> _getColumns() {
@@ -125,7 +198,7 @@ class _ImportPageState extends State<ImportPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final localizations = AppLocalizations.of(context);
+    final localizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(title: Text(localizations.import)),
@@ -151,9 +224,10 @@ class _ImportPageState extends State<ImportPage> {
                       child: DataTable(
                         columns: _getColumns(),
                         rows: _previewData.skip(1).map((row) {
-                          return DataRow(cells: row
-                              .map((cell) => DataCell(Text(cell.toString())))
-                              .toList());
+                          return DataRow(
+                              cells: row
+                                  .map((cell) => DataCell(Text(cell.toString())))
+                                  .toList());
                         }).toList(),
                       ),
                     )

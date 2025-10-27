@@ -1,20 +1,15 @@
-import 'package:flutter/material.dart';
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 class L10n {
-  static const all = [
-    Locale('en'),
-    Locale('bn'),
-  ];
-
-  static String getLanguageName(Locale locale) {
-    switch (locale.languageCode) {
+  static String getLanguageName(String languageCode) {
+    switch (languageCode) {
       case 'en':
         return 'English';
       case 'bn':
-        return 'বাংলা';
-    // Add more cases for other languages
+        return 'Bengali';
       default:
-        return locale.languageCode; // Return locale code as fallback
+        return languageCode;
     }
   }
 }

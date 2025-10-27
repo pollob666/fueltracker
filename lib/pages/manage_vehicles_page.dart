@@ -52,23 +52,21 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
   String _getVehicleTypeLocalization(BuildContext context, VehicleType type) {
     switch (type) {
       case VehicleType.carOrSedan:
-        return AppLocalizations.of(context).carOrSedan;
+        return AppLocalizations.of(context)!.carOrSedan;
       case VehicleType.motorcycle:
-        return AppLocalizations.of(context).motorcycle;
+        return AppLocalizations.of(context)!.motorcycle;
       case VehicleType.scooterOrMoped:
-        return AppLocalizations.of(context).scooterOrMoped;
+        return AppLocalizations.of(context)!.scooterOrMoped;
       case VehicleType.suv:
-        return AppLocalizations.of(context).suv;
+        return AppLocalizations.of(context)!.suv;
       case VehicleType.pickupOrTruck:
-        return AppLocalizations.of(context).pickupOrTruck;
-      default:
-        return type.toString().split('.').last;
+        return AppLocalizations.of(context)!.pickupOrTruck;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
+    final localizations = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Scaffold(

@@ -12,6 +12,7 @@ class AppSettings {
   static String localFolderPath = '';
   static String googleDriveFolderPath = '';
   static String dropboxFolderPath = '';
+  static String language = 'en';
   static ThemeMode themeMode = ThemeMode.system;
   static Map<String, double> defaultFuelPrices = {};
 
@@ -22,6 +23,7 @@ class AppSettings {
     localFolderPath = prefs.getString('localFolderPath') ?? '';
     googleDriveFolderPath = prefs.getString('googleDriveFolderPath') ?? '';
     dropboxFolderPath = prefs.getString('dropboxFolderPath') ?? '';
+    language = prefs.getString('language') ?? 'en';
     final theme = prefs.getString('themeMode');
     if (theme == 'light') {
       themeMode = ThemeMode.light;
@@ -44,6 +46,7 @@ class AppSettings {
     await prefs.setString('localFolderPath', localFolderPath);
     await prefs.setString('googleDriveFolderPath', googleDriveFolderPath);
     await prefs.setString('dropboxFolderPath', dropboxFolderPath);
+    await prefs.setString('language', language);
     await prefs.setString('themeMode', themeMode.toString().split('.').last);
     await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }

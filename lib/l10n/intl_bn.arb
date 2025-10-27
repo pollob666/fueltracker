@@ -14,8 +14,8 @@
   "totalVolume": "মোট ভলিউм (লিটার)",
   "paidAmount": "পরিশোধিত পরিমাণ (টাকা)",
   "save": "সেভ করুন",
-  "runningAverageMileage": "চলমান গড় মাইলেج",
-  "lastTimeMileage": "বর্তমান চলমান মাইলেজ",
+  "runningAverageMileage": "চলমান গড়",
+  "lastTimeMileage": "বর্তমান মাইলেজ",
   "lastRefuelVolume": "শেষ রিফুয়েল ভলিউম",
   "exportToCSV": "সিএসভি-তে এক্সপোর্ট করুন",
   "folderPath": "ফোল্ডারের পাথ",
@@ -78,5 +78,12 @@
   "defaultVehicle": "ডিফল্ট যানবাহন",
   "editVehicle": "যানবাহন সম্পাদনা",
   "noVehiclesMessage": "স্বাগতম! শুরু করতে আপনার প্রথম যান যোগ করুন।",
-  "defaultFuelPrices": "ডিফল্ট জ্বালানির দাম"
+  "defaultFuelPrices": "ডিফল্ট জ্বালানির দাম",
+  "importToVehicle": "গাড়িতে ডেটা ইম্পোর্ট করুন",
+  "pleaseSelectVehicle": "ডেটা ইম্পোর্ট করার জন্য একটি গাড়ি নির্বাচন করুন।",
+  "noVehiclesFound": "কোনও যানবাহন পাওয়া যায়নি। অনুগ্রহ করে প্রথমে একটি গাড়ি যোগ করুন।",
+  "cancel": "বাতিল",
+  "ok": "ঠিক আছে",
+  "welcomeToFuelTracker": "ফুয়েল ট্র্যাকারে স্বাগতম!",
+  "addFirstVehiclePrompt": "চলুন আপনার প্রথম যানটি যোগ করে শুরু করা যাক। এটি শুধুমাত্র একটি মুহূর্ত সময় নেবে!"
 }
