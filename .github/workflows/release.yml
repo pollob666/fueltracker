@@ -14,6 +14,9 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # This is required to create a release and upload artifacts.
+
     steps:
       # Step 1: Check out the repository code.
       - name: Checkout code
