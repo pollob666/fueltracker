@@ -559,6 +559,96 @@ class AppLocalizations {
       args: [],
     );
   }
+
+  /// `Cost-Efficiency`
+  String get costEfficiency {
+    return Intl.message(
+      'Cost-Efficiency',
+      name: 'costEfficiency',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cost per km`
+  String get costPerKm {
+    return Intl.message(
+      'Cost per km',
+      name: 'costPerKm',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Coming Soon`
+  String get comingSoon {
+    return Intl.message(
+      'Coming Soon',
+      name: 'comingSoon',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `N/A`
+  String get notAvailable {
+    return Intl.message(
+      'N/A',
+      name: 'notAvailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Vehicle`
+  String get vehicle {
+    return Intl.message(
+      'Vehicle',
+      name: 'vehicle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Export Refueling Data`
+  String get exportRefuelingData {
+    return Intl.message(
+      'Export Refueling Data',
+      name: 'exportRefuelingData',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Export App Settings`
+  String get exportAppSettings {
+    return Intl.message(
+      'Export App Settings',
+      name: 'exportAppSettings',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Export Vehicle Information`
+  String get exportVehicleInformation {
+    return Intl.message(
+      'Export Vehicle Information',
+      name: 'exportVehicleInformation',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select data to export:`
+  String get selectDataToExport {
+    return Intl.message(
+      'Select data to export:',
+      name: 'selectDataToExport',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {

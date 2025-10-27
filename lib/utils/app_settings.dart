@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class AppSettings {
   static double maxVolume = 100.0;
@@ -12,7 +11,6 @@ class AppSettings {
   static String googleDriveFolderPath = '';
   static String dropboxFolderPath = '';
   static ThemeMode themeMode = ThemeMode.system;
-  static Map<String, double> defaultFuelPrices = {};
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -29,11 +27,6 @@ class AppSettings {
     } else {
       themeMode = ThemeMode.system;
     }
-
-    final defaultPricesString = prefs.getString('defaultFuelPrices');
-    if (defaultPricesString != null) {
-      defaultFuelPrices = Map<String, double>.from(json.decode(defaultPricesString));
-    }
   }
 
   static Future<void> saveSettings() async {
@@ -44,6 +37,5 @@ class AppSettings {
     await prefs.setString('googleDriveFolderPath', googleDriveFolderPath);
     await prefs.setString('dropboxFolderPath', dropboxFolderPath);
     await prefs.setString('themeMode', themeMode.toString().split('.').last);
-    await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }
 }

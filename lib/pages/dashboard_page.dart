@@ -4,6 +4,10 @@
 import 'package:flutter/material.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
+import 'package:fuel_tracker/models/fuel_type.dart';
+import 'package:fuel_tracker/models/vehicle.dart';
+import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'add_data_page.dart';
@@ -17,18 +21,53 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  List<FuelRecord> records = [];
+  final FuelTypeService _fuelTypeService = FuelTypeService();
+  final VehicleService _vehicleService = VehicleService();
+
+  List<FuelRecord> _allRecords = [];
+  List<FuelRecord> _filteredRecords = [];
+  Map<int, FuelType> _fuelTypeMap = {};
+  Map<int, Vehicle> _vehicleMap = {};
+  List<Vehicle> _vehicles = [];
+  int? _selectedVehicleId;
 
   @override
   void initState() {
     super.initState();
-    _loadRecords();
+    _loadInitialData();
   }
 
-  Future<void> _loadRecords() async {
+  Future<void> _loadInitialData() async {
     var recs = await DatabaseHelper.instance.getFuelRecords();
+    var fuelTypes = await _fuelTypeService.getFuelTypes();
+    var vehicles = await _vehicleService.getVehicles();
+
+    recs.sort((a, b) => a.date.compareTo(b.date));
+
     setState(() {
-      records = recs;
+      _allRecords = recs;
+      _fuelTypeMap = {for (var ft in fuelTypes) ft.id!: ft};
+      _vehicles = vehicles;
+      _vehicleMap = {for (var v in vehicles) v.id!: v};
+
+      if (_vehicles.isNotEmpty) {
+        _selectedVehicleId = _vehicles.first.id;
+        _filterRecords();
+      } else {
+        _filteredRecords = [];
+      }
+    });
+  }
+
+  void _filterRecords() {
+    if (_selectedVehicleId == null) {
+      setState(() {
+        _filteredRecords = [];
+      });
+      return;
+    }
+    setState(() {
+      _filteredRecords = _allRecords.where((r) => r.vehicleId == _selectedVehicleId).toList();
     });
   }
 
@@ -67,13 +106,138 @@ class _DashboardPageState extends State<DashboardPage> {
     return totalMileage / mileages.length;
   }
 
+  double calculateCostPerKm(List<FuelRecord> records) {
+    if (records.isEmpty) {
+      return 0;
+    }
+
+    double totalCost = records.map((r) => r.paidAmount).reduce((a, b) => a + b);
+    double totalDistance = records.last.odometer - records.first.odometer;
+
+    if (totalDistance <= 0) {
+      return 0;
+    }
+
+    return totalCost / totalDistance;
+  }
+
+  Widget _buildMileageCard(BuildContext context, String title, double value, String unit, Color backgroundColor, Color onBackgroundColor, Color valueColor) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Card(
+        color: backgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24.0),
+          child: Column(
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(color: onBackgroundColor),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value.toStringAsFixed(2),
+                style: theme.textTheme.displaySmall?.copyWith(
+                  color: valueColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                unit,
+                style: theme.textTheme.bodyLarge?.copyWith(color: onBackgroundColor),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCostCard(BuildContext context, String title, double value, String unit, Color backgroundColor, Color onBackgroundColor, Color valueColor) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Card(
+        color: backgroundColor,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24.0),
+          child: Column(
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(color: onBackgroundColor),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value.toStringAsFixed(2),
+                style: theme.textTheme.displaySmall?.copyWith(
+                  color: valueColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                unit,
+                style: theme.textTheme.bodyLarge?.copyWith(color: onBackgroundColor),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    double currentRunningMileage = calculateCurrentRunningMileage(records);
-    double runningAverage = calculateRunningAverage(records);
     final localizations = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final lastRecord = _filteredRecords.isNotEmpty ? _filteredRecords.last : null;
+    final fuelTypeName = lastRecord != null
+        ? _fuelTypeMap[lastRecord.fuelTypeId]?.name ?? localizations.notAvailable
+        : localizations.notAvailable;
+    final vehicleName = lastRecord != null
+        ? _vehicleMap[lastRecord.vehicleId]?.name ?? localizations.notAvailable
+        : localizations.notAvailable;
+
+    List<Widget> mileageCards = [];
+    List<Widget> costCards = [];
+    final selectedVehicle = _selectedVehicleId != null ? _vehicleMap[_selectedVehicleId] : null;
+
+    if (selectedVehicle != null) {
+      final primaryFuelType = _fuelTypeMap[selectedVehicle.primaryFuelTypeId];
+      if (primaryFuelType != null) {
+        final records = _filteredRecords.where((r) => r.fuelTypeId == primaryFuelType.id).toList();
+        final unit = primaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
+        mileageCards.add(Row(
+          children: [
+            _buildMileageCard(context, '${primaryFuelType.name} ${localizations.runningAverageMileage}', calculateRunningAverage(records), unit, colorScheme.primaryContainer, colorScheme.onPrimaryContainer, colorScheme.primary),
+            const SizedBox(width: 16),
+             _buildMileageCard(context, '${primaryFuelType.name} ${localizations.lastTimeMileage}', calculateCurrentRunningMileage(records), unit, colorScheme.secondaryContainer, colorScheme.onSecondaryContainer, colorScheme.secondary),
+          ],
+        ));
+
+        costCards.add(_buildCostCard(context, '${primaryFuelType.name} ${localizations.costPerKm}', calculateCostPerKm(records), 'BDT/km', colorScheme.primaryContainer, colorScheme.onPrimaryContainer, colorScheme.primary));
+
+      }
+
+      final secondaryFuelType = _fuelTypeMap[selectedVehicle.secondaryFuelTypeId];
+      if (secondaryFuelType != null) {
+        final records = _filteredRecords.where((r) => r.fuelTypeId == secondaryFuelType.id).toList();
+        final unit = secondaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
+         mileageCards.add(const SizedBox(height: 16));
+        mileageCards.add(Row(
+          children: [
+            _buildMileageCard(context, '${secondaryFuelType.name} ${localizations.runningAverageMileage}', calculateRunningAverage(records), unit, colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer, colorScheme.tertiary),
+             const SizedBox(width: 16),
+            _buildMileageCard(context, '${secondaryFuelType.name} ${localizations.lastTimeMileage}', calculateCurrentRunningMileage(records), unit, colorScheme.errorContainer, colorScheme.onErrorContainer, colorScheme.error),
+          ],
+        ));
+        costCards.add(const SizedBox(width: 16));
+        costCards.add(_buildCostCard(context, '${secondaryFuelType.name} ${localizations.costPerKm}', calculateCostPerKm(records), 'BDT/km', colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer, colorScheme.tertiary));
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -97,72 +261,46 @@ class _DashboardPageState extends State<DashboardPage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Card(
-                        color: colorScheme.primaryContainer,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                localizations.runningAverageMileage,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                    color: colorScheme.onPrimaryContainer),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                runningAverage.toStringAsFixed(2),
-                                style: theme.textTheme.displaySmall?.copyWith(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                "km/l",
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: colorScheme.onPrimaryContainer),
-                              ),
-                            ],
-                          ),
+                DropdownButtonFormField<int>(
+                  value: _selectedVehicleId,
+                  items: _vehicles.map((vehicle) {
+                    return DropdownMenuItem<int>(
+                      value: vehicle.id,
+                      child: Text(vehicle.name),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedVehicleId = val;
+                      _filterRecords();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: localizations.vehicle,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...mileageCards,
+                const SizedBox(height: 24),
+                 Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          localizations.costEfficiency,
+                          style: theme.textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: costCards,
+                        )
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Card(
-                        color: colorScheme.secondaryContainer,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                localizations.lastTimeMileage,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                    color: colorScheme.onSecondaryContainer),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                currentRunningMileage.toStringAsFixed(2),
-                                style: theme.textTheme.displaySmall?.copyWith(
-                                  color: colorScheme.secondary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                "km/l",
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: colorScheme.onSecondaryContainer),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Card(
@@ -184,38 +322,42 @@ class _DashboardPageState extends State<DashboardPage> {
                           children: [
                             _buildInfoTile(
                               context,
+                              label: localizations.vehicle,
+                              value: vehicleName,
+                              icon: Icons.directions_car,
+                            ),
+                            _buildInfoTile(
+                              context,
                               label: localizations.volume,
                               value:
-                                  "${records.isNotEmpty ? records.last.volume.toStringAsFixed(2) : 'N/A'} litres",
+                                  "${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres",
                               icon: Icons.local_gas_station,
                             ),
                             _buildInfoTile(
                               context,
                               label: localizations.totalPrice,
                               value:
-                                  "${records.isNotEmpty ? records.last.paidAmount.toStringAsFixed(2) : 'N/A'} BDT",
+                                  "${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT",
                               icon: Icons.monetization_on,
                             ),
                             _buildInfoTile(
                               context,
                               label: localizations.odometer,
                               value:
-                                  "${records.isNotEmpty ? records.last.odometer.toStringAsFixed(2) : 'N/A'} km",
+                                  "${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km",
                               icon: Icons.speed,
                             ),
                             _buildInfoTile(
                               context,
-                              label: 'Fuel Type',
-                              value: records.isNotEmpty
-                                  ? records.last.fuelType
-                                  : 'N/A',
+                              label: localizations.fuelType,
+                              value: fuelTypeName,
                               icon: Icons.opacity,
                             ),
                             _buildInfoTile(
                               context,
                               label: localizations.fuelRate,
                               value:
-                                  "${records.isNotEmpty ? records.last.rate.toStringAsFixed(2) : 'N/A'} BDT/litre",
+                                  "${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre",
                               icon: Icons.price_change,
                             ),
                           ],
@@ -232,7 +374,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => const AddDataPage()));
-                    _loadRecords();
+                    _loadInitialData();
                   },
                   label: Text(localizations.addFuelData),
                   style: ElevatedButton.styleFrom(

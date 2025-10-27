@@ -5,7 +5,8 @@ class FuelRecord {
   int? id;
   DateTime date;
   double odometer;
-  String fuelType;
+  int fuelTypeId;
+  int vehicleId; // Added vehicleId
   double rate;
   double volume;
   double paidAmount;
@@ -14,7 +15,8 @@ class FuelRecord {
     this.id,
     required this.date,
     required this.odometer,
-    required this.fuelType,
+    required this.fuelTypeId,
+    required this.vehicleId, // Updated constructor
     required this.rate,
     required this.volume,
     required this.paidAmount,
@@ -24,7 +26,8 @@ class FuelRecord {
     var map = <String, dynamic>{
       'date': date.toIso8601String(),
       'odometer': odometer,
-      'fuelType': fuelType,
+      'fuelTypeId': fuelTypeId,
+      'vehicleId': vehicleId, // Updated to use vehicleId
       'rate': rate,
       'volume': volume,
       'paidAmount': paidAmount,
@@ -37,7 +40,8 @@ class FuelRecord {
     return {
       'dateTime': date.toIso8601String(),
       'odometer': odometer,
-      'fuelType': fuelType,
+      'fuelTypeId': fuelTypeId,
+      'vehicleId': vehicleId, // Updated for consistency
       'fuelRate': rate,
       'volume': volume,
       'amountPaid': paidAmount,
@@ -49,7 +53,8 @@ class FuelRecord {
       id: map['id'],
       date: DateTime.parse(map['date']),
       odometer: map['odometer'],
-      fuelType: map['fuelType'],
+      fuelTypeId: map['fuelTypeId'],
+      vehicleId: map['vehicleId'], // Updated to use vehicleId
       rate: map['rate'],
       volume: map['volume'],
       paidAmount: map['paidAmount'],
@@ -57,10 +62,11 @@ class FuelRecord {
   }
 
   factory FuelRecord.fromJson(Map<String, dynamic> json) {
-    return FuelRecord (
+    return FuelRecord(
       date: DateTime.parse(json['dateTime']),
       odometer: json['odometer'],
-      fuelType: json['fuelType'],
+      fuelTypeId: json['fuelTypeId'],
+      vehicleId: json['vehicleId'], // Updated for consistency
       rate: json['fuelRate'].toDouble(),
       volume: json['volume'].toDouble(),
       paidAmount: json['amountPaid'].toDouble(),

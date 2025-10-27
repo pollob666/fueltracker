@@ -23,7 +23,6 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _folderController = TextEditingController();
   Locale? _currentLocale;
   ThemeMode _themeMode = ThemeMode.system;
-  Map<String, TextEditingController> _priceControllers = {};
 
   @override
   void initState() {
@@ -32,10 +31,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _folderController.text = _getCurrentFolderPath();
     _currentLocale = L10n.all.first;
     _themeMode = AppSettings.themeMode;
-
-    AppSettings.defaultFuelPrices.forEach((fuelType, price) {
-      _priceControllers[fuelType] = TextEditingController(text: price.toString());
-    });
   }
 
   String _getCurrentFolderPath() {
@@ -60,7 +55,6 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     _maxVolumeController.dispose();
     _folderController.dispose();
-    _priceControllers.values.forEach((controller) => controller.dispose());
     super.dispose();
   }
 
@@ -77,14 +71,23 @@ class _SettingsPageState extends State<SettingsPage> {
       }
       AppSettings.themeMode = _themeMode;
 
-      _priceControllers.forEach((fuelType, controller) {
-        AppSettings.defaultFuelPrices[fuelType] = double.tryParse(controller.text) ?? 0.0;
-      });
-
       await AppSettings.saveSettings();
       MyApp.setThemeMode(context, _themeMode);
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).settingsSaved)));
+    }
+  }
+
+  String _getStorageOptionLocalization(BuildContext context, String option) {
+    switch (option) {
+      case 'Local':
+        return AppLocalizations.of(context).local;
+      case 'Google Drive':
+        return AppLocalizations.of(context).googleDrive;
+      case 'Dropbox':
+        return AppLocalizations.of(context).dropbox;
+      default:
+        return option;
     }
   }
 
@@ -121,7 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     items: ["Local", "Google Drive", "Dropbox"]
                         .map((option) => DropdownMenuItem(
                               value: option,
-                              child: Text(AppLocalizations.of(context).local),
+                              child: Text(_getStorageOptionLocalization(context, option)),
                             ))
                         .toList(),
                     onChanged: (val) {
@@ -191,18 +194,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text('Default Fuel Prices', style: theme.textTheme.titleLarge),
-                  ...["Octane", "Petrol"].map((fuelType) {
-                    if (!_priceControllers.containsKey(fuelType)) {
-                      _priceControllers[fuelType] = TextEditingController();
-                    }
-                    return TextFormField(
-                      controller: _priceControllers[fuelType],
-                      decoration: InputDecoration(labelText: fuelType),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    );
-                  }).toList(),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _saveSettings,

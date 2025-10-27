@@ -50,5 +50,14 @@
   "totalPrice": "Total Price:",
   "odometer": "Odometer:",
   "fuelRate": "Fuel Rate:",
-  "summary": "Summary"
+  "summary": "Summary",
+  "costEfficiency": "Cost-Efficiency",
+  "costPerKm": "Cost per km",
+  "comingSoon": "Coming Soon",
+  "notAvailable": "N/A",
+  "vehicle": "Vehicle",
+  "exportRefuelingData": "Export Refueling Data",
+  "exportAppSettings": "Export App Settings",
+  "exportVehicleInformation": "Export Vehicle Information",
+  "selectDataToExport": "Select data to export:"
 }

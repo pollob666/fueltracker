@@ -29,6 +29,10 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Fuel Consumption Tracker"),
         "averageMileage":
             MessageLookupByLibrary.simpleMessage("Average Mileage"),
+        "comingSoon": MessageLookupByLibrary.simpleMessage("Coming Soon"),
+        "costEfficiency":
+            MessageLookupByLibrary.simpleMessage("Cost-Efficiency"),
+        "costPerKm": MessageLookupByLibrary.simpleMessage("Cost per km"),
         "csvFileEmptyOrIncorrectlyFormatted":
             MessageLookupByLibrary.simpleMessage(
                 "CSV file is empty or incorrectly formatted."),
@@ -54,7 +58,13 @@ class MessageLookup extends MessageLookupByLibrary {
         "errorReadingCSVFile":
             MessageLookupByLibrary.simpleMessage("Error reading CSV file: "),
         "export": MessageLookupByLibrary.simpleMessage("Export"),
+        "exportAppSettings":
+            MessageLookupByLibrary.simpleMessage("Export App Settings"),
+        "exportRefuelingData":
+            MessageLookupByLibrary.simpleMessage("Export Refueling Data"),
         "exportToCSV": MessageLookupByLibrary.simpleMessage("Export to CSV"),
+        "exportVehicleInformation":
+            MessageLookupByLibrary.simpleMessage("Export Vehicle Information"),
         "failedToExport":
             MessageLookupByLibrary.simpleMessage("Failed to export: "),
         "fileStorageOption":
@@ -80,6 +90,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "Maximum Tank Capacity (litres)"),
         "noDataPreviewAvailable":
             MessageLookupByLibrary.simpleMessage("No Data Preview Available"),
+        "notAvailable": MessageLookupByLibrary.simpleMessage("N/A"),
         "odometer": MessageLookupByLibrary.simpleMessage("Odometer:"),
         "odometerReading":
             MessageLookupByLibrary.simpleMessage("Odometer Reading (km)"),
@@ -91,6 +102,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "savings": MessageLookupByLibrary.simpleMessage("Savings/Loss"),
         "selectCSVFile":
             MessageLookupByLibrary.simpleMessage("Select CSV File"),
+        "selectDataToExport":
+            MessageLookupByLibrary.simpleMessage("Select data to export:"),
         "selectedFile": MessageLookupByLibrary.simpleMessage("Selected File"),
         "settings": MessageLookupByLibrary.simpleMessage("Settings"),
         "settingsSaved":
@@ -99,6 +112,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "totalPrice": MessageLookupByLibrary.simpleMessage("Total Price:"),
         "totalVolume":
             MessageLookupByLibrary.simpleMessage("Total Volume (litres)"),
+        "vehicle": MessageLookupByLibrary.simpleMessage("Vehicle"),
         "volume": MessageLookupByLibrary.simpleMessage("Volume:")
       };
 }
