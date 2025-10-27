@@ -10,10 +10,12 @@ A Flutter-based mobile application to help users track their vehicle's fuel cons
 ## Key Features:
 
 *   **Fuel Record Management:** Add, view, and manage your fuel records, including odometer readings, fuel volume, and paid amounts.
+*   **Multi-Vehicle Support:** Add and manage multiple vehicles, each with specific fuel types and capacities, and set a default vehicle for quick data entry.
+*   **Immersive User Experience:** Graphical and welcoming prompts for first-time users to guide them through adding their first vehicle and getting started with the app.
 *   **Mileage Calculation:** Automatically calculates and displays the running average mileage and the last time mileage.
-*   **Data Import/Export:** Import and export your fuel data in CSV format for easy data backup and migration.
+*   **Data Import/Export:** Import and export your fuel data in CSV format. Exported filenames are automatically generated with the date and a sequence number for easy organization (e.g., `fuel_records_2024-10-28_1.csv`).
 *   **Dynamic Theming:** Adapts its color scheme to the user's system-level theme on Android for a personalized look and feel.
-*   **Localization:** Supports multiple languages.
+*   **Localization:** Supports multiple languages through the `intl` package.
 *   **Automated CI/CD:** A GitHub Actions workflow automatically builds and releases signed APKs whenever code is pushed to the `release` branch.
 
 ## Future Development Plan
@@ -27,13 +29,11 @@ The following is a roadmap of planned features to be implemented in the future:
     *   **Gasoline/Diesel:** Litre (default), Gallon.
     *   **GAS (CNG/LPG):** Litre, Cubic Meter (m³), or Gasoline Gallon Equivalent (GGE).
 
-### Multi-Vehicle Support
+### Advanced Mileage and Cost Tracking
 
-*   **Vehicle Profiles:** Users will be able to add and manage multiple vehicles.
-    *   Each vehicle will have a name, type, and primary/secondary fuel types.
-    *   For each fuel type, users can specify the tank/cylinder capacity.
-*   **Default Vehicle:** Users can select one vehicle as the default for quick data entry.
-*   **Dashboard Integration:** The dashboard will be updated to display information for all vehicles, with a separate refueling button to add data for each.
+*   **Per-Fuel Mileage:** For vehicles with multiple fuel types, mileage will be calculated separately for each fuel type.
+*   **Overall Mileage:** The app will also provide an overall mileage calculation for multi-fuel vehicles.
+*   **Cost-Efficiency Tracking:** A new feature will be added to track and compare the cost-efficiency of different fuel types.
 
 ## License
 
