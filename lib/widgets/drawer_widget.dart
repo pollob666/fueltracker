@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
+
 import 'package:flutter/material.dart';
 import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/pages/all_data_page.dart';

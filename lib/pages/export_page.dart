@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
