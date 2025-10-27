@@ -13,6 +13,7 @@ import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ExportPage extends StatefulWidget {
@@ -28,9 +29,37 @@ class _ExportPageState extends State<ExportPage> {
   bool _exportRefuelingData = true;
   bool _exportAppSettings = false;
   bool _exportVehicleInformation = false;
+  int _sequence = 1;
 
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSequence();
+  }
+
+  Future<void> _loadSequence() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _sequence = prefs.getInt('export_sequence') ?? 1;
+    });
+  }
+
+  Future<void> _incrementSequence() async {
+    final prefs = await SharedPreferences.getInstance();
+    _sequence++;
+    await prefs.setInt('export_sequence', _sequence);
+    setState(() {});
+  }
+
+  String _getFormattedFileName(String prefix) {
+    final now = DateTime.now();
+    final dateFormatter = DateFormat('yyyy-MM-dd');
+    final formattedDate = dateFormatter.format(now);
+    return '${prefix}_${formattedDate}_$_sequence';
+  }
 
   Future<void> _exportData() async {
     final localizations = AppLocalizations.of(context);
@@ -61,6 +90,10 @@ class _ExportPageState extends State<ExportPage> {
     }
     if (_exportVehicleInformation) {
       messages.add(await _exportVehicleInformationAsCsv(folderPath, localizations));
+    }
+
+    if (messages.any((m) => m.contains(localizations.dataExportedTo))) {
+      await _incrementSequence();
     }
 
     if (!mounted) return;
@@ -100,8 +133,7 @@ class _ExportPageState extends State<ExportPage> {
     ];
 
     String csv = const ListToCsvConverter().convert(csvData);
-    String fileName =
-        "fuel_records_${DateTime.now().millisecondsSinceEpoch}.csv";
+    String fileName = "${_getFormattedFileName('fuel_records')}.csv";
     File file = File("$folderPath/$fileName");
 
     try {
@@ -125,8 +157,7 @@ class _ExportPageState extends State<ExportPage> {
     };
 
     String json = jsonEncode(settings);
-    String fileName =
-        "app_settings_${DateTime.now().millisecondsSinceEpoch}.json";
+    String fileName = "${_getFormattedFileName('app_settings')}.json";
     File file = File("$folderPath/$fileName");
 
     try {
@@ -165,8 +196,7 @@ class _ExportPageState extends State<ExportPage> {
     ];
 
     String csv = const ListToCsvConverter().convert(csvData);
-    String fileName =
-        "vehicle_information_${DateTime.now().millisecondsSinceEpoch}.csv";
+    String fileName = "${_getFormattedFileName('vehicle_information')}.csv";
     File file = File("$folderPath/$fileName");
 
     try {
