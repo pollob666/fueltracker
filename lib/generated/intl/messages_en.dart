@@ -23,6 +23,8 @@ class MessageLookup extends MessageLookupByLibrary {
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
         "actualBill": MessageLookupByLibrary.simpleMessage("Actual Bill"),
+        "addFirstVehiclePrompt": MessageLookupByLibrary.simpleMessage(
+            "Let\'s start by adding your first vehicle. It only takes a moment!"),
         "addFuelData": MessageLookupByLibrary.simpleMessage("Add Fuel Data"),
         "addVehicle": MessageLookupByLibrary.simpleMessage("Add Vehicle"),
         "allData": MessageLookupByLibrary.simpleMessage("All Data"),
@@ -95,7 +97,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "lastRefuelVolume":
             MessageLookupByLibrary.simpleMessage("Last Refuel Volume"),
         "lastTimeMileage":
-            MessageLookupByLibrary.simpleMessage("Last Time Mileage"),
+            MessageLookupByLibrary.simpleMessage("Current Running Mileage"),
         "local": MessageLookupByLibrary.simpleMessage("Local"),
         "manageVehicles":
             MessageLookupByLibrary.simpleMessage("Manage Vehicles"),
@@ -148,6 +150,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "vehicle": MessageLookupByLibrary.simpleMessage("Vehicle"),
         "vehicleName": MessageLookupByLibrary.simpleMessage("Vehicle Name"),
         "vehicleType": MessageLookupByLibrary.simpleMessage("Vehicle Type"),
-        "volume": MessageLookupByLibrary.simpleMessage("Volume:")
+        "volume": MessageLookupByLibrary.simpleMessage("Volume:"),
+        "welcomeToFuelTracker":
+            MessageLookupByLibrary.simpleMessage("Welcome to Fuel Tracker!")
       };
 }

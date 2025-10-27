@@ -23,6 +23,8 @@ class MessageLookup extends MessageLookupByLibrary {
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
         "actualBill": MessageLookupByLibrary.simpleMessage("বিল"),
+        "addFirstVehiclePrompt": MessageLookupByLibrary.simpleMessage(
+            "চলুন আপনার প্রথম যানটি যোগ করে শুরু করা যাক। এটি শুধুমাত্র একটি মুহূর্ত সময় নেবে!"),
         "addFuelData":
             MessageLookupByLibrary.simpleMessage("জ্বালানি ডেটা যোগ করুন"),
         "addVehicle": MessageLookupByLibrary.simpleMessage("যানবাহন যোগ করুন"),
@@ -154,6 +156,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "vehicle": MessageLookupByLibrary.simpleMessage("যানবাহন"),
         "vehicleName": MessageLookupByLibrary.simpleMessage("যানের নাম"),
         "vehicleType": MessageLookupByLibrary.simpleMessage("যানের প্রকার"),
-        "volume": MessageLookupByLibrary.simpleMessage("ভলিউম:")
+        "volume": MessageLookupByLibrary.simpleMessage("ভলিউম:"),
+        "welcomeToFuelTracker":
+            MessageLookupByLibrary.simpleMessage("ফুয়েল ট্র্যাকারে স্বাগতম!")
       };
 }

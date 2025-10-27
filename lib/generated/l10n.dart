@@ -889,6 +889,26 @@ class S {
       args: [],
     );
   }
+
+  /// `Welcome to Fuel Tracker!`
+  String get welcomeToFuelTracker {
+    return Intl.message(
+      'Welcome to Fuel Tracker!',
+      name: 'welcomeToFuelTracker',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Let's start by adding your first vehicle. It only takes a moment!`
+  String get addFirstVehiclePrompt {
+    return Intl.message(
+      'Let\'s start by adding your first vehicle. It only takes a moment!',
+      name: 'addFirstVehiclePrompt',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {
@@ -898,7 +918,6 @@ class AppLocalizationDelegate extends LocalizationsDelegate<S> {
     return const <Locale>[
       Locale.fromSubtags(languageCode: 'en'),
       Locale.fromSubtags(languageCode: 'bn'),
-      Locale.fromSubtags(languageCode: 'messages'),
     ];
   }
 
