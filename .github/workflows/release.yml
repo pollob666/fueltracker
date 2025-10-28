@@ -1,8 +1,8 @@
 # GitHub Actions workflow for building and releasing Flutter APKs.
 #
 # This workflow is triggered on every push to the 'release' branch.
-# It automatically increments the version number based on the commit message,
-# builds a signed release APK, and creates a new GitHub Release.
+# It automatically increments the version number, builds a signed release APK, 
+# and creates a new GitHub Release.
 #
 name: Build and Release APK
 
@@ -13,6 +13,8 @@ on:
 
 jobs:
   build-and-release:
+    # Prevent workflow from running in an infinite loop
+    if: "!contains(github.event.head_commit.message, 'Bump version to')"
     runs-on: ubuntu-latest
     permissions:
       contents: write # Required to create a release and commit version changes.
@@ -22,7 +24,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches all history for retrieving the last commit message.
+          fetch-depth: 0 # Fetches all history. Required for the version bump action.
+          token: ${{ secrets.GITHUB_TOKEN }} # The token is needed for the version bump action to push changes
 
       # Step 2: Set up the Java Development Kit (JDK).
       - name: Set up JDK 17
@@ -41,39 +44,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Step 5: Determine Version Increment
-      - name: Determine Version Increment
-        id: version-increment-type
-        run: |
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$COMMIT_MSG" == *"majorUpdate"* ]]; then
-            echo "increment=major" >> $GITHUB_OUTPUT
-          elif [[ "$COMMIT_MSG" == *"feat:"* ]]; then
-            echo "increment=minor" >> $GITHUB_OUTPUT
-          elif [[ "$COMMIT_MSG" == *"chore:"* ]]; then
-            echo "increment=patch" >> $GITHUB_OUTPUT
-          else
-            echo "increment=patch" >> $GITHUB_OUTPUT
-          fi
-
-      # Step 6: Increment version
-      - name: Increment version
+      # Step 5: Bump version
+      - name: Bump version
         id: version-increment
-        uses: MAD-GooSe/action-flutter-version-bump@v1
+        uses: RodXander/flutter-bump-version@v0.0.02
         with:
-          pubspec-path: 'pubspec.yaml'
-          mode: ${{ steps.version-increment-type.outputs.increment }}
-
-      # Step 7: Commit version bump
-      - name: Commit version bump
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add pubspec.yaml
-          git commit -m "ci: Bump version to ${{ steps.version-increment.outputs.new-version }}"
-          git push
-
-      # Step 8: Decode the keystore and create the key.properties file.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: 'release'
+          
+      # Step 6: Decode the keystore and create the key.properties file.
       - name: Decode Keystore and Create Properties File
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -89,23 +68,23 @@ jobs:
           echo "storePassword=$STORE_PASSWORD" >> android/app/key.properties
           echo "Keystore and properties files created successfully."
 
-      # Step 9: Build the signed release APK.
+      # Step 7: Build the signed release APK.
       - name: Build signed release APK
         run: flutter build apk --release
 
-      # Step 10: Rename the artifact to include build info and set the release name.
+      # Step 8: Rename the artifact to include build info and set the release name.
       - name: Rename APK
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${{ steps.version-increment.outputs.new-version }}.apk
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${{ steps.version-increment.outputs.new_version }}.apk
 
-      # Step 11: Create a GitHub Release and upload the APK.
+      # Step 9: Create a GitHub Release and upload the APK.
       - name: Create Release and Upload Artifact
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version-increment.outputs.new-version }}
-          name: "Release ${{ steps.version-increment.outputs.new-version }}"
+          tag_name: v${{ steps.version-increment.outputs.new_version }}
+          name: "Release ${{ steps.version-increment.outputs.new_version }}"
           body: |
-            Automated release for version ${{ steps.version-increment.outputs.new-version }}.
+            Automated release for version ${{ steps.version-increment.outputs.new_version }}.
             - Release APK (signed)
           files: build/app/outputs/flutter-apk/fuelTracker-release-*.apk
         env:
