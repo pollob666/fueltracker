@@ -51,6 +51,7 @@ flutter:
 
   assets:
     - assets/fuelTracker.png
+    - assets/dash.png
 
 # Launcher icon configuration (uses the `flutter_launcher_icons` package).
 flutter_launcher_icons:

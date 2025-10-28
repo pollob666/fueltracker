@@ -172,7 +172,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Text(
                 value.toStringAsFixed(2),
                 style: theme.textTheme.displaySmall?.copyWith(
-                  color: valueColor,
+                  color: onBackgroundColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -206,7 +206,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Text(
                 value.toStringAsFixed(2),
                 style: theme.textTheme.displaySmall?.copyWith(
-                  color: valueColor,
+                  color: onBackgroundColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),

@@ -24,7 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String _storageOption = AppSettings.storageOption;
   final TextEditingController _folderController = TextEditingController();
   Locale? _currentLocale;
-  ThemeMode _themeMode = ThemeMode.system;
+  late String _currentThemeSetting;
   final FuelTypeService _fuelTypeService = FuelTypeService();
   List<FuelType> _fuelTypes = [];
   final Map<String, TextEditingController> _priceControllers = {};
@@ -35,8 +35,22 @@ class _SettingsPageState extends State<SettingsPage> {
     _maxVolumeController.text = AppSettings.maxVolume.toString();
     _folderController.text = _getCurrentFolderPath();
     _currentLocale = Locale(AppSettings.language);
-    _themeMode = AppSettings.themeMode;
+    _setCurrentThemeSetting();
     _loadFuelTypes();
+  }
+
+  void _setCurrentThemeSetting() {
+    if (AppSettings.themeMode == 'light') {
+      _currentThemeSetting = 'light';
+    } else if (AppSettings.themeMode == 'system') {
+      _currentThemeSetting = 'system';
+    } else { // dark
+      if (AppSettings.darkTheme == 'monet') {
+        _currentThemeSetting = 'monet';
+      } else { // black
+        _currentThemeSetting = 'black';
+      }
+    }
   }
 
   Future<void> _loadFuelTypes() async {
@@ -89,7 +103,24 @@ class _SettingsPageState extends State<SettingsPage> {
         AppSettings.dropboxFolderPath = _folderController.text;
       }
       AppSettings.language = _currentLocale!.languageCode;
-      AppSettings.themeMode = _themeMode;
+
+      switch (_currentThemeSetting) {
+        case 'light':
+          AppSettings.themeMode = 'light';
+          break;
+        case 'system':
+          AppSettings.themeMode = 'system';
+          break;
+        case 'monet':
+          AppSettings.themeMode = 'dark';
+          AppSettings.darkTheme = 'monet';
+          break;
+        case 'black':
+          AppSettings.themeMode = 'dark';
+          AppSettings.darkTheme = 'black';
+          break;
+      }
+
       _priceControllers.forEach((name, controller) {
         final price = double.tryParse(controller.text);
         if (price != null) {
@@ -100,7 +131,8 @@ class _SettingsPageState extends State<SettingsPage> {
       await AppSettings.saveSettings();
       if (mounted) {
         MyApp.setLocale(context, _currentLocale!);
-        MyApp.setThemeMode(context, _themeMode);
+        MyApp.setThemeMode(context, AppSettings.themeMode);
+        MyApp.setDarkTheme(context, AppSettings.darkTheme);
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(AppLocalizations.of(context)!.settingsSaved)));
       }
@@ -139,9 +171,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   TextFormField(
                     controller: _maxVolumeController,
                     decoration: InputDecoration(
-                        labelText:
-                            AppLocalizations.of(context)!.maximumTankCapacity),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        labelText: AppLocalizations.of(context)!
+                            .maximumTankCapacity),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return AppLocalizations.of(context)!
@@ -167,8 +200,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       });
                     },
                     decoration: InputDecoration(
-                        labelText:
-                            AppLocalizations.of(context)!.fileStorageOption),
+                        labelText: AppLocalizations.of(context)!
+                            .fileStorageOption),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -203,26 +236,30 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 16),
                   ListTile(
                     title: Text('Theme', style: theme.textTheme.titleMedium),
-                    trailing: DropdownButton<ThemeMode>(
-                      value: _themeMode,
+                    trailing: DropdownButton<String>(
+                      value: _currentThemeSetting,
                       items: const [
                         DropdownMenuItem(
-                          value: ThemeMode.light,
+                          value: 'system',
+                          child: Text('System'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'light',
                           child: Text('Light'),
                         ),
                         DropdownMenuItem(
-                          value: ThemeMode.dark,
-                          child: Text('Dark'),
+                          value: 'monet',
+                          child: Text('Monet (Dark)'),
                         ),
                         DropdownMenuItem(
-                          value: ThemeMode.system,
-                          child: Text('System'),
+                          value: 'black',
+                          child: Text('Black'),
                         ),
                       ],
-                      onChanged: (ThemeMode? themeMode) {
-                        if (themeMode != null) {
+                      onChanged: (String? newTheme) {
+                        if (newTheme != null) {
                           setState(() {
-                            _themeMode = themeMode;
+                            _currentThemeSetting = newTheme;
                           });
                         }
                       },
@@ -236,7 +273,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     return TextFormField(
                       controller: _priceControllers[ft.name],
                       decoration: InputDecoration(labelText: ft.name),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                     );
                   }),
                   const SizedBox(height: 16),
