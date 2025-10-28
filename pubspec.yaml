@@ -37,6 +37,11 @@ dependencies:
   # Internationalization
   intl: ^0.20.2
 
+  # Networking & Versioning
+  http: ^1.2.1
+  package_info_plus: ^8.0.0
+  url_launcher: ^6.3.2
+
 # Development-only dependencies
 dev_dependencies:
   flutter_test:
