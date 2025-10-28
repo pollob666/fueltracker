@@ -31,7 +31,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "allData": MessageLookupByLibrary.simpleMessage("সমস্ত ডেটা"),
         "appTitle":
             MessageLookupByLibrary.simpleMessage("জ্বালানি খরচ ট্র্যাকার"),
-        "averageMileage": MessageLookupByLibrary.simpleMessage("গড় মাইলেج"),
+        "averageMileage": MessageLookupByLibrary.simpleMessage("গড় মাইলেজ"),
         "cancel": MessageLookupByLibrary.simpleMessage("বাতিল"),
         "carOrSedan": MessageLookupByLibrary.simpleMessage("কার/সেডান"),
         "comingSoon": MessageLookupByLibrary.simpleMessage("শীঘ্রই আসছে"),
@@ -42,6 +42,11 @@ class MessageLookup extends MessageLookupByLibrary {
         "csvFileEmptyOrIncorrectlyFormatted":
             MessageLookupByLibrary.simpleMessage(
                 "সিএসভি ফাইলটি খালি বা ভুলভাবে ফর্ম্যাট করা হয়েছে।"),
+        "dailyAverageCost":
+            MessageLookupByLibrary.simpleMessage("দৈনিক গড় খরচ"),
+        "dailyAverageRun":
+            MessageLookupByLibrary.simpleMessage("দৈনিক গড় রান"),
+        "dailyAverages": MessageLookupByLibrary.simpleMessage("দৈনিক গড়"),
         "dashboard": MessageLookupByLibrary.simpleMessage("ড্যাশবোর্ড"),
         "dataExportedTo": MessageLookupByLibrary.simpleMessage(
             "ডেটা এখানে এক্সপোর্ট করা হয়েছে "),
@@ -58,7 +63,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "enterFuelPriceRate": MessageLookupByLibrary.simpleMessage(
             "জ্বালানির দামের হার টাইপ করুন"),
         "enterMaximumCapacity":
-            MessageLookupByLibrary.simpleMessage("সর্বোচ্চ ক্ষমতা টাইప్ করুন"),
+            MessageLookupByLibrary.simpleMessage("সর্বোচ্চ ক্ষমতা টাইপ করুন"),
         "enterOdometerReading":
             MessageLookupByLibrary.simpleMessage("ওডোমিটার রিডিং টাইপ করুন"),
         "enterPaidAmount":
@@ -152,7 +157,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "suv": MessageLookupByLibrary.simpleMessage("এসইউভি/জিপ গাড়ি"),
         "totalPrice": MessageLookupByLibrary.simpleMessage("মোট মূল্য:"),
         "totalVolume":
-            MessageLookupByLibrary.simpleMessage("মোট ভলিউм (লিটার)"),
+            MessageLookupByLibrary.simpleMessage("মোট ভলিউম (লিটার)"),
         "vehicle": MessageLookupByLibrary.simpleMessage("যানবাহন"),
         "vehicleName": MessageLookupByLibrary.simpleMessage("যানের নাম"),
         "vehicleType": MessageLookupByLibrary.simpleMessage("যানের প্রকার"),

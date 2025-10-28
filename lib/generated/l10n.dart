@@ -909,6 +909,36 @@ class S {
       args: [],
     );
   }
+
+  /// `Daily Averages`
+  String get dailyAverages {
+    return Intl.message(
+      'Daily Averages',
+      name: 'dailyAverages',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Daily Average Run`
+  String get dailyAverageRun {
+    return Intl.message(
+      'Daily Average Run',
+      name: 'dailyAverageRun',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Daily Average Cost`
+  String get dailyAverageCost {
+    return Intl.message(
+      'Daily Average Cost',
+      name: 'dailyAverageCost',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

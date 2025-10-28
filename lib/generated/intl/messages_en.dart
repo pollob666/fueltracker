@@ -41,6 +41,11 @@ class MessageLookup extends MessageLookupByLibrary {
         "csvFileEmptyOrIncorrectlyFormatted":
             MessageLookupByLibrary.simpleMessage(
                 "CSV file is empty or incorrectly formatted."),
+        "dailyAverageCost":
+            MessageLookupByLibrary.simpleMessage("Daily Average Cost"),
+        "dailyAverageRun":
+            MessageLookupByLibrary.simpleMessage("Daily Average Run"),
+        "dailyAverages": MessageLookupByLibrary.simpleMessage("Daily Averages"),
         "dashboard": MessageLookupByLibrary.simpleMessage("Dashboard"),
         "dataExportedTo":
             MessageLookupByLibrary.simpleMessage("Data exported to "),
