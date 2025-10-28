@@ -126,6 +126,33 @@ class _DashboardPageState extends State<DashboardPage> {
     return totalCost / totalDistance;
   }
 
+  double calculateDailyAverageRun(List<FuelRecord> records) {
+    if (records.length < 2) {
+      return 0;
+    }
+    double totalDistance = records.last.odometer - records.first.odometer;
+    int days = records.last.date.difference(records.first.date).inDays;
+    if (days == 0) {
+      return totalDistance;
+    }
+    return totalDistance / days;
+  }
+
+  double calculateDailyAverageCost(List<FuelRecord> records) {
+    if (records.isEmpty) {
+      return 0;
+    }
+    double totalCost = records.map((r) => r.paidAmount).reduce((a, b) => a + b);
+    if (records.length < 2) {
+      return totalCost;
+    }
+    int days = records.last.date.difference(records.first.date).inDays;
+    if (days == 0) {
+      return totalCost;
+    }
+    return totalCost / days;
+  }
+
   Widget _buildMileageCard(BuildContext context, String title, double value, String unit,
       Color backgroundColor, Color onBackgroundColor, Color valueColor) {
     final theme = Theme.of(context);
@@ -213,7 +240,7 @@ class _DashboardPageState extends State<DashboardPage> {
             padding: const EdgeInsets.all(16.0),
             child: Card(
               elevation: 4.0,
-              color: theme.colorScheme.surfaceVariant,
+              color: theme.colorScheme.surfaceContainerHighest,
               margin: const EdgeInsets.symmetric(vertical: 20.0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
@@ -398,6 +425,46 @@ class _DashboardPageState extends State<DashboardPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
+                          localizations.dailyAverages,
+                          style: theme.textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            _buildCostCard(
+                              context,
+                              localizations.dailyAverageRun,
+                              calculateDailyAverageRun(_filteredRecords),
+                              'km/day',
+                              colorScheme.secondaryContainer,
+                              colorScheme.onSecondaryContainer,
+                              colorScheme.secondary,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildCostCard(
+                              context,
+                              localizations.dailyAverageCost,
+                              calculateDailyAverageCost(_filteredRecords),
+                              'BDT/day',
+                              colorScheme.errorContainer,
+                              colorScheme.onErrorContainer,
+                              colorScheme.error,
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
                           localizations.costEfficiency,
                           style: theme.textTheme.headlineSmall,
                           textAlign: TextAlign.center,
@@ -438,21 +505,21 @@ class _DashboardPageState extends State<DashboardPage> {
                               context,
                               label: localizations.volume,
                               value:
-                                  "${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres",
+                                  '${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres',
                               icon: Icons.local_gas_station,
                             ),
                             _buildInfoTile(
                               context,
                               label: localizations.totalPrice,
                               value:
-                                  "${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT",
+                                  '${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT',
                               icon: Icons.monetization_on,
                             ),
                             _buildInfoTile(
                               context,
                               label: localizations.odometer,
                               value:
-                                  "${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km",
+                                  '${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km',
                               icon: Icons.speed,
                             ),
                             _buildInfoTile(
@@ -465,7 +532,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               context,
                               label: localizations.fuelRate,
                               value:
-                                  "${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre",
+                                  '${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre',
                               icon: Icons.price_change,
                             ),
                           ],

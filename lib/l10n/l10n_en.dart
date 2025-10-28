@@ -270,4 +270,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addFirstVehiclePrompt =>
       'Let\'s start by adding your first vehicle. It only takes a moment!';
+
+  @override
+  String get dailyAverages => 'Daily Averages';
+
+  @override
+  String get dailyAverageRun => 'Daily Average Run';
+
+  @override
+  String get dailyAverageCost => 'Daily Average Cost';
 }

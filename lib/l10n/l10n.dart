@@ -613,6 +613,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Let\'s start by adding your first vehicle. It only takes a moment!'**
   String get addFirstVehiclePrompt;
+
+  /// No description provided for @dailyAverages.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Averages'**
+  String get dailyAverages;
+
+  /// No description provided for @dailyAverageRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Average Run'**
+  String get dailyAverageRun;
+
+  /// No description provided for @dailyAverageCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Average Cost'**
+  String get dailyAverageCost;
 }
 
 class _AppLocalizationsDelegate

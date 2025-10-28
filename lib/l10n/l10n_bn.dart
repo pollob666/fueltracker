@@ -42,7 +42,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get fuelPriceRate => 'জ্বালানির দামের হার (টাকা)';
 
   @override
-  String get totalVolume => 'মোট ভলিউм (লিটার)';
+  String get totalVolume => 'মোট ভলিউম (লিটার)';
 
   @override
   String get paidAmount => 'পরিশোধিত পরিমাণ (টাকা)';
@@ -121,7 +121,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get enterPaidAmount => 'পরিশোধিত পরিমাণ টাইপ করুন';
 
   @override
-  String get enterMaximumCapacity => 'সর্বোচ্চ ক্ষমতা টাইప్ করুন';
+  String get enterMaximumCapacity => 'সর্বোচ্চ ক্ষমতা টাইপ করুন';
 
   @override
   String get local => 'লোকাল স্টোরেজ';
@@ -142,7 +142,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get savings => 'বেচেছে (টাকা)';
 
   @override
-  String get averageMileage => 'গড় মাইলেج';
+  String get averageMileage => 'গড় মাইলেজ';
 
   @override
   String get lastRefuelDetails => 'শেষ রিফুয়েলের বিবরণ';
@@ -270,4 +270,13 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String get addFirstVehiclePrompt =>
       'চলুন আপনার প্রথম যানটি যোগ করে শুরু করা যাক। এটি শুধুমাত্র একটি মুহূর্ত সময় নেবে!';
+
+  @override
+  String get dailyAverages => 'দৈনিক গড়';
+
+  @override
+  String get dailyAverageRun => 'দৈনিক গড় রান';
+
+  @override
+  String get dailyAverageCost => 'দৈনিক গড় খরচ';
 }
