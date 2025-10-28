@@ -1,4 +1,4 @@
-'''# GitHub Actions workflow for building and releasing Flutter APKs.
+# GitHub Actions workflow for building and releasing Flutter APKs.
 #
 # This workflow is triggered on every push to the 'release' branch.
 # It automatically increments the version number based on the commit message,
@@ -133,4 +133,3 @@ jobs:
           files: build/app/outputs/flutter-apk/fuelTracker-release-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-''
