@@ -3,7 +3,6 @@
 
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettings {
@@ -13,7 +12,8 @@ class AppSettings {
   static String googleDriveFolderPath = '';
   static String dropboxFolderPath = '';
   static String language = 'en';
-  static ThemeMode themeMode = ThemeMode.system;
+  static String themeMode = 'system'; // 'light', 'dark', 'system'
+  static String darkTheme = 'monet'; // 'monet', 'black'
   static Map<String, double> defaultFuelPrices = {};
 
   static Future<void> loadSettings() async {
@@ -24,14 +24,8 @@ class AppSettings {
     googleDriveFolderPath = prefs.getString('googleDriveFolderPath') ?? '';
     dropboxFolderPath = prefs.getString('dropboxFolderPath') ?? '';
     language = prefs.getString('language') ?? 'en';
-    final theme = prefs.getString('themeMode');
-    if (theme == 'light') {
-      themeMode = ThemeMode.light;
-    } else if (theme == 'dark') {
-      themeMode = ThemeMode.dark;
-    } else {
-      themeMode = ThemeMode.system;
-    }
+    themeMode = prefs.getString('themeMode') ?? 'system';
+    darkTheme = prefs.getString('darkTheme') ?? 'monet';
 
     final defaultPricesString = prefs.getString('defaultFuelPrices');
     if (defaultPricesString != null) {
@@ -47,7 +41,8 @@ class AppSettings {
     await prefs.setString('googleDriveFolderPath', googleDriveFolderPath);
     await prefs.setString('dropboxFolderPath', dropboxFolderPath);
     await prefs.setString('language', language);
-    await prefs.setString('themeMode', themeMode.toString().split('.').last);
+    await prefs.setString('themeMode', themeMode);
+    await prefs.setString('darkTheme', darkTheme);
     await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }
 }

@@ -26,37 +26,78 @@ class MyApp extends StatefulWidget {
     state?.setLocale(newLocale);
   }
 
-  static void setThemeMode(BuildContext context, ThemeMode themeMode) {
+  static void setThemeMode(BuildContext context, String themeMode) {
     _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
     state?.setThemeMode(themeMode);
+  }
+
+  static void setDarkTheme(BuildContext context, String darkTheme) {
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
+    state?.setDarkTheme(darkTheme);
   }
 }
 
 class _MyAppState extends State<MyApp> {
   Locale? _locale;
-  ThemeMode _themeMode = ThemeMode.system;
+  String _themeMode = AppSettings.themeMode;
+  String _darkTheme = AppSettings.darkTheme;
+
+  @override
+  void initState() {
+    super.initState();
+    _locale = Locale(AppSettings.language);
+    _themeMode = AppSettings.themeMode;
+    _darkTheme = AppSettings.darkTheme;
+  }
 
   void setLocale(Locale newLocale) {
     setState(() {
       _locale = newLocale;
+      AppSettings.language = newLocale.languageCode;
+      AppSettings.saveSettings();
     });
   }
 
-  void setThemeMode(ThemeMode themeMode) {
+  void setThemeMode(String themeMode) {
     setState(() {
       _themeMode = themeMode;
+      AppSettings.themeMode = themeMode;
+      AppSettings.saveSettings();
     });
+  }
+
+  void setDarkTheme(String darkTheme) {
+    setState(() {
+      _darkTheme = darkTheme;
+      AppSettings.darkTheme = darkTheme;
+      AppSettings.saveSettings();
+    });
+  }
+
+  ThemeMode get _currentThemeMode {
+    switch (_themeMode) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        final darkTheme = _darkTheme == 'monet'
+            ? AppTheme.getMonetDarkTheme(darkDynamic)
+            : AppTheme.getBlackDarkTheme(darkDynamic);
+
         return MaterialApp(
           title: 'Fuel Consumption Tracker',
           theme: AppTheme.getLightTheme(lightDynamic),
-          darkTheme: AppTheme.getDarkTheme(darkDynamic),
-          themeMode: _themeMode,
+          darkTheme: darkTheme,
+          themeMode: _currentThemeMode,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,

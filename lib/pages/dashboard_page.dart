@@ -11,6 +11,8 @@ import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
+import 'package:fuel_tracker/services/version_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'add_data_page.dart';
 import 'settings_page.dart';
@@ -25,6 +27,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
+  final VersionService _versionService = VersionService();
 
   List<FuelRecord> _allRecords = [];
   List<FuelRecord> _filteredRecords = [];
@@ -37,6 +40,27 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     _loadInitialData();
+    _checkForUpdates();
+  }
+
+  Future<void> _checkForUpdates() async {
+    final isUpdateAvailable = await _versionService.isUpdateAvailable;
+    if (isUpdateAvailable) {
+      final latestVersion = await _versionService.latestVersion;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update available: $latestVersion'),
+            action: SnackBarAction(
+              label: 'Release',
+              onPressed: () {
+                launchUrl(Uri.parse('https://github.com/pollob666/fueltracker/releases/latest'));
+              },
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -172,7 +196,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Text(
                 value.toStringAsFixed(2),
                 style: theme.textTheme.displaySmall?.copyWith(
-                  color: valueColor,
+                  color: onBackgroundColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -206,7 +230,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Text(
                 value.toStringAsFixed(2),
                 style: theme.textTheme.displaySmall?.copyWith(
-                  color: valueColor,
+                  color: onBackgroundColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
