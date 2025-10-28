@@ -83,8 +83,10 @@ jobs:
             PATCH=$((PATCH + 1))
             BUILD_PART=$((BUILD_PART + 1))
           fi
-          NEW_VERSION="$MAJOR.$MINOR.$PATCH+$BUILD_PART"
+          NEW_VERSION_NAME="$MAJOR.$MINOR.$PATCH"
+          NEW_VERSION="$NEW_VERSION_NAME+$BUILD_PART"
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "new_version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
           sed -i "s/version: .*/version: $NEW_VERSION/" pubspec.yaml
 
       # Step 7: Commit version bump
@@ -119,16 +121,17 @@ jobs:
       # Step 10: Rename the artifact to include build info and set the release name.
       - name: Rename APK
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${{ steps.version-increment.outputs.new_version }}.apk
+          BUILD_DATE_ISO=$(date +'%Y%m%dT%H%M%S')
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${{ steps.version-increment.outputs.new_version_name }}-${BUILD_DATE_ISO}.apk
 
       # Step 11: Create a GitHub Release and upload the APK.
       - name: Create Release and Upload Artifact
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version-increment.outputs.new_version }}
-          name: "Release ${{ steps.version-increment.outputs.new_version }}"
+          name: "Release ${{ steps.version-increment.outputs.new_version_name }}"
           body: |
-            Automated release for version ${{ steps.version-increment.outputs.new_version }}.
+            Automated release for version ${{ steps.version-increment.outputs.new_version_name }}.
             - Release APK (signed)
           files: build/app/outputs/flutter-apk/fuelTracker-release-*.apk
         env:
