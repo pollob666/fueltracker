@@ -56,7 +56,7 @@ class _ExportPageState extends State<ExportPage> {
 
   String _getFormattedFileName(String prefix) {
     final now = DateTime.now();
-    final dateFormatter = DateFormat('yyyy-MM-dd');
+    final dateFormatter = DateFormat('yyyyMMddTHHmm');
     final formattedDate = dateFormatter.format(now);
     return '${prefix}_${formattedDate}_$_sequence';
   }
@@ -133,7 +133,7 @@ class _ExportPageState extends State<ExportPage> {
     ];
 
     String csv = const ListToCsvConverter().convert(csvData);
-    String fileName = "${_getFormattedFileName('fuel_records')}.csv";
+    String fileName = "${_getFormattedFileName('refuel_records')}.csv";
     File file = File("$folderPath/$fileName");
 
     try {

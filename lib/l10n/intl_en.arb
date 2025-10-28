@@ -85,5 +85,8 @@
   "cancel": "Cancel",
   "ok": "OK",
   "welcomeToFuelTracker": "Welcome to Fuel Tracker!",
-  "addFirstVehiclePrompt": "Let's start by adding your first vehicle. It only takes a moment!"
+  "addFirstVehiclePrompt": "Let's start by adding your first vehicle. It only takes a moment!",
+  "dailyAverages": "Daily Averages",
+  "dailyAverageRun": "Daily Average Run",
+  "dailyAverageCost": "Daily Average Cost"
 }
