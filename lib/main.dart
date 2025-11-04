@@ -8,10 +8,12 @@ import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/theme.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppSettings.loadSettings();
+  MobileAds.instance.initialize();
   runApp(const MyApp());
 }
 

@@ -10,6 +10,7 @@ import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
+import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/services/version_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -414,175 +415,182 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
       drawer: const MyDrawer(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                DropdownButtonFormField<int>(
-                  initialValue: _selectedVehicleId,
-                  items: _vehicles.map((vehicle) {
-                    return DropdownMenuItem<int>(
-                      value: vehicle.id,
-                      child: Text(vehicle.name),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedVehicleId = val;
-                      _filterRecords();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: localizations.vehicle,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ...mileageCards,
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          localizations.dailyAverages,
-                          style: theme.textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
+      body: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<int>(
+                        initialValue: _selectedVehicleId,
+                        items: _vehicles.map((vehicle) {
+                          return DropdownMenuItem<int>(
+                            value: vehicle.id,
+                            child: Text(vehicle.name),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedVehicleId = val;
+                            _filterRecords();
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: localizations.vehicle,
+                          border: const OutlineInputBorder(),
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            _buildCostCard(
-                              context,
-                              localizations.dailyAverageRun,
-                              calculateDailyAverageRun(_filteredRecords),
-                              'km/day',
-                              colorScheme.secondaryContainer,
-                              colorScheme.onSecondaryContainer,
-                              colorScheme.secondary,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildCostCard(
-                              context,
-                              localizations.dailyAverageCost,
-                              calculateDailyAverageCost(_filteredRecords),
-                              'BDT/day',
-                              colorScheme.errorContainer,
-                              colorScheme.onErrorContainer,
-                              colorScheme.error,
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          localizations.costEfficiency,
-                          style: theme.textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ...mileageCards,
+                      const SizedBox(height: 24),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                localizations.dailyAverages,
+                                style: theme.textTheme.headlineSmall,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  _buildCostCard(
+                                    context,
+                                    localizations.dailyAverageRun,
+                                    calculateDailyAverageRun(_filteredRecords),
+                                    'km/day',
+                                    colorScheme.secondaryContainer,
+                                    colorScheme.onSecondaryContainer,
+                                    colorScheme.secondary,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildCostCard(
+                                    context,
+                                    localizations.dailyAverageCost,
+                                    calculateDailyAverageCost(_filteredRecords),
+                                    'BDT/day',
+                                    colorScheme.errorContainer,
+                                    colorScheme.onErrorContainer,
+                                    colorScheme.error,
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: costCards,
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          localizations.lastRefuelDetails,
-                          style: theme.textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                localizations.costEfficiency,
+                                style: theme.textTheme.headlineSmall,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: costCards,
+                              )
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 24),
-                        Wrap(
-                          alignment: WrapAlignment.spaceAround,
-                          spacing: 16.0,
-                          runSpacing: 24.0,
-                          children: [
-                            _buildInfoTile(
-                              context,
-                              label: localizations.vehicle,
-                              value: vehicleName,
-                              icon: Icons.directions_car,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.volume,
-                              value:
-                                  '${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres',
-                              icon: Icons.local_gas_station,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.totalPrice,
-                              value:
-                                  '${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT',
-                              icon: Icons.monetization_on,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.odometer,
-                              value:
-                                  '${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km',
-                              icon: Icons.speed,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.fuelType,
-                              value: fuelTypeName,
-                              icon: Icons.opacity,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.fuelRate,
-                              value:
-                                  '${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre',
-                              icon: Icons.price_change,
-                            ),
-                          ],
+                      ),
+                      const SizedBox(height: 24),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                localizations.lastRefuelDetails,
+                                style: theme.textTheme.headlineSmall,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              Wrap(
+                                alignment: WrapAlignment.spaceAround,
+                                spacing: 16.0,
+                                runSpacing: 24.0,
+                                children: [
+                                  _buildInfoTile(
+                                    context,
+                                    label: localizations.vehicle,
+                                    value: vehicleName,
+                                    icon: Icons.directions_car,
+                                  ),
+                                  _buildInfoTile(
+                                    context,
+                                    label: localizations.volume,
+                                    value:
+                                        '${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres',
+                                    icon: Icons.local_gas_station,
+                                  ),
+                                  _buildInfoTile(
+                                    context,
+                                    label: localizations.totalPrice,
+                                    value:
+                                        '${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT',
+                                    icon: Icons.monetization_on,
+                                  ),
+                                  _buildInfoTile(
+                                    context,
+                                    label: localizations.odometer,
+                                    value:
+                                        '${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km',
+                                    icon: Icons.speed,
+                                  ),
+                                  _buildInfoTile(
+                                    context,
+                                    label: localizations.fuelType,
+                                    value: fuelTypeName,
+                                    icon: Icons.opacity,
+                                  ),
+                                  _buildInfoTile(
+                                    context,
+                                    label: localizations.fuelRate,
+                                    value:
+                                        '${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre',
+                                    icon: Icons.price_change,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        onPressed: () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (context) => const AddDataPage()));
+                          _loadInitialData();
+                        },
+                        label: Text(localizations.addFuelData),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          textStyle: theme.textTheme.titleLarge,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  onPressed: () async {
-                    await Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => const AddDataPage()));
-                    _loadInitialData();
-                  },
-                  label: Text(localizations.addFuelData),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    textStyle: theme.textTheme.titleLarge,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          const BannerAdWidget(),
+        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/services/interstitial_ad_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
@@ -23,6 +24,7 @@ class _AddDataPageState extends State<AddDataPage> {
   final _formKey = GlobalKey<FormState>();
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
+  final InterstitialAdService _interstitialAdService = InterstitialAdService();
 
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _odometerController = TextEditingController();
@@ -40,6 +42,7 @@ class _AddDataPageState extends State<AddDataPage> {
   @override
   void initState() {
     super.initState();
+    _interstitialAdService.loadAd();
     _loadLastValues();
     _volumeController.text = _volume.toStringAsFixed(2);
 
@@ -294,6 +297,7 @@ class _AddDataPageState extends State<AddDataPage> {
                           paidAmount: double.parse(_paidAmountController.text),
                         );
                         await DatabaseHelper.instance.insertFuelRecord(record);
+                        _interstitialAdService.showAd();
                         final navigator = Navigator.of(context);
                         if (!mounted) return;
                         navigator.pop();
