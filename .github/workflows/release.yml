@@ -159,7 +159,7 @@ jobs:
         id: rename
         run: |
           NEW_NAME="fuelTracker-release-${{ needs.version-bump.outputs.new_version_name }}.ipa"
-          mv build/ios/ipa/fueltracker.ipa "build/ios/ipa/$NEW_NAME"
+          mv build/ios/ipa/fuelTracker.ipa "build/ios/ipa/$NEW_NAME"
           echo "ipa_name=$NEW_NAME" >> $GITHUB_OUTPUT
           echo "ipa_path=build/ios/ipa/$NEW_NAME" >> $GITHUB_OUTPUT
 
