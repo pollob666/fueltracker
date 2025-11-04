@@ -1,0 +1,128 @@
+# GitHub Actions workflow for building and releasing Flutter IPAs.
+#
+# This workflow is triggered on every push to the 'release' branch.
+# It automatically increments the version number based on the commit message,
+# builds a signed release IPA, and creates a new GitHub Release.
+#
+name: Build and Release IPA
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  build-and-release-ios:
+    # Prevent workflow from running in an infinite loop
+    if: "!contains(github.event.head_commit.message, 'ci: Bump version')"
+    runs-on: macos-latest
+    permissions:
+      contents: write # Required to create a release and commit version changes.
+
+    steps:
+      # Step 1: Check out the repository code.
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history. Required for version bumping logic.
+          token: ${{ secrets.GITHUB_TOKEN }} # The token is needed for the version bump action to push changes
+
+      # Step 2: Set up the Flutter SDK.
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      # Step 3: Install Flutter dependencies.
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Step 4: Determine Version Increment
+      - name: Determine Version Increment
+        id: version-increment-type
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ "$COMMIT_MSG" == *"majorUpdate"* || "$COMMIT_MSG" == *"refactor:"* ]]; then
+            echo "increment=major" >> $GITHUB_OUTPUT
+          elif [[ "$COMMIT_MSG" == *"feat:"* ]]; then
+            echo "increment=minor" >> $GITHUB_OUTPUT
+          elif [[ "$COMMIT_MSG" == *"feat(ci):"* ]]; then
+            echo "increment=minor" >> $GITHUB_OUTPUT
+          else
+            echo "increment=patch" >> $GITHUB_OUTPUT
+          fi
+
+      # Step 5: Bump version
+      - name: Bump version
+        id: version-increment
+        run: |
+          CURRENT_VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          VERSION_PART=$(echo $CURRENT_VERSION | cut -d'+' -f1)
+          BUILD_PART=$(echo $CURRENT_VERSION | cut -d'+' -f2)
+          MAJOR=$(echo $VERSION_PART | cut -d'.' -f1)
+          MINOR=$(echo $VERSION_PART | cut -d'.' -f2)
+          PATCH=$(echo $VERSION_PART | cut -d'.' -f3)
+          BUMP_TYPE=${{ steps.version-increment-type.outputs.increment }}
+          if [[ "$BUMP_TYPE" == "major" ]]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            BUILD_PART=1
+          elif [[ "$BUMP_TYPE" == "minor" ]]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            BUILD_PART=1
+          else # patch
+            PATCH=$((PATCH + 1))
+            BUILD_PART=$((BUILD_PART + 1))
+          fi
+          NEW_VERSION_NAME="$MAJOR.$MINOR.$PATCH"
+          NEW_VERSION="$NEW_VERSION_NAME+$BUILD_PART"
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "new_version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
+          sed -i "" "s/version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+      # Step 6: Commit version bump
+      - name: Commit version bump
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add pubspec.yaml
+          git commit -m "ci: Bump version to ${{ steps.version-increment.outputs.new_version }}"
+          git push
+
+      # Step 7: Setup iOS Keychain
+      - name: Setup iOS Keychain
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          p12-file-base64: ${{ secrets.IOS_SIGNING_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.IOS_SIGNING_CERTIFICATE_PASSWORD }}
+
+      # Step 8: Install the provisioning profile
+      - name: Install Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/fuel_tracker.mobileprovision
+
+      # Step 9: Build the signed release IPA.
+      - name: Build signed release IPA
+        run: flutter build ipa --release --export-options-plist=ios/exportOptions.plist
+
+      # Step 10: Rename the artifact to include build info and set the release name.
+      - name: Rename IPA
+        run: |
+          BUILD_DATE_ISO=$(date +'%Y%m%dT%H%M%S')
+          mv build/ios/ipa/fueltracker.ipa build/ios/ipa/fuelTracker-release-${{ steps.version-increment.outputs.new_version_name }}-${BUILD_DATE_ISO}.ipa
+
+      # Step 11: Create a GitHub Release and upload the IPA.
+      - name: Create Release and Upload Artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version-increment.outputs.new_version }}
+          name: "Release ${{ steps.version-increment.outputs.new_version_name }}"
+          body: |
+            Automated release for version ${{ steps.version-increment.outputs.new_version_name }}.
+            - Release IPA (signed)
+          files: build/ios/ipa/fuelTracker-release-*.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
