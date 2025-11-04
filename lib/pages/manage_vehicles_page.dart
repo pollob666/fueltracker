@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
+import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 
 import 'add_vehicle_page.dart';
@@ -137,6 +138,7 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
         },
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 }

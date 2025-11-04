@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/l10n/l10n_utils.dart';
@@ -288,6 +289,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 }

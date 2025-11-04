@@ -11,6 +11,7 @@ import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
+import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddDataPage extends StatefulWidget {
@@ -311,6 +312,7 @@ class _AddDataPageState extends State<AddDataPage> {
           ),
         ),
       ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 }

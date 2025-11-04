@@ -7,6 +7,7 @@ import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 
 class AddVehiclePage extends StatefulWidget {
   final Vehicle? vehicle;
@@ -229,6 +230,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           ),
         ),
       ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 }
