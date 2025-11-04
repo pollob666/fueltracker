@@ -30,13 +30,7 @@ jobs:
           fetch-depth: 0 # Fetches all history for version bumping.
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 2: Set up Flutter for version manipulation.
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      # Step 3: Determine Version Increment
+      # Step 2: Determine Version Increment
       - name: Determine Version Increment
         id: version-increment-type
         run: |
@@ -49,7 +43,7 @@ jobs:
             echo "increment=patch" >> $GITHUB_OUTPUT
           fi
 
-      # Step 4: Bump version
+      # Step 3: Bump version
       - name: Bump version
         id: version-increment
         run: |
@@ -73,7 +67,7 @@ jobs:
           echo "new_version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
           sed -i "s/version: .*/version: $NEW_VERSION/" pubspec.yaml
 
-      # Step 5: Commit version bump
+      # Step 4: Commit version bump
       - name: Commit version bump
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -82,30 +76,42 @@ jobs:
           git commit -m "ci: Bump version to ${{ steps.version-increment.outputs.new_version }}"
           git push
 
-  build-android:
+  build:
     needs: version-bump
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: android
+            artifact_name: apk-artifact
+          - os: macos-latest
+            platform: ios
+            artifact_name: ipa-artifact
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: 'release' # Checkout the release branch to get the new version commit
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+          ref: 'release'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
+      - name: Set up JDK 17
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install dependencies
         run: flutter pub get
 
+      # Android build steps
       - name: Decode Keystore and Create Properties File
+        if: matrix.platform == 'android'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -119,64 +125,45 @@ jobs:
           echo "storePassword=$STORE_PASSWORD" >> android/key.properties
 
       - name: Build signed release APK
+        if: matrix.platform == 'android'
         run: flutter build apk --release
 
       - name: Rename APK
-        id: rename
+        if: matrix.platform == 'android'
+        id: rename_apk
         run: |
           NEW_NAME="fuelTracker-release-${{ needs.version-bump.outputs.new_version_name }}.apk"
           mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
-          echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
-          echo "apk_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
+          echo "artifact_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-artifact
-          path: ${{ steps.rename.outputs.apk_path }}
-
-  build-ios:
-    needs: version-bump
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: 'release'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Install dependencies
-        run: flutter pub get
-
+      # iOS build steps
       - name: Build unsigned iOS app bundle
+        if: matrix.platform == 'ios'
         run: flutter build ios --release --no-codesign
 
       - name: Create unsigned IPA
+        if: matrix.platform == 'ios'
         run: |
           mkdir -p "build/ios/ipa/Payload"
           cp -r "build/ios/iphoneos/Runner.app" "build/ios/ipa/Payload/"
           (cd build/ios/ipa && zip -r fuelTracker.ipa Payload)
 
       - name: Rename IPA
-        id: rename
+        if: matrix.platform == 'ios'
+        id: rename_ipa
         run: |
           NEW_NAME="fuelTracker-release-${{ needs.version-bump.outputs.new_version_name }}.ipa"
           mv build/ios/ipa/fuelTracker.ipa "build/ios/ipa/$NEW_NAME"
-          echo "ipa_name=$NEW_NAME" >> $GITHUB_OUTPUT
-          echo "ipa_path=build/ios/ipa/$NEW_NAME" >> $GITHUB_OUTPUT
+          echo "artifact_path=build/ios/ipa/$NEW_NAME" >> $GITHUB_OUTPUT
 
-      - name: Upload IPA Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ipa-artifact
-          path: ${{ steps.rename.outputs.ipa_path }}
+          name: ${{ matrix.artifact_name }}
+          path: ${{ steps.rename_apk.outputs.artifact_path || steps.rename_ipa.outputs.artifact_path }}
 
   create-release:
-    needs: [build-android, build-ios, version-bump]
+    needs: [build, version-bump]
     runs-on: ubuntu-latest
     permissions:
       contents: write
