@@ -186,7 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _storageOption,
+                    initialValue: _storageOption,
                     items: ["Local", "Google Drive", "Dropbox"]
                         .map((option) => DropdownMenuItem(
                               value: option,

@@ -155,6 +155,10 @@ class _ExportPageState extends State<ExportPage> {
       'googleDriveFolderPath': prefs.getString('googleDriveFolderPath'),
       'dropboxFolderPath': prefs.getString('dropboxFolderPath'),
       'themeMode': prefs.getString('themeMode'),
+      'darkTheme': prefs.getString('darkTheme'),
+      'language': prefs.getString('language'),
+      'defaultFuelPrices':
+          jsonDecode(prefs.getString('defaultFuelPrices') ?? '{}'),
     };
 
     String json = jsonEncode(settings);
