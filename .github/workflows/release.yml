@@ -2,7 +2,7 @@
 #
 # This workflow is triggered on every push to the 'release' branch.
 # It automatically increments the version number based on the commit message,
-# builds signed release artifacts for Android and iOS, and creates a new
+# builds a signed APK and an unsigned IPA, and creates a new
 # GitHub Release with both files.
 #
 name: Build and Release APK and IPA
@@ -152,19 +152,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Setup iOS Keychain
-        uses: apple-actions/import-codesign-certs@v2
-        with:
-          p12-file-base64: ${{ secrets.IOS_SIGNING_CERTIFICATE_BASE64 }}
-          p12-password: ${{ secrets.IOS_SIGNING_CERTIFICATE_PASSWORD }}
-
-      - name: Install Provisioning Profile
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/fuel_tracker.mobileprovision
-
-      - name: Build signed release IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+      - name: Build unsigned release IPA
+        run: flutter build ipa --release --no-codesign
 
       - name: Rename IPA
         id: rename
@@ -206,7 +195,7 @@ jobs:
           body: |
             Automated release for version ${{ needs.version-bump.outputs.new_version_name }}.
             - Release APK (signed)
-            - Release IPA (signed)
+            - Release IPA (unsigned)
           files: |
             artifacts/apk/*.apk
             artifacts/ipa/*.ipa
