@@ -1,4 +1,4 @@
-"""# GitHub Actions workflow for building and releasing Flutter APKs and IPAs.
+# GitHub Actions workflow for building and releasing Flutter APKs and IPAs.
 #
 # This workflow is triggered on every push to the 'release' branch.
 # It automatically increments the version number based on the commit message,
@@ -212,4 +212,3 @@ jobs:
             artifacts/ipa/*.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-""
