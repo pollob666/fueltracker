@@ -132,7 +132,7 @@ jobs:
         if: matrix.platform == 'android'
         id: rename_apk
         run: |
-          NEW_NAME="fuelTracker-release-${{ needs.version-bump.outputs.new_version_name }}.apk"
+          NEW_NAME="fuelTracker-android-release-${{ needs.version-bump.outputs.new_version_name }}.apk"
           mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
           echo "artifact_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
 
@@ -152,7 +152,7 @@ jobs:
         if: matrix.platform == 'ios'
         id: rename_ipa
         run: |
-          NEW_NAME="fuelTracker-release-${{ needs.version-bump.outputs.new_version_name }}.ipa"
+          NEW_NAME="fuelTracker-ios-release-${{ needs.version-bump.outputs.new_version_name }}.ipa"
           mv build/ios/ipa/fuelTracker.ipa "build/ios/ipa/$NEW_NAME"
           echo "artifact_path=build/ios/ipa/$NEW_NAME" >> $GITHUB_OUTPUT
 
