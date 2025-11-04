@@ -33,6 +33,9 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <meta-data
+            android:name="io.flutter.embedding.android.HybridComposition"
+            android:value="true" />
+        <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-4519441960386265~5488026786"/>
     </application>
