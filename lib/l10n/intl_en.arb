@@ -88,5 +88,6 @@
   "addFirstVehiclePrompt": "Let's start by adding your first vehicle. It only takes a moment!",
   "dailyAverages": "Daily Averages",
   "dailyAverageRun": "Daily Average Run",
-  "dailyAverageCost": "Daily Average Cost"
+  "dailyAverageCost": "Daily Average Cost",
+  "language": "Language"
 }

@@ -88,5 +88,6 @@
   "addFirstVehiclePrompt": "চলুন আপনার প্রথম যানটি যোগ করে শুরু করা যাক। এটি শুধুমাত্র একটি মুহূর্ত সময় নেবে!",
   "dailyAverages": "দৈনিক গড়",
   "dailyAverageRun": "দৈনিক গড় রান",
-  "dailyAverageCost": "দৈনিক গড় খরচ"
+  "dailyAverageCost": "দৈনিক গড় খরচ",
+  "language": "ভাষা"
 }

@@ -186,7 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    initialValue: _storageOption,
+                    value: _storageOption,
                     items: ["Local", "Google Drive", "Dropbox"]
                         .map((option) => DropdownMenuItem(
                               value: option,
@@ -216,23 +216,26 @@ class _SettingsPageState extends State<SettingsPage> {
                     readOnly: true,
                   ),
                   const SizedBox(height: 16),
-                  DropdownButton<Locale>(
-                    value: _currentLocale,
-                    items: AppLocalizations.supportedLocales
-                        .map((locale) => DropdownMenuItem<Locale>(
-                              value: locale,
-                              child: Text(
-                                  L10n.getLanguageName(locale.languageCode)),
-                            ))
-                        .toList(),
-                    onChanged: (locale) {
-                      if (locale != null) {
-                        setState(() {
-                          _currentLocale = locale;
-                        });
-                      }
-                    },
-                    hint: const Text("Select Language"),
+                  ListTile(
+                    title: Text(AppLocalizations.of(context)!.language,
+                        style: theme.textTheme.titleMedium),
+                    trailing: DropdownButton<Locale>(
+                      value: _currentLocale,
+                      items: AppLocalizations.supportedLocales
+                          .map((locale) => DropdownMenuItem<Locale>(
+                                value: locale,
+                                child: Text(
+                                    L10n.getLanguageName(locale.languageCode)),
+                              ))
+                          .toList(),
+                      onChanged: (locale) {
+                        if (locale != null) {
+                          setState(() {
+                            _currentLocale = locale;
+                          });
+                        }
+                      },
+                    ),
                   ),
                   const SizedBox(height: 16),
                   ListTile(
@@ -270,14 +273,22 @@ class _SettingsPageState extends State<SettingsPage> {
                   Text(AppLocalizations.of(context)!.defaultFuelPrices,
                       style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
-                  ..._fuelTypes.map((ft) {
-                    return TextFormField(
-                      controller: _priceControllers[ft.name],
-                      decoration: InputDecoration(labelText: ft.name),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                    );
-                  }),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 3,
+                    children: _fuelTypes.map((ft) {
+                      return TextFormField(
+                        controller: _priceControllers[ft.name],
+                        decoration: InputDecoration(labelText: ft.name),
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                      );
+                    }).toList(),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _saveSettings,

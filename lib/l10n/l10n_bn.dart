@@ -279,4 +279,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get dailyAverageCost => 'দৈনিক গড় খরচ';
+
+  @override
+  String get language => 'ভাষা';
 }
