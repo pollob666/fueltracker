@@ -1,10 +1,11 @@
-# GitHub Actions workflow for building and releasing Flutter APKs.
+"""# GitHub Actions workflow for building and releasing Flutter APKs and IPAs.
 #
 # This workflow is triggered on every push to the 'release' branch.
 # It automatically increments the version number based on the commit message,
-# builds a signed release APK, and creates a new GitHub Release.
+# builds signed release artifacts for Android and iOS, and creates a new
+# GitHub Release with both files.
 #
-name: Build and Release APK
+name: Build and Release APK and IPA
 
 on:
   push:
@@ -12,54 +13,43 @@ on:
       - release
 
 jobs:
-  build-and-release:
+  version-bump:
     # Prevent workflow from running in an infinite loop
     if: "!contains(github.event.head_commit.message, 'ci: Bump version')"
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required to create a release and commit version changes.
-
+      contents: write # Required to commit version changes.
+    outputs:
+      new_version: ${{ steps.version-increment.outputs.new_version }}
+      new_version_name: ${{ steps.version-increment.outputs.new_version_name }}
     steps:
       # Step 1: Check out the repository code.
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches all history. Required for version bumping logic.
-          token: ${{ secrets.GITHUB_TOKEN }} # The token is needed for the version bump action to push changes
+          fetch-depth: 0 # Fetches all history for version bumping.
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 2: Set up the Java Development Kit (JDK).
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      # Step 3: Set up the Flutter SDK.
+      # Step 2: Set up Flutter for version manipulation.
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      # Step 4: Install Flutter dependencies.
-      - name: Install dependencies
-        run: flutter pub get
-
-      # Step 5: Determine Version Increment
+      # Step 3: Determine Version Increment
       - name: Determine Version Increment
         id: version-increment-type
         run: |
           COMMIT_MSG=$(git log -1 --pretty=%B)
           if [[ "$COMMIT_MSG" == *"majorUpdate"* || "$COMMIT_MSG" == *"refactor:"* ]]; then
             echo "increment=major" >> $GITHUB_OUTPUT
-          elif [[ "$COMMIT_MSG" == *"feat:"* ]]; then
-            echo "increment=minor" >> $GITHUB_OUTPUT
-          elif [[ "$COMMIT_MSG" == *"feat(ci):"* ]]; then
+          elif [[ "$COMMIT_MSG" == *"feat:"* || "$COMMIT_MSG" == *"feat(ci):"* ]]; then
             echo "increment=minor" >> $GITHUB_OUTPUT
           else
             echo "increment=patch" >> $GITHUB_OUTPUT
           fi
 
-      # Step 6: Bump version
+      # Step 4: Bump version
       - name: Bump version
         id: version-increment
         run: |
@@ -71,17 +61,11 @@ jobs:
           PATCH=$(echo $VERSION_PART | cut -d'.' -f3)
           BUMP_TYPE=${{ steps.version-increment-type.outputs.increment }}
           if [[ "$BUMP_TYPE" == "major" ]]; then
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-            BUILD_PART=1
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0; BUILD_PART=1
           elif [[ "$BUMP_TYPE" == "minor" ]]; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
-            BUILD_PART=1
+            MINOR=$((MINOR + 1)); PATCH=0; BUILD_PART=1
           else # patch
-            PATCH=$((PATCH + 1))
-            BUILD_PART=$((BUILD_PART + 1))
+            PATCH=$((PATCH + 1)); BUILD_PART=$((BUILD_PART + 1))
           fi
           NEW_VERSION_NAME="$MAJOR.$MINOR.$PATCH"
           NEW_VERSION="$NEW_VERSION_NAME+$BUILD_PART"
@@ -89,7 +73,7 @@ jobs:
           echo "new_version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
           sed -i "s/version: .*/version: $NEW_VERSION/" pubspec.yaml
 
-      # Step 7: Commit version bump
+      # Step 5: Commit version bump
       - name: Commit version bump
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -98,7 +82,29 @@ jobs:
           git commit -m "ci: Bump version to ${{ steps.version-increment.outputs.new_version }}"
           git push
 
-      # Step 8: Decode the keystore and create the key.properties file.
+  build-android:
+    needs: version-bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: 'release' # Checkout the release branch to get the new version commit
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
       - name: Decode Keystore and Create Properties File
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -106,33 +112,104 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          echo "Writing keystore and properties file..."
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
-          echo "storeFile=release.jks" > android/app/key.properties
-          echo "keyAlias=$KEY_ALIAS" >> android/app/key.properties
-          echo "keyPassword=$KEY_PASSWORD" >> android/app/key.properties
-          echo "storePassword=$STORE_PASSWORD" >> android/app/key.properties
-          echo "Keystore and properties files created successfully."
+          echo "storeFile=release.jks" > android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+          echo "storePassword=$STORE_PASSWORD" >> android/key.properties
 
-      # Step 9: Build the signed release APK.
       - name: Build signed release APK
         run: flutter build apk --release
 
-      # Step 10: Rename the artifact to include build info and set the release name.
       - name: Rename APK
+        id: rename
         run: |
-          BUILD_DATE_ISO=$(date +'%Y%m%dT%H%M%S')
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fuelTracker-release-${{ steps.version-increment.outputs.new_version_name }}-${BUILD_DATE_ISO}.apk
+          NEW_NAME="fuelTracker-release-${{ needs.version-bump.outputs.new_version_name }}.apk"
+          mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
+          echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
+          echo "apk_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
 
-      # Step 11: Create a GitHub Release and upload the APK.
-      - name: Create Release and Upload Artifact
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-artifact
+          path: ${{ steps.rename.outputs.apk_path }}
+
+  build-ios:
+    needs: version-bump
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: 'release'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Setup iOS Keychain
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.IOS_SIGNING_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.IOS_SIGNING_CERTIFICATE_PASSWORD }}
+
+      - name: Install Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/fuel_tracker.mobileprovision
+
+      - name: Build signed release IPA
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Rename IPA
+        id: rename
+        run: |
+          NEW_NAME="fuelTracker-release-${{ needs.version-bump.outputs.new_version_name }}.ipa"
+          mv build/ios/ipa/fueltracker.ipa "build/ios/ipa/$NEW_NAME"
+          echo "ipa_name=$NEW_NAME" >> $GITHUB_OUTPUT
+          echo "ipa_path=build/ios/ipa/$NEW_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipa-artifact
+          path: ${{ steps.rename.outputs.ipa_path }}
+
+  create-release:
+    needs: [build-android, build-ios, version-bump]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: apk-artifact
+          path: artifacts/apk
+
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ipa-artifact
+          path: artifacts/ipa
+
+      - name: Create Release and Upload Artifacts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version-increment.outputs.new_version }}
-          name: "Release ${{ steps.version-increment.outputs.new_version_name }}"
+          tag_name: v${{ needs.version-bump.outputs.new_version }}
+          name: "Release ${{ needs.version-bump.outputs.new_version_name }}"
           body: |
-            Automated release for version ${{ steps.version-increment.outputs.new_version_name }}.
+            Automated release for version ${{ needs.version-bump.outputs.new_version_name }}.
             - Release APK (signed)
-          files: build/app/outputs/flutter-apk/fuelTracker-release-*.apk
+            - Release IPA (signed)
+          files: |
+            artifacts/apk/*.apk
+            artifacts/ipa/*.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+""
