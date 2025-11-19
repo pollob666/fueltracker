@@ -81,7 +81,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     if (_isBannerAdReady && _isBannerVisible) {
       return SafeArea(
           child: Container(
-            color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
             width: _bannerAd!.size.width.toDouble(),
             height: _bannerAd!.size.height.toDouble(),
             child: Stack(

@@ -10,7 +10,7 @@ name: Build and Release APK and IPA
 on:
   push:
     branches:
-      - release
+      - master
 
 jobs:
   version-bump:
