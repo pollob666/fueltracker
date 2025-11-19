@@ -8,6 +8,7 @@ import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
+import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/l10n/l10n.dart'; // Import localization
@@ -229,7 +230,7 @@ class _AllDataPageState extends State<AllDataPage> {
           ),
         ],
       ),
-      bottomNavigationBar: const BannerAdWidget(),
+      bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
     );
   }
 }

@@ -1,11 +1,10 @@
-# GitHub Actions workflow for building and releasing Flutter APKs and IPAs.
+# GitHub Actions workflow for building and releasing Flutter APKs.
 #
 # This workflow is triggered on every push to the 'release' branch.
 # It automatically increments the version number based on the commit message,
-# builds a signed APK and an unsigned IPA, and creates a new
-# GitHub Release with both files.
+# builds a signed APK, and creates a new GitHub Release with the file.
 #
-name: Build and Release APK and IPA
+name: Build and Release APK
 
 on:
   push:
@@ -22,6 +21,7 @@ jobs:
     outputs:
       new_version: ${{ steps.version-increment.outputs.new_version }}
       new_version_name: ${{ steps.version-increment.outputs.new_version_name }}
+      new_build_number: ${{ steps.version-increment.outputs.new_build_number }}
     steps:
       # Step 1: Check out the repository code.
       - name: Checkout code
@@ -62,9 +62,11 @@ jobs:
             PATCH=$((PATCH + 1)); BUILD_PART=$((BUILD_PART + 1))
           fi
           NEW_VERSION_NAME="$MAJOR.$MINOR.$PATCH"
-          NEW_VERSION="$NEW_VERSION_NAME+$BUILD_PART"
+          NEW_BUILD_NUMBER="$BUILD_PART"
+          NEW_VERSION="$NEW_VERSION_NAME+$NEW_BUILD_NUMBER"
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
           echo "new_version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "new_build_number=${NEW_BUILD_NUMBER}" >> $GITHUB_OUTPUT
           sed -i "s/version: .*/version: $NEW_VERSION/" pubspec.yaml
 
       # Step 4: Commit version bump
@@ -78,16 +80,7 @@ jobs:
 
   build:
     needs: version-bump
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: android
-            artifact_name: apk-artifact
-          - os: macos-latest
-            platform: ios
-            artifact_name: ipa-artifact
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -100,7 +93,6 @@ jobs:
           channel: 'stable'
 
       - name: Set up JDK 17
-        if: matrix.platform == 'android'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -111,7 +103,6 @@ jobs:
 
       # Android build steps
       - name: Decode Keystore and Create Properties File
-        if: matrix.platform == 'android'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -125,42 +116,23 @@ jobs:
           echo "storePassword=$STORE_PASSWORD" >> android/key.properties
 
       - name: Build signed release APK
-        if: matrix.platform == 'android'
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            --build-name ${{ needs.version-bump.outputs.new_version_name }} \
+            --build-number ${{ needs.version-bump.outputs.new_build_number }}
 
       - name: Rename APK
-        if: matrix.platform == 'android'
         id: rename_apk
         run: |
           NEW_NAME="fuelTracker-android-release-${{ needs.version-bump.outputs.new_version_name }}.apk"
           mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
           echo "artifact_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
 
-      # iOS build steps
-      - name: Build unsigned iOS app bundle
-        if: matrix.platform == 'ios'
-        run: flutter build ios --release --no-codesign
-
-      - name: Create unsigned IPA
-        if: matrix.platform == 'ios'
-        run: |
-          mkdir -p "build/ios/ipa/Payload"
-          cp -r "build/ios/iphoneos/Runner.app" "build/ios/ipa/Payload/"
-          (cd build/ios/ipa && zip -r fuelTracker.ipa Payload)
-
-      - name: Rename IPA
-        if: matrix.platform == 'ios'
-        id: rename_ipa
-        run: |
-          NEW_NAME="fuelTracker-ios-release-${{ needs.version-bump.outputs.new_version_name }}.ipa"
-          mv build/ios/ipa/fuelTracker.ipa "build/ios/ipa/$NEW_NAME"
-          echo "artifact_path=build/ios/ipa/$NEW_NAME" >> $GITHUB_OUTPUT
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ steps.rename_apk.outputs.artifact_path || steps.rename_ipa.outputs.artifact_path }}
+          name: apk-artifact
+          path: ${{ steps.rename_apk.outputs.artifact_path }}
 
   create-release:
     needs: [build, version-bump]
@@ -174,12 +146,6 @@ jobs:
           name: apk-artifact
           path: artifacts/apk
 
-      - name: Download IPA artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ipa-artifact
-          path: artifacts/ipa
-
       - name: Create Release and Upload Artifacts
         uses: softprops/action-gh-release@v2
         with:
@@ -188,9 +154,7 @@ jobs:
           body: |
             Automated release for version ${{ needs.version-bump.outputs.new_version_name }}.
             - Release APK (signed)
-            - Release IPA (unsigned)
           files: |
             artifacts/apk/*.apk
-            artifacts/ipa/*.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

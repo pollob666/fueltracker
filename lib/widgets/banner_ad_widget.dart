@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:fuel_tracker/utils/app_settings.dart';
 
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
@@ -28,24 +29,29 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 5), () {
-      if (mounted) {
-        setState(() {
-          _canClose = true;
-        });
-      }
-    });
+    if (AppSettings.adsEnabled) {
+      Timer(const Duration(seconds: 5), () {
+        if (mounted) {
+          setState(() {
+            _canClose = true;
+          });
+        }
+      });
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadBannerAd();
+    if (AppSettings.adsEnabled) {
+      _loadBannerAd();
+    }
   }
 
   Future<void> _loadBannerAd() async {
-    final AnchoredAdaptiveBannerAdSize? size = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-        MediaQuery.of(context).size.width.truncate());
+    final AnchoredAdaptiveBannerAdSize? size =
+        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+            MediaQuery.of(context).size.width.truncate());
 
     if (size == null) {
       return;
@@ -78,33 +84,32 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isBannerAdReady && _isBannerVisible) {
+    if (AppSettings.adsEnabled && _isBannerAdReady && _isBannerVisible) {
       return SafeArea(
           child: Container(
-            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-            width: _bannerAd!.size.width.toDouble(),
-            height: _bannerAd!.size.height.toDouble(),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                AdWidget(ad: _bannerAd!),
-                if (_canClose)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, size: 16),
-                      onPressed: () {
-                        setState(() {
-                          _isBannerVisible = false;
-                        });
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          )
-      );
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        width: _bannerAd!.size.width.toDouble(),
+        height: _bannerAd!.size.height.toDouble(),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AdWidget(ad: _bannerAd!),
+            if (_canClose)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  onPressed: () {
+                    setState(() {
+                      _isBannerVisible = false;
+                    });
+                  },
+                ),
+              ),
+          ],
+        ),
+      ));
     }
     return const SizedBox.shrink();
   }

@@ -27,7 +27,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
-  String get addFuelData => 'Add Fuel Data';
+  String get addFuelData => 'Add ReFuel Data';
 
   @override
   String get dateAndTime => 'Date & Time';
