@@ -404,6 +404,14 @@ class _DashboardPageState extends State<DashboardPage> {
         title: Text(localizations.appTitle),
         actions: [
           IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () async {
+              await Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const AddDataPage()));
+              _loadInitialData();
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
               Navigator.push(
@@ -438,6 +446,23 @@ class _DashboardPageState extends State<DashboardPage> {
                   decoration: InputDecoration(
                     labelText: localizations.vehicle,
                     border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    onPressed: () async {
+                      await Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => const AddDataPage()));
+                      _loadInitialData();
+                    },
+                    label: Text(localizations.addFuelData),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      textStyle: theme.textTheme.titleMedium,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -564,20 +589,6 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  onPressed: () async {
-                    await Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => const AddDataPage()));
-                    _loadInitialData();
-                  },
-                  label: Text(localizations.addFuelData),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    textStyle: theme.textTheme.titleLarge,
                   ),
                 ),
               ],

@@ -137,7 +137,7 @@ abstract class AppLocalizations {
   /// No description provided for @addFuelData.
   ///
   /// In en, this message translates to:
-  /// **'Add Fuel Data'**
+  /// **'Add ReFuel Data'**
   String get addFuelData;
 
   /// No description provided for @dateAndTime.

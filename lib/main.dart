@@ -1,22 +1,52 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
+import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/theme.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await AppSettings.loadSettings();
-  if (AppSettings.adsEnabled) {
-    MobileAds.instance.initialize();
+Future<void> main() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await AppSettings.loadSettings();
+
+    // Set preferred orientations to portrait up and down
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    // Enable immersive mode
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    // Initialize Google Mobile Ads SDK
+    if (AppSettings.adsEnabled) {
+      // Use test ads during development to avoid policy violations
+      RequestConfiguration configuration =
+          RequestConfiguration(testDeviceIds: ["YOUR_TEST_DEVICE_ID"]);
+      MobileAds.instance.updateRequestConfiguration(configuration);
+      await MobileAds.instance.initialize();
+    }
+
+    runApp(const MyApp());
+  } catch (error, stackTrace) {
+    // In a real-world app, you would use a robust error logging framework
+    // like Sentry or Firebase Crashlytics to report errors.
+    // For now, we just print the error to the console.
+    print('Caught error: $error');
+    print('Stack trace: $stackTrace');
+
+    // Optionally, you could run a fallback app to display the error.
+    // runApp(ErrorApp(error: error, stackTrace: stackTrace));
   }
-  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -112,8 +142,8 @@ class _MyAppState extends State<MyApp> {
           locale: _locale,
           localeResolutionCallback: (locale, supportedLocales) {
             return supportedLocales.firstWhere(
-                  (supportedLocale) =>
-              supportedLocale.languageCode == locale?.languageCode,
+              (supportedLocale) =>
+                  supportedLocale.languageCode == locale?.languageCode,
               orElse: () => supportedLocales.first,
             );
           },
