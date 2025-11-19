@@ -43,7 +43,9 @@ class _AddDataPageState extends State<AddDataPage> {
   @override
   void initState() {
     super.initState();
-    _interstitialAdService.loadAd();
+    if (AppSettings.adsEnabled) {
+      _interstitialAdService.loadAd();
+    }
     _loadLastValues();
     _volumeController.text = _volume.toStringAsFixed(2);
 
@@ -71,20 +73,25 @@ class _AddDataPageState extends State<AddDataPage> {
   void _updateAvailableFuelTypes() {
     if (_selectedVehicleId == null || _vehicles.isEmpty) return;
 
-    final selectedVehicle = _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
+    final selectedVehicle =
+        _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
     final availableFuelTypes = <FuelType>{};
 
-    final primaryFuelType = _allFuelTypes.firstWhere((ft) => ft.id == selectedVehicle.primaryFuelTypeId);
+    final primaryFuelType = _allFuelTypes
+        .firstWhere((ft) => ft.id == selectedVehicle.primaryFuelTypeId);
     if (primaryFuelType.category == FuelCategory.gasoline) {
-      availableFuelTypes.addAll(_allFuelTypes.where((ft) => ft.category == FuelCategory.gasoline));
+      availableFuelTypes.addAll(
+          _allFuelTypes.where((ft) => ft.category == FuelCategory.gasoline));
     } else {
       availableFuelTypes.add(primaryFuelType);
     }
 
     if (selectedVehicle.secondaryFuelTypeId != null) {
-      final secondaryFuelType = _allFuelTypes.firstWhere((ft) => ft.id == selectedVehicle.secondaryFuelTypeId);
+      final secondaryFuelType = _allFuelTypes.firstWhere(
+          (ft) => ft.id == selectedVehicle.secondaryFuelTypeId);
       if (secondaryFuelType.category == FuelCategory.gasoline) {
-        availableFuelTypes.addAll(_allFuelTypes.where((ft) => ft.category == FuelCategory.gasoline));
+        availableFuelTypes.addAll(
+            _allFuelTypes.where((ft) => ft.category == FuelCategory.gasoline));
       } else {
         availableFuelTypes.add(secondaryFuelType);
       }
@@ -95,7 +102,8 @@ class _AddDataPageState extends State<AddDataPage> {
       if (_availableFuelTypes.isNotEmpty) {
         _selectedFuelTypeId = _availableFuelTypes.first.id;
         final fuelName = _availableFuelTypes.first.name;
-        _rateController.text = AppSettings.defaultFuelPrices[fuelName]?.toString() ?? '';
+        _rateController.text =
+            AppSettings.defaultFuelPrices[fuelName]?.toString() ?? '';
       }
     });
   }
@@ -147,7 +155,8 @@ class _AddDataPageState extends State<AddDataPage> {
     if (picked != null) {
       if (!mounted) return;
       TimeOfDay? time = await showTimePicker(
-          initialTime: TimeOfDay.fromDateTime(_selectedDate), context: context);
+          initialTime: TimeOfDay.fromDateTime(_selectedDate),
+          context: context);
       if (time != null) {
         setState(() {
           _selectedDate = DateTime(
@@ -187,11 +196,14 @@ class _AddDataPageState extends State<AddDataPage> {
                   TextFormField(
                     controller: _odometerController,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.odometerReading),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        labelText:
+                            AppLocalizations.of(context)!.odometerReading),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context)!.enterOdometerReading;
+                        return AppLocalizations.of(context)!
+                            .enterOdometerReading;
                       }
                       return null;
                     },
@@ -224,8 +236,13 @@ class _AddDataPageState extends State<AddDataPage> {
                     onChanged: (val) {
                       setState(() {
                         _selectedFuelTypeId = val!;
-                        final fuelName = _availableFuelTypes.firstWhere((ft) => ft.id == val).name;
-                        _rateController.text = AppSettings.defaultFuelPrices[fuelName]?.toString() ?? '';
+                        final fuelName = _availableFuelTypes
+                            .firstWhere((ft) => ft.id == val)
+                            .name;
+                        _rateController.text =
+                            AppSettings.defaultFuelPrices[fuelName]
+                                    ?.toString() ??
+                                '';
                       });
                     },
                     decoration: InputDecoration(
@@ -234,11 +251,14 @@ class _AddDataPageState extends State<AddDataPage> {
                   TextFormField(
                     controller: _rateController,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.fuelPriceRate),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        labelText:
+                            AppLocalizations.of(context)!.fuelPriceRate),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context)!.enterFuelPriceRate;
+                        return AppLocalizations.of(context)!
+                            .enterFuelPriceRate;
                       }
                       return null;
                     },
@@ -263,7 +283,8 @@ class _AddDataPageState extends State<AddDataPage> {
                     controller: _volumeController,
                     decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.totalVolume),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return AppLocalizations.of(context)!.enterTotalVolume;
@@ -275,7 +296,8 @@ class _AddDataPageState extends State<AddDataPage> {
                     controller: _paidAmountController,
                     decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.paidAmount),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return AppLocalizations.of(context)!.enterPaidAmount;
@@ -295,10 +317,13 @@ class _AddDataPageState extends State<AddDataPage> {
                           vehicleId: _selectedVehicleId!,
                           rate: double.parse(_rateController.text),
                           volume: _volume,
-                          paidAmount: double.parse(_paidAmountController.text),
+                          paidAmount:
+                              double.parse(_paidAmountController.text),
                         );
                         await DatabaseHelper.instance.insertFuelRecord(record);
-                        _interstitialAdService.showAd();
+                        if (AppSettings.adsEnabled) {
+                          _interstitialAdService.showAd();
+                        }
                         final navigator = Navigator.of(context);
                         if (!mounted) return;
                         navigator.pop();
@@ -312,7 +337,7 @@ class _AddDataPageState extends State<AddDataPage> {
           ),
         ),
       ),
-      bottomNavigationBar: const BannerAdWidget(),
+      bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
     );
   }
 }

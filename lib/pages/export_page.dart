@@ -273,7 +273,7 @@ class _ExportPageState extends State<ExportPage> {
           ),
         ),
       ),
-      bottomNavigationBar: const BannerAdWidget(),
+      bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
     );
   }
 }

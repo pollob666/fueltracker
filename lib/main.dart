@@ -13,7 +13,9 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppSettings.loadSettings();
-  MobileAds.instance.initialize();
+  if (AppSettings.adsEnabled) {
+    MobileAds.instance.initialize();
+  }
   runApp(const MyApp());
 }
 
