@@ -117,7 +117,7 @@ jobs:
 
       - name: Build signed release APK
         run: |
-          flutter build apk --release \
+          flutter build apk --debug \
             --build-name ${{ needs.version-bump.outputs.new_version_name }} \
             --build-number ${{ needs.version-bump.outputs.new_build_number }}
 
