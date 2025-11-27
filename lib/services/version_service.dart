@@ -26,7 +26,7 @@ class VersionService {
 
   Future<String> get currentVersion async {
     final packageInfo = await PackageInfo.fromPlatform();
-    return 'v\${packageInfo.version}';
+    return 'v\${packageInfo.version}+\${packageInfo.buildNumber}';
   }
 
   Future<bool> get isUpdateAvailable async {
