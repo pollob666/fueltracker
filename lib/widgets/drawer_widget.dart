@@ -63,7 +63,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: const Icon(Icons.dashboard),
             title: Text(AppLocalizations.of(context)!.dashboard),
             selected: _selectedIndex == 0,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
             selectedColor: colorScheme.primary,
             onTap: () {
               _onItemTapped(0);
@@ -89,7 +89,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: const Icon(Icons.list_alt),
             title: Text(AppLocalizations.of(context)!.allData),
             selected: _selectedIndex == 1,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
             selectedColor: colorScheme.primary,
             onTap: () {
               _onItemTapped(1);
@@ -101,7 +101,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: const Icon(Icons.directions_car),
             title: Text(AppLocalizations.of(context)!.manageVehicles),
             selected: _selectedIndex == 2,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
             selectedColor: colorScheme.primary,
             onTap: () {
               _onItemTapped(2);
@@ -116,7 +116,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: const Icon(Icons.file_upload),
             title: Text(AppLocalizations.of(context)!.import),
             selected: _selectedIndex == 3,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
             selectedColor: colorScheme.primary,
             onTap: () {
               _onItemTapped(3);
@@ -128,7 +128,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: const Icon(Icons.file_download),
             title: Text(AppLocalizations.of(context)!.export),
             selected: _selectedIndex == 4,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
             selectedColor: colorScheme.primary,
             onTap: () {
               _onItemTapped(4);
@@ -141,7 +141,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: const Icon(Icons.settings),
             title: Text(AppLocalizations.of(context)!.settings),
             selected: _selectedIndex == 5,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
             selectedColor: colorScheme.primary,
             onTap: () {
               _onItemTapped(5);

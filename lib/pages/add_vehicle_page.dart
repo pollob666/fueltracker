@@ -101,7 +101,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                 if (widget.vehicle == null)
                   Card(
                     elevation: 4.0,
-                    color: theme.colorScheme.surfaceVariant,
+                    color: theme.colorScheme.surfaceContainerHighest,
                     margin: const EdgeInsets.symmetric(vertical: 20.0),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: Padding(
