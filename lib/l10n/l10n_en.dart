@@ -9,13 +9,58 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get fuelRecords => 'Fuel Records';
+
+  @override
+  String get dateAndTime => 'Date & Time';
+
+  @override
+  String get odometerReading => 'Odometer Reading';
+
+  @override
+  String get fuelPriceRate => 'Fuel Price/Rate';
+
+  @override
+  String get totalVolume => 'Total Volume';
+
+  @override
+  String get paidAmount => 'Paid Amount';
+
+  @override
+  String get averageMileage => 'Average Mileage';
+
+  @override
+  String get noDataFound => 'No data found. Please add some fuel records.';
+
+  @override
+  String get addRecord => 'Add Record';
+
+  @override
+  String get allData => 'All Data';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get notAvailable => 'N/A';
+
+  @override
+  String get vehicle => 'Vehicle';
+
+  @override
+  String get fuelType => 'Fuel Type';
+
+  @override
+  String get runningAverage => 'Running Average';
+
+  @override
+  String get runningAverageMileage => 'Running Average Mileage';
+
+  @override
   String get appTitle => 'Fuel Consumption Tracker';
 
   @override
   String get dashboard => 'Dashboard';
-
-  @override
-  String get allData => 'All Data';
 
   @override
   String get import => 'Import';
@@ -24,34 +69,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get export => 'Export';
 
   @override
-  String get settings => 'Settings';
-
-  @override
   String get addFuelData => 'Add ReFuel Data';
 
   @override
-  String get dateAndTime => 'Date & Time';
-
-  @override
-  String get odometerReading => 'Odometer Reading (km)';
-
-  @override
-  String get fuelType => 'Fuel Type';
-
-  @override
-  String get fuelPriceRate => 'Fuel Price Rate (BDT)';
-
-  @override
-  String get totalVolume => 'Total Volume (litres)';
-
-  @override
-  String get paidAmount => 'Paid Amount (BDT)';
-
-  @override
   String get save => 'Save';
-
-  @override
-  String get runningAverageMileage => 'Running Average Mileage';
 
   @override
   String get lastTimeMileage => 'Current Running Mileage';
@@ -142,9 +163,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savings => 'Savings/Loss';
 
   @override
-  String get averageMileage => 'Average Mileage';
-
-  @override
   String get lastRefuelDetails => 'Last Refuel Details';
 
   @override
@@ -170,12 +188,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get comingSoon => 'Coming Soon';
-
-  @override
-  String get notAvailable => 'N/A';
-
-  @override
-  String get vehicle => 'Vehicle';
 
   @override
   String get exportRefuelingData => 'Export Refueling Data';

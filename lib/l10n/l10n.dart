@@ -98,6 +98,102 @@ abstract class AppLocalizations {
     Locale('en')
   ];
 
+  /// No description provided for @fuelRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Records'**
+  String get fuelRecords;
+
+  /// No description provided for @dateAndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & Time'**
+  String get dateAndTime;
+
+  /// No description provided for @odometerReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer Reading'**
+  String get odometerReading;
+
+  /// No description provided for @fuelPriceRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Price/Rate'**
+  String get fuelPriceRate;
+
+  /// No description provided for @totalVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Volume'**
+  String get totalVolume;
+
+  /// No description provided for @paidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid Amount'**
+  String get paidAmount;
+
+  /// No description provided for @averageMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average Mileage'**
+  String get averageMileage;
+
+  /// No description provided for @noDataFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No data found. Please add some fuel records.'**
+  String get noDataFound;
+
+  /// No description provided for @addRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Record'**
+  String get addRecord;
+
+  /// No description provided for @allData.
+  ///
+  /// In en, this message translates to:
+  /// **'All Data'**
+  String get allData;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @notAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get notAvailable;
+
+  /// No description provided for @vehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle'**
+  String get vehicle;
+
+  /// No description provided for @fuelType.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuel Type'**
+  String get fuelType;
+
+  /// No description provided for @runningAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Running Average'**
+  String get runningAverage;
+
+  /// No description provided for @runningAverageMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Running Average Mileage'**
+  String get runningAverageMileage;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
@@ -109,12 +205,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dashboard'**
   String get dashboard;
-
-  /// No description provided for @allData.
-  ///
-  /// In en, this message translates to:
-  /// **'All Data'**
-  String get allData;
 
   /// No description provided for @import.
   ///
@@ -128,65 +218,17 @@ abstract class AppLocalizations {
   /// **'Export'**
   String get export;
 
-  /// No description provided for @settings.
-  ///
-  /// In en, this message translates to:
-  /// **'Settings'**
-  String get settings;
-
   /// No description provided for @addFuelData.
   ///
   /// In en, this message translates to:
   /// **'Add ReFuel Data'**
   String get addFuelData;
 
-  /// No description provided for @dateAndTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Date & Time'**
-  String get dateAndTime;
-
-  /// No description provided for @odometerReading.
-  ///
-  /// In en, this message translates to:
-  /// **'Odometer Reading (km)'**
-  String get odometerReading;
-
-  /// No description provided for @fuelType.
-  ///
-  /// In en, this message translates to:
-  /// **'Fuel Type'**
-  String get fuelType;
-
-  /// No description provided for @fuelPriceRate.
-  ///
-  /// In en, this message translates to:
-  /// **'Fuel Price Rate (BDT)'**
-  String get fuelPriceRate;
-
-  /// No description provided for @totalVolume.
-  ///
-  /// In en, this message translates to:
-  /// **'Total Volume (litres)'**
-  String get totalVolume;
-
-  /// No description provided for @paidAmount.
-  ///
-  /// In en, this message translates to:
-  /// **'Paid Amount (BDT)'**
-  String get paidAmount;
-
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
   /// **'Save'**
   String get save;
-
-  /// No description provided for @runningAverageMileage.
-  ///
-  /// In en, this message translates to:
-  /// **'Running Average Mileage'**
-  String get runningAverageMileage;
 
   /// No description provided for @lastTimeMileage.
   ///
@@ -362,12 +404,6 @@ abstract class AppLocalizations {
   /// **'Savings/Loss'**
   String get savings;
 
-  /// No description provided for @averageMileage.
-  ///
-  /// In en, this message translates to:
-  /// **'Average Mileage'**
-  String get averageMileage;
-
   /// No description provided for @lastRefuelDetails.
   ///
   /// In en, this message translates to:
@@ -421,18 +457,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Coming Soon'**
   String get comingSoon;
-
-  /// No description provided for @notAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'N/A'**
-  String get notAvailable;
-
-  /// No description provided for @vehicle.
-  ///
-  /// In en, this message translates to:
-  /// **'Vehicle'**
-  String get vehicle;
 
   /// No description provided for @exportRefuelingData.
   ///
