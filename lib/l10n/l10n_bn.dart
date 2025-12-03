@@ -9,13 +9,59 @@ class AppLocalizationsBn extends AppLocalizations {
   AppLocalizationsBn([String locale = 'bn']) : super(locale);
 
   @override
+  String get fuelRecords => 'জ্বালানির রেকর্ড';
+
+  @override
+  String get dateAndTime => 'তারিখ ও সময়';
+
+  @override
+  String get odometerReading => 'ওডোমিটার রিডিং';
+
+  @override
+  String get fuelPriceRate => 'জ্বালানির মূল্য/দর';
+
+  @override
+  String get totalVolume => 'মোট পরিমাণ';
+
+  @override
+  String get paidAmount => 'প্রদত্ত পরিমাণ';
+
+  @override
+  String get averageMileage => 'গড় মাইলেজ';
+
+  @override
+  String get noDataFound =>
+      'কোনো ডেটা পাওয়া যায়নি। অনুগ্রহ করে কিছু জ্বালানির রেকর্ড যোগ করুন।';
+
+  @override
+  String get addRecord => 'রেকর্ড যোগ করুন';
+
+  @override
+  String get allData => 'সমস্ত ডেটা';
+
+  @override
+  String get settings => 'সেটিংস';
+
+  @override
+  String get notAvailable => 'প্রযোজ্য নয়';
+
+  @override
+  String get vehicle => 'যানবাহন';
+
+  @override
+  String get fuelType => 'জ্বালানির ধরন';
+
+  @override
+  String get runningAverage => 'চলমান গড়';
+
+  @override
+  String get runningAverageMileage => 'চলমান গড় মাইলেজ';
+
+  @override
   String get appTitle => 'জ্বালানি খরচ ট্র্যাকার';
 
   @override
   String get dashboard => 'ড্যাশবোর্ড';
-
-  @override
-  String get allData => 'সমস্ত ডেটা';
 
   @override
   String get import => 'ইম্পোর্ট';
@@ -24,34 +70,10 @@ class AppLocalizationsBn extends AppLocalizations {
   String get export => 'এক্সপোর্ট';
 
   @override
-  String get settings => 'সেটিংস';
-
-  @override
   String get addFuelData => 'জ্বালানি ডেটা যোগ করুন';
 
   @override
-  String get dateAndTime => 'তারিখ ও সময়';
-
-  @override
-  String get odometerReading => 'ওডোমিটার রিডিং (কিলোমিটার)';
-
-  @override
-  String get fuelType => 'জ্বালানির ধরণ';
-
-  @override
-  String get fuelPriceRate => 'জ্বালানির দামের হার (টাকা)';
-
-  @override
-  String get totalVolume => 'মোট ভলিউম (লিটার)';
-
-  @override
-  String get paidAmount => 'পরিশোধিত পরিমাণ (টাকা)';
-
-  @override
   String get save => 'সেভ করুন';
-
-  @override
-  String get runningAverageMileage => 'চলমান গড়';
 
   @override
   String get lastTimeMileage => 'বর্তমান মাইলেজ';
@@ -142,9 +164,6 @@ class AppLocalizationsBn extends AppLocalizations {
   String get savings => 'বেচেছে (টাকা)';
 
   @override
-  String get averageMileage => 'গড় মাইলেজ';
-
-  @override
   String get lastRefuelDetails => 'শেষ রিফুয়েলের বিবরণ';
 
   @override
@@ -170,12 +189,6 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get comingSoon => 'শীঘ্রই আসছে';
-
-  @override
-  String get notAvailable => 'প্রযোজ্য নয়';
-
-  @override
-  String get vehicle => 'যানবাহন';
 
   @override
   String get exportRefuelingData => 'রিফুয়েলিং ডেটা এক্সপোর্ট করুন';

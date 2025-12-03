@@ -63,7 +63,8 @@ class _AllDataPageState extends State<AllDataPage> {
     if (_selectedVehicleId == null) {
       _filteredRecords = _allRecords;
     } else {
-      _filteredRecords = _allRecords.where((r) => r.vehicleId == _selectedVehicleId).toList();
+      _filteredRecords =
+          _allRecords.where((r) => r.vehicleId == _selectedVehicleId).toList();
     }
     if (mounted) {
       setState(() {});
@@ -79,10 +80,23 @@ class _AllDataPageState extends State<AllDataPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    double maxOdometer =
-        _filteredRecords.isNotEmpty ? _filteredRecords.map((r) => r.odometer).reduce(max) : 0.0;
+    double overallAverageMileage = 0;
+    if (_filteredRecords.length > 1) {
+      final totalDistance =
+          _filteredRecords.first.odometer - _filteredRecords.last.odometer;
+      final totalConsumedVolume =
+          _filteredRecords.skip(1).map((r) => r.volume).reduce((a, b) => a + b);
+      if (totalConsumedVolume > 0) {
+        overallAverageMileage = totalDistance / totalConsumedVolume;
+      }
+    }
+
+    double maxOdometer = _filteredRecords.isNotEmpty
+        ? _filteredRecords.map((r) => r.odometer).reduce(max)
+        : 0.0;
     double avgRate = _filteredRecords.isNotEmpty
-        ? _filteredRecords.map((r) => r.rate).reduce((a, b) => a + b) / _filteredRecords.length
+        ? _filteredRecords.map((r) => r.rate).reduce((a, b) => a + b) /
+            _filteredRecords.length
         : 0.0;
     double sumVolume = _filteredRecords.isNotEmpty
         ? _filteredRecords.map((r) => r.volume).reduce((a, b) => a + b)
@@ -90,10 +104,6 @@ class _AllDataPageState extends State<AllDataPage> {
     double sumPaid = _filteredRecords.isNotEmpty
         ? _filteredRecords.map((r) => r.paidAmount).reduce((a, b) => a + b)
         : 0.0;
-    double sumActualBill = _filteredRecords.isNotEmpty
-        ? _filteredRecords.map((r) => r.rate * r.volume).reduce((a, b) => a + b)
-        : 0.0;
-    double sumSavings = sumActualBill - sumPaid;
 
     final DataRow summaryRow = DataRow(
       color: WidgetStateProperty.all(theme.colorScheme.surfaceContainerHighest),
@@ -120,47 +130,47 @@ class _AllDataPageState extends State<AllDataPage> {
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(Text(sumActualBill.toStringAsFixed(2),
+        DataCell(const Text('')), // Empty cell for the trip mileage column
+        DataCell(Text(overallAverageMileage.toStringAsFixed(2),
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(Text(sumSavings.toStringAsFixed(2),
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurfaceVariant))),
-        DataCell(const Text('')), // Empty cell for the new column
       ],
     );
 
     List<DataRow> dataRows = [];
     for (int i = 0; i < _filteredRecords.length; i++) {
       final record = _filteredRecords[i];
-      final actualBill = record.rate * record.volume;
-      final difference = actualBill - record.paidAmount;
 
-      double averageMileage = 0;
+      double tripMileage = 0;
       if (i < _filteredRecords.length - 1) {
         final previousRecord = _filteredRecords[i + 1];
         if (previousRecord.volume > 0) {
-          averageMileage =
+          tripMileage =
               (record.odometer - previousRecord.odometer) / previousRecord.volume;
         }
       }
 
-      final fuelTypeName = _fuelTypeMap[record.fuelTypeId]?.name ?? localizations.notAvailable;
-      final vehicleName = _vehicleMap[record.vehicleId]?.name ?? localizations.notAvailable;
+      final fuelTypeName =
+          _fuelTypeMap[record.fuelTypeId]?.name ?? localizations.notAvailable;
+      final vehicleName =
+          _vehicleMap[record.vehicleId]?.name ?? localizations.notAvailable;
+
+      Color? rowColor;
+      if (tripMileage > 0 && overallAverageMileage > 0) {
+        final differencePercent =
+            (tripMileage - overallAverageMileage) / overallAverageMileage;
+        if (differencePercent < -0.10) {
+          // >10% less than running average
+          rowColor = theme.colorScheme.errorContainer.withAlpha(77);
+        } else if (differencePercent > 0.10) {
+          // >10% more than running average
+          rowColor = theme.colorScheme.tertiaryContainer.withAlpha(77);
+        }
+      }
 
       dataRows.add(DataRow(
-        color: WidgetStateProperty.resolveWith<Color?>((states) {
-          double expected = record.volume * record.rate;
-          if (record.paidAmount < expected) {
-            return theme.colorScheme.tertiaryContainer.withAlpha(77);
-          }
-          if (record.paidAmount > expected) {
-            return theme.colorScheme.errorContainer.withAlpha(77);
-          }
-          return null;
-        }),
+        color: WidgetStateProperty.all(rowColor),
         cells: [
           DataCell(Text(record.date.toLocal().toString().substring(0, 16))),
           DataCell(Text(record.odometer.toStringAsFixed(2))),
@@ -169,9 +179,8 @@ class _AllDataPageState extends State<AllDataPage> {
           DataCell(Text(record.rate.toStringAsFixed(2))),
           DataCell(Text(record.volume.toStringAsFixed(2))),
           DataCell(Text(record.paidAmount.toStringAsFixed(2))),
-          DataCell(Text(actualBill.toStringAsFixed(2))),
-          DataCell(Text(difference.toStringAsFixed(2))),
-          DataCell(Text(averageMileage.toStringAsFixed(2))),
+          DataCell(Text(tripMileage.toStringAsFixed(2))),
+          DataCell(Text(overallAverageMileage.toStringAsFixed(2))),
         ],
       ));
     }
@@ -219,9 +228,8 @@ class _AllDataPageState extends State<AllDataPage> {
                     DataColumn(label: Text(localizations.fuelPriceRate)),
                     DataColumn(label: Text(localizations.totalVolume)),
                     DataColumn(label: Text(localizations.paidAmount)),
-                    DataColumn(label: Text(localizations.actualBill)),
-                    DataColumn(label: Text(localizations.savings)),
                     DataColumn(label: Text(localizations.averageMileage)),
+                    DataColumn(label: Text(localizations.runningAverage)),
                   ],
                   rows: allRows,
                 ),
@@ -230,7 +238,8 @@ class _AllDataPageState extends State<AllDataPage> {
           ),
         ],
       ),
-      bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
+      bottomNavigationBar:
+          AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
     );
   }
 }
