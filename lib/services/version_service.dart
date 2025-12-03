@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:version/version.dart';
 
 class VersionService {
   static const String _repo = 'pollob666/fueltracker';
@@ -26,7 +27,7 @@ class VersionService {
 
   Future<String> get currentVersion async {
     final packageInfo = await PackageInfo.fromPlatform();
-    return 'v\${packageInfo.version}+\${packageInfo.buildNumber}';
+    return 'v${packageInfo.version}+${packageInfo.buildNumber}';
   }
 
   Future<bool> get isUpdateAvailable async {
@@ -35,6 +36,15 @@ class VersionService {
       return false;
     }
     final current = await currentVersion;
-    return latest != current;
+
+    try {
+      // Use the version package to parse and compare versions
+      final latestVersion = Version.parse(latest.replaceFirst('v', ''));
+      final currentVersion = Version.parse(current.replaceFirst('v', ''));
+      return latestVersion > currentVersion;
+    } catch (e) {
+      // Fallback to simple string comparison in case of parsing errors
+      return latest != current;
+    }
   }
 }
