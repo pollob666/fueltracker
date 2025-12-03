@@ -41,7 +41,8 @@ jobs:
       - name: Calculate New Version
         id: version-increment
         run: |
-          CURRENT_VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          # FIX: Added ^ to match only the version at the start of the line
+          CURRENT_VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //')
           VERSION_PART=$(echo $CURRENT_VERSION | cut -d'+' -f1)
           BUILD_PART=$(echo $CURRENT_VERSION | cut -d'+' -f2)
           MAJOR=$(echo $VERSION_PART | cut -d'.' -f1)
@@ -71,7 +72,8 @@ jobs:
 
       - name: Update pubspec.yaml for build
         run: |
-          sed -i "s/version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
+          # FIX: Added ^ to ensure we only replace the root version key
+          sed -i "s/^version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -159,7 +161,8 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          sed -i "s/version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
+          # FIX: Added ^ to ensure we only replace the root version key
+          sed -i "s/^version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
           git add pubspec.yaml
           git commit -m "ci: Bump version to ${{ needs.calculate-version.outputs.new_version }}"
           git push
