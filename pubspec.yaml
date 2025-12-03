@@ -8,7 +8,7 @@ description: "Fuel Consumption Tracker by https://github.com/pollob666"
 publish_to: 'none'
 
 # The following defines the version and build number for your application.
-version: 2.0.6+6 ^2.0.0
+version: 2.0.6+6
 
 # The following defines the environment constraints for your application.
 environment:
@@ -42,7 +42,7 @@ dependencies:
   package_info_plus: ^8.3.1
   url_launcher: ^6.3.2
   google_mobile_ads: ^6.0.0
-  version: 2.0.6+6 ^2.0.0
+  version: 3.0.2
 
 
 # Development-only dependencies
