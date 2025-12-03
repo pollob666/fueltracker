@@ -3,6 +3,7 @@
 # This workflow is triggered on every push to the 'release' branch.
 # It automatically increments the version number based on the commit message,
 # builds a signed APK, and creates a new GitHub Release with the file.
+# The version bump is only committed if the build and release are successful.
 #
 name: Build and Release APK
 
@@ -12,25 +13,19 @@ on:
       - release
 
 jobs:
-  version-bump:
-    # Prevent workflow from running in an infinite loop
+  calculate-version:
     if: "!contains(github.event.head_commit.message, 'ci: Bump version')"
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Required to commit version changes.
     outputs:
       new_version: ${{ steps.version-increment.outputs.new_version }}
       new_version_name: ${{ steps.version-increment.outputs.new_version_name }}
       new_build_number: ${{ steps.version-increment.outputs.new_build_number }}
     steps:
-      # Step 1: Check out the repository code.
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetches all history for version bumping.
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 2: Determine Version Increment
       - name: Determine Version Increment
         id: version-increment-type
         run: |
@@ -43,8 +38,7 @@ jobs:
             echo "increment=patch" >> $GITHUB_OUTPUT
           fi
 
-      # Step 3: Bump version
-      - name: Bump version
+      - name: Calculate New Version
         id: version-increment
         run: |
           CURRENT_VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
@@ -67,25 +61,16 @@ jobs:
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
           echo "new_version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
           echo "new_build_number=${NEW_BUILD_NUMBER}" >> $GITHUB_OUTPUT
-          sed -i "s/version: .*/version: $NEW_VERSION/" pubspec.yaml
-
-      # Step 4: Commit version bump
-      - name: Commit version bump
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add pubspec.yaml
-          git commit -m "ci: Bump version to ${{ steps.version-increment.outputs.new_version }}"
-          git push
 
   build:
-    needs: version-bump
+    needs: calculate-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: 'release'
+
+      - name: Update pubspec.yaml for build
+        run: sed -i "s/version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -101,7 +86,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Android build steps
       - name: Decode Keystore and Create Properties File
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -118,13 +102,13 @@ jobs:
       - name: Build signed release APK
         run: |
           flutter build apk --release \
-            --build-name ${{ needs.version-bump.outputs.new_version_name }} \
-            --build-number ${{ needs.version-bump.outputs.new_build_number }}
+            --build-name ${{ needs.calculate-version.outputs.new_version_name }} \
+            --build-number ${{ needs.calculate-version.outputs.new_build_number }}
 
       - name: Rename APK
         id: rename_apk
         run: |
-          NEW_NAME="fuelTracker-android-release-${{ needs.version-bump.outputs.new_version_name }}.apk"
+          NEW_NAME="fuelTracker-android-release-${{ needs.calculate-version.outputs.new_version_name }}.apk"
           mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
           echo "artifact_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
 
@@ -135,7 +119,7 @@ jobs:
           path: ${{ steps.rename_apk.outputs.artifact_path }}
 
   create-release:
-    needs: [build, version-bump]
+    needs: [build, calculate-version]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -149,12 +133,32 @@ jobs:
       - name: Create Release and Upload Artifacts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.version-bump.outputs.new_version }}
-          name: "Release ${{ needs.version-bump.outputs.new_version_name }}"
+          tag_name: v${{ needs.calculate-version.outputs.new_version }}
+          name: "Release ${{ needs.calculate-version.outputs.new_version_name }}"
           body: |
-            Automated release for version ${{ needs.version-bump.outputs.new_version_name }}.
+            Automated release for version ${{ needs.calculate-version.outputs.new_version_name }}.
             - Release APK (signed)
           files: |
             artifacts/apk/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  commit-and-push-version-bump:
+    needs: [calculate-version, create-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit version bump
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          sed -i "s/version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
+          git add pubspec.yaml
+          git commit -m "ci: Bump version to ${{ needs.calculate-version.outputs.new_version }}"
+          git push
