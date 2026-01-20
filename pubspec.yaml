@@ -8,7 +8,7 @@ description: "Fuel Consumption Tracker by https://github.com/pollob666"
 publish_to: 'none'
 
 # The following defines the version and build number for your application.
-version: 2.0.7+7
+version: 2.0.8+8
 
 # The following defines the environment constraints for your application.
 environment:
