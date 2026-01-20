@@ -23,26 +23,26 @@ dependencies:
     sdk: flutter
 
   # UI
-  cupertino_icons: ^1.0.2 # Kept for potential iOS-style icons.
-  dynamic_color: ^1.8.0 # For dynamic theming based on user's wallpaper (Android 12+).
+  cupertino_icons: ^1.0.8 # Kept for potential iOS-style icons.
+  dynamic_color: ^1.8.1 # For dynamic theming based on user's wallpaper (Android 12+).
 
   # Data & Storage
   csv: ^6.0.0
-  file_picker: ^10.3.3
-  path: ^1.9.0
+  file_picker: ^10.3.8
+  path: ^1.9.1
   path_provider: ^2.1.5
-  shared_preferences: ^2.3.1
-  sqflite: ^2.3.4
+  shared_preferences: ^2.5.4
+  sqflite: ^2.4.2
 
   # Internationalization
   intl: ^0.20.2
 
   # Networking & Versioning
-  http: ^1.2.1
-  package_info_plus: ^8.3.1
+  http: ^1.6.0
+  package_info_plus: ^9.0.0
   url_launcher: ^6.3.2
-  google_mobile_ads: ^6.0.0
-  version: 3.0.2
+  google_mobile_ads: ^7.0.0
+  version: ^3.0.2
 
 
 # Development-only dependencies

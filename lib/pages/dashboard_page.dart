@@ -364,38 +364,40 @@ class _DashboardPageState extends State<DashboardPage> {
       final secondaryFuelType = _fuelTypeMap[selectedVehicle.secondaryFuelTypeId];
       if (secondaryFuelType != null) {
         final records = _filteredRecords.where((r) => r.fuelTypeId == secondaryFuelType.id).toList();
-        final unit = secondaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
-        mileageCards.add(const SizedBox(height: 16));
-        mileageCards.add(Row(
-          children: [
-            _buildMileageCard(
-                context,
-                '${secondaryFuelType.name} ${localizations.runningAverageMileage}',
-                calculateRunningAverage(records),
-                unit,
-                colorScheme.tertiaryContainer,
-                colorScheme.onTertiaryContainer,
-                colorScheme.tertiary),
-            const SizedBox(width: 16),
-            _buildMileageCard(
-                context,
-                '${secondaryFuelType.name} ${localizations.lastTimeMileage}',
-                calculateCurrentRunningMileage(records),
-                unit,
-                colorScheme.errorContainer,
-                colorScheme.onErrorContainer,
-                colorScheme.error),
-          ],
-        ));
-        costCards.add(const SizedBox(width: 16));
-        costCards.add(_buildCostCard(
-            context,
-            '${secondaryFuelType.name} ${localizations.costPerKm}',
-            calculateCostPerKm(records),
-            'BDT/km',
-            colorScheme.tertiaryContainer,
-            colorScheme.onTertiaryContainer,
-            colorScheme.tertiary));
+        if (records.isNotEmpty) {
+          final unit = secondaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
+          mileageCards.add(const SizedBox(height: 16));
+          mileageCards.add(Row(
+            children: [
+              _buildMileageCard(
+                  context,
+                  '${secondaryFuelType.name} ${localizations.runningAverageMileage}',
+                  calculateRunningAverage(records),
+                  unit,
+                  colorScheme.tertiaryContainer,
+                  colorScheme.onTertiaryContainer,
+                  colorScheme.tertiary),
+              const SizedBox(width: 16),
+              _buildMileageCard(
+                  context,
+                  '${secondaryFuelType.name} ${localizations.lastTimeMileage}',
+                  calculateCurrentRunningMileage(records),
+                  unit,
+                  colorScheme.errorContainer,
+                  colorScheme.onErrorContainer,
+                  colorScheme.error),
+            ],
+          ));
+          costCards.add(const SizedBox(width: 16));
+          costCards.add(_buildCostCard(
+              context,
+              '${secondaryFuelType.name} ${localizations.costPerKm}',
+              calculateCostPerKm(records),
+              'BDT/km',
+              colorScheme.tertiaryContainer,
+              colorScheme.onTertiaryContainer,
+              colorScheme.tertiary));
+        }
       }
     }
 
