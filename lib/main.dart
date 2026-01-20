@@ -41,8 +41,8 @@ Future<void> main() async {
     // In a real-world app, you would use a robust error logging framework
     // like Sentry or Firebase Crashlytics to report errors.
     // For now, we just print the error to the console.
-    print('Caught error: $error');
-    print('Stack trace: $stackTrace');
+    debugPrint('Caught error: $error');
+    debugPrint('Stack trace: $stackTrace');
 
     // Optionally, you could run a fallback app to display the error.
     // runApp(ErrorApp(error: error, stackTrace: stackTrace));
