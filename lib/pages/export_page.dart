@@ -114,13 +114,13 @@ class _ExportPageState extends State<ExportPage> {
 
     List<List<String>> csvData = [
       [
-        localizations.dateAndTime,
-        localizations.odometerReading,
-        localizations.vehicle,
-        localizations.fuelType,
-        localizations.fuelPriceRate,
-        localizations.totalVolume,
-        localizations.paidAmount,
+        'Date',
+        'Odometer',
+        'Vehicle',
+        'Fuel Type',
+        'Price Rate',
+        'Volume',
+        'Paid Amount',
       ],
       ...records.map((r) => [
             r.date.toIso8601String(),
