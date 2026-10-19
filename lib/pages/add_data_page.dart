@@ -189,7 +189,9 @@ class _AddDataPageState extends State<AddDataPage> {
 
   @override
   Widget build(BuildContext context) {
-    double maxVolume = AppSettings.maxVolume;
+    final double maxVolume =
+        AppSettings.maxVolume > 0 ? AppSettings.maxVolume : 100.0;
+    final double clampedSliderValue = _volume.clamp(0.0, maxVolume);
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.addFuelData)),
@@ -288,11 +290,13 @@ class _AddDataPageState extends State<AddDataPage> {
                   Text(
                       "${AppLocalizations.of(context)!.totalVolume}: ${_volume.toStringAsFixed(2)}"),
                   Slider(
-                    value: _volume,
+                    value: clampedSliderValue,
                     min: 0,
                     max: maxVolume,
-                    divisions: (maxVolume * 100).toInt(),
-                    label: _volume.toStringAsFixed(2),
+                    divisions: (maxVolume * 100).toInt() > 0
+                        ? (maxVolume * 100).toInt()
+                        : 100,
+                    label: clampedSliderValue.toStringAsFixed(2),
                     onChanged: (val) {
                       final parsedVal = double.parse(val.toStringAsFixed(2));
                       setState(() {
