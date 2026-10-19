@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android signing secrets & keys
+*.jks
+*.keystore
+*.jks.txt
+key.properties
+**/android/app/key.properties
+**/android/key.properties
+
+# Exported data files
+*.csv
