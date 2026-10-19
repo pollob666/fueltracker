@@ -39,6 +39,7 @@ class _AddDataPageState extends State<AddDataPage> {
   double _volume = 0;
   final TextEditingController _volumeController = TextEditingController();
   final TextEditingController _paidAmountController = TextEditingController();
+  bool _isUpdating = false;
 
   @override
   void initState() {
@@ -49,8 +50,9 @@ class _AddDataPageState extends State<AddDataPage> {
     _loadLastValues();
     _volumeController.text = _volume.toStringAsFixed(2);
 
-    _rateController.addListener(_calculateVolume);
-    _paidAmountController.addListener(_calculateVolume);
+    _rateController.addListener(_onRateOrPaidAmountChanged);
+    _paidAmountController.addListener(_onRateOrPaidAmountChanged);
+    _volumeController.addListener(_onVolumeChanged);
 
     _loadInitialData();
   }
@@ -108,15 +110,33 @@ class _AddDataPageState extends State<AddDataPage> {
     });
   }
 
-  void _calculateVolume() {
+  void _onRateOrPaidAmountChanged() {
+    if (_isUpdating) return;
     final double? rate = double.tryParse(_rateController.text);
     final double? paidAmount = double.tryParse(_paidAmountController.text);
 
     if (rate != null && rate > 0 && paidAmount != null && paidAmount > 0) {
-      setState(() {
-        _volume = paidAmount / rate;
-        _volumeController.text = _volume.toStringAsFixed(2);
-      });
+      _isUpdating = true;
+      _volume = paidAmount / rate;
+      _volumeController.text = _volume.toStringAsFixed(2);
+      _isUpdating = false;
+      setState(() {});
+    }
+  }
+
+  void _onVolumeChanged() {
+    if (_isUpdating) return;
+    final double? vol = double.tryParse(_volumeController.text);
+    final double? rate = double.tryParse(_rateController.text);
+
+    if (vol != null && vol >= 0) {
+      _volume = vol;
+      if (rate != null && rate > 0) {
+        _isUpdating = true;
+        _paidAmountController.text = (vol * rate).toStringAsFixed(2);
+        _isUpdating = false;
+      }
+      setState(() {});
     }
   }
 
@@ -136,8 +156,9 @@ class _AddDataPageState extends State<AddDataPage> {
 
   @override
   void dispose() {
-    _rateController.removeListener(_calculateVolume);
-    _paidAmountController.removeListener(_calculateVolume);
+    _rateController.removeListener(_onRateOrPaidAmountChanged);
+    _paidAmountController.removeListener(_onRateOrPaidAmountChanged);
+    _volumeController.removeListener(_onVolumeChanged);
     _odometerController.dispose();
     _rateController.dispose();
     _volumeController.dispose();
@@ -273,9 +294,17 @@ class _AddDataPageState extends State<AddDataPage> {
                     divisions: (maxVolume * 100).toInt(),
                     label: _volume.toStringAsFixed(2),
                     onChanged: (val) {
+                      final parsedVal = double.parse(val.toStringAsFixed(2));
                       setState(() {
-                        _volume = double.parse(val.toStringAsFixed(2));
+                        _volume = parsedVal;
+                        _isUpdating = true;
                         _volumeController.text = _volume.toStringAsFixed(2);
+                        final double? rate = double.tryParse(_rateController.text);
+                        if (rate != null && rate > 0) {
+                          _paidAmountController.text =
+                              (_volume * rate).toStringAsFixed(2);
+                        }
+                        _isUpdating = false;
                       });
                     },
                   ),
@@ -310,13 +339,15 @@ class _AddDataPageState extends State<AddDataPage> {
                     onPressed: () async {
                       if (_formKey.currentState!.validate()) {
                         await _saveLastValues();
+                        final double finalVolume =
+                            double.tryParse(_volumeController.text) ?? _volume;
                         FuelRecord record = FuelRecord(
                           date: _selectedDate,
                           odometer: double.parse(_odometerController.text),
                           fuelTypeId: _selectedFuelTypeId!,
                           vehicleId: _selectedVehicleId!,
                           rate: double.parse(_rateController.text),
-                          volume: _volume,
+                          volume: finalVolume,
                           paidAmount:
                               double.parse(_paidAmountController.text),
                         );
