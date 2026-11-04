@@ -25,7 +25,17 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "fuel_tracker.db");
-    return await openDatabase(path, version: 3, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(
+      path,
+      version: 4,
+      onConfigure: _onConfigure,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  static Future _onConfigure(Database db) async {
+    await db.execute('PRAGMA foreign_keys = ON;');
   }
 
   Future _onCreate(Database db, int version) async {
@@ -34,12 +44,18 @@ class DatabaseHelper {
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 3) {
-      // For simplicity, we're dropping and recreating tables.
-      // In a real-world app, you'd migrate data.
+      // Legacy fallback from v1/v2 schema
       await db.execute('DROP TABLE IF EXISTS fuel_records');
       await db.execute('DROP TABLE IF EXISTS fuel_types');
       await db.execute('DROP TABLE IF EXISTS vehicles');
       await _createTables(db);
+      return;
+    }
+
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN isFullTank INTEGER NOT NULL DEFAULT 1');
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN missedPrevious INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN tripDistance REAL');
     }
   }
 
@@ -77,6 +93,9 @@ class DatabaseHelper {
         rate REAL NOT NULL,
         volume REAL NOT NULL,
         paidAmount REAL NOT NULL,
+        isFullTank INTEGER NOT NULL DEFAULT 1,
+        missedPrevious INTEGER NOT NULL DEFAULT 0,
+        tripDistance REAL,
         FOREIGN KEY (fuelTypeId) REFERENCES fuel_types (id),
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id)
       )
