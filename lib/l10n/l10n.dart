@@ -727,6 +727,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm'**
   String get confirm;
+
+  /// No description provided for @deleteVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Vehicle'**
+  String get deleteVehicle;
+
+  /// No description provided for @cannotDeleteOnlyVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot delete the only remaining vehicle.'**
+  String get cannotDeleteOnlyVehicle;
+
+  /// No description provided for @deleteVehicleConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this vehicle?'**
+  String get deleteVehicleConfirm;
+
+  /// No description provided for @deleteVehicleCascadeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This vehicle has {count} fuel records. Deleting it will permanently remove all associated records. Do you wish to proceed?'**
+  String deleteVehicleCascadeWarning(int count);
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @shareExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Export'**
+  String get shareExport;
+
+  /// No description provided for @exportSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Files prepared successfully.'**
+  String get exportSuccessful;
+
+  /// No description provided for @folderPathHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Leave empty to share via system share sheet.'**
+  String get folderPathHelper;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
 }
 
 class _AppLocalizationsDelegate

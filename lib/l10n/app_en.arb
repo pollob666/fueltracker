@@ -110,5 +110,21 @@
   },
   "partial": "Partial",
   "missed": "Missed",
-  "confirm": "Confirm"
+  "confirm": "Confirm",
+  "deleteVehicle": "Delete Vehicle",
+  "cannotDeleteOnlyVehicle": "Cannot delete the only remaining vehicle.",
+  "deleteVehicleConfirm": "Are you sure you want to delete this vehicle?",
+  "deleteVehicleCascadeWarning": "This vehicle has {count} fuel records. Deleting it will permanently remove all associated records. Do you wish to proceed?",
+  "@deleteVehicleCascadeWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "delete": "Delete",
+  "shareExport": "Share Export",
+  "exportSuccessful": "Files prepared successfully.",
+  "folderPathHelper": "Optional. Leave empty to share via system share sheet.",
+  "clear": "Clear"
 }

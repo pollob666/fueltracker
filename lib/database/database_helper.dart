@@ -8,6 +8,7 @@ import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -15,6 +16,11 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
   factory DatabaseHelper() => instance;
+
+  @visibleForTesting
+  static void setDatabaseForTesting(Database? db) {
+    _database = db;
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -172,5 +178,30 @@ class DatabaseHelper {
   Future<int> deleteVehicle(int id) async {
     Database db = await instance.database;
     return await db.delete('vehicles', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> getFuelRecordCountForVehicle(int vehicleId) async {
+    Database db = await instance.database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM fuel_records WHERE vehicleId = ?',
+      [vehicleId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<void> deleteVehicleCascade(int vehicleId) async {
+    Database db = await instance.database;
+    await db.transaction((txn) async {
+      await txn.delete(
+        'fuel_records',
+        where: 'vehicleId = ?',
+        whereArgs: [vehicleId],
+      );
+      await txn.delete(
+        'vehicles',
+        where: 'id = ?',
+        whereArgs: [vehicleId],
+      );
+    });
   }
 }

@@ -17,16 +17,22 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 ### 1.3 Complete CRUD for Fuel Records (Edit & Delete UI) `[COMPLETED]`
 - **Status:** Implemented in `AllDataPage` via row selection modal bottom sheet (Edit & Delete actions), safe delete confirmation dialog, and adapted `AddDataPage` supporting edit mode with chronological neighbor odometer validation.
 
-### 1.4 Vehicle Deletion & Cascade Protections `[PENDING]`
-- **Current Issue:** `ManageVehiclesPage` permits creating and editing vehicles, but lacks vehicle deletion.
-- **Solution:**
-  - Add a delete option with verification: ensure dependent records are either reassigned or deleted cleanly with user consent.
+### 1.4 Vehicle Deletion & Cascade Protections `[COMPLETED]`
+- **Status:** Implemented in `DatabaseHelper`, `VehicleService`, and `ManageVehiclesPage`.
+- **Current Architecture & Implementation Details:**
+  - **Atomic Cascade Transaction:** `DatabaseHelper.deleteVehicleCascade(vehicleId)` executes an atomic SQLite transaction deleting child `fuel_records` before deleting the parent vehicle in `vehicles`, enforcing foreign key integrity and preventing orphaned records.
+  - **Record Count Query:** `DatabaseHelper.getFuelRecordCountForVehicle(vehicleId)` and `VehicleService.getRecordCountForVehicle(vehicleId)` query exact dependent record counts via `SELECT COUNT(*) FROM fuel_records WHERE vehicleId = ?`.
+  - **Confirmation Dialog:** Dynamic confirmation dialog in `ManageVehiclesPage` queries record count asynchronously and warns the user with the exact number of fuel records that will be permanently deleted (or simple confirmation if 0 records).
+  - **Single-Vehicle Guard:** Deletion is disabled in the UI (disabled icon button with tooltip) and blocked programmatically when only one vehicle remains in the database.
+  - **Default Vehicle Auto-Fallback:** If the deleted vehicle was configured as the active default, `VehicleService.deleteVehicle` automatically reassigns the default vehicle preference in `SharedPreferences` to the first remaining vehicle.
 
-### 1.5 Modern Scoped Storage Export `[PENDING]`
-- **Current Issue:** `ExportPage` attempts direct file writing via `dart:io File` into user-selected directory paths. On Android 11+ (API 30+), Scoped Storage blocks arbitrary filesystem access without elevated storage permissions.
-- **Solution:**
-  - Integrate `share_plus` to dispatch exported CSV/JSON files through the native Android/iOS share sheet.
-  - Or use `file_picker`'s `saveFile` method utilizing Storage Access Framework (SAF).
+### 1.5 Modern Scoped Storage Export `[COMPLETED]`
+- **Status:** Implemented in `ExportPage`, `SettingsPage`, and `pubspec.yaml` via `share_plus`.
+- **Current Architecture & Implementation Details:**
+  - **System Share Sheet Integration:** Added `share_plus: ^10.1.4`. When no custom folder path is configured, `ExportPage` stages exported CSV and JSON files in the application's temporary cache directory (`getTemporaryDirectory()`) and dispatches them via `Share.shareXFiles`.
+  - **Android Scoped Storage & iOS Compliance:** Resolves permission denials on Android 11+ (API 30+) scoped storage without requiring elevated filesystem storage permissions (`MANAGE_EXTERNAL_STORAGE`).
+  - **iPad Popover Safety:** Anchors `sharePositionOrigin` using the export page's `RenderBox` bounds (`box.localToGlobal(Offset.zero) & box.size`), preventing uncaught `NSInternalInconsistencyException` crashes on iPadOS / tablet form factors.
+  - **Optional Custom Storage Path:** `SettingsPage` makes directory selection optional, providing clear button to revert to system share sheet export mode and descriptive helper text (`folderPathHelper`). Direct file export to custom directories is preserved when configured.
 
 ---
 

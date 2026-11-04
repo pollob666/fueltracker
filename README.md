@@ -18,11 +18,11 @@ You can download the latest version of the application from the [GitHub Releases
 *   **Immersive User Experience:** Graphical and welcoming prompts for first-time users to guide them through adding their first vehicle and getting started with the app.
 *   **Mileage Calculation:** Robust Full-to-Full calculation engine with support for partial fills, missed fill-ups, weighted running average ($\frac{\sum \Delta O}{\sum V}$ avoiding Simpson's Paradox skew), and bi-fuel trip distance recording.
 *   **Odometer Anomaly Safeguard:** Real-time soft confirmation dialog preventing accidental entries when odometer readings are less than or equal to previous records.
-*   **Data Import/Export:** Import and export your fuel data in CSV format, including full attributes (`Full Tank`, `Missed Previous`, `Trip Distance`) with seamless backward compatibility for legacy records. Exported filenames are automatically generated with the date and a sequence number for easy organization (e.g., `refuel_records_20241028T1200_1.csv`).
+*   **Data Import/Export & Modern Sharing:** Import and export fuel data in CSV and JSON formats with modern Android Scoped Storage compatibility and system share sheet integration (`share_plus`). Supports optional custom export directories, iPad popover origin safety, full attributes (`Full Tank`, `Missed Previous`, `Trip Distance`) with backward compatibility for legacy records, and auto-generated timestamped filenames with sequence numbering.
 *   **Dynamic Theming:** Adapts its color scheme to the user's system-level theme on Android for a personalized look and feel. Users can also manually switch between Light, Dark, and System themes.
 *   **Localization:** Supports multiple languages through the `intl` package.
 *   **Automated CI/CD:** A GitHub Actions workflow automatically builds and releases signed APKs whenever code is pushed to the `release` branch.
-*   **Vehicle Management:** A dedicated page to list, edit, and set a default vehicle.
+*   **Vehicle Management & Cascade Safeguards:** A dedicated page to list, edit, set a default vehicle, and safely delete vehicles. Deletion is safeguarded by atomic database transactions that cascade delete associated child records, dynamic record-count confirmation dialogs, single-vehicle deletion protection, and automatic fallback for active default vehicles.
 *   **Default Fuel Prices:** Set default fuel prices for each fuel type in the settings, which are auto-filled on the “Add Fuel Data” page.
 *   **Redesigned Dashboard:** A modern and intuitive dashboard with stylized cards for better visual impact.
 

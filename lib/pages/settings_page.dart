@@ -156,6 +156,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final localizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
@@ -208,10 +209,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   TextFormField(
                     controller: _folderController,
                     decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.folderPath,
-                      suffixIcon: IconButton(
-                          icon: const Icon(Icons.folder_open),
-                          onPressed: _pickFolder),
+                      labelText: localizations.folderPath,
+                      helperText: localizations.folderPathHelper,
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_folderController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () =>
+                                  setState(() => _folderController.clear()),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.folder_open),
+                            onPressed: _pickFolder,
+                          ),
+                        ],
+                      ),
                     ),
                     readOnly: true,
                   ),

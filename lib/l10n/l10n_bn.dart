@@ -331,4 +331,36 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get confirm => 'নিশ্চিত করুন';
+
+  @override
+  String get deleteVehicle => 'যানবাহন মুছে ফেলুন';
+
+  @override
+  String get cannotDeleteOnlyVehicle =>
+      'একমাত্র অবশিষ্ট যানটি মুছে ফেলা যাবে না।';
+
+  @override
+  String get deleteVehicleConfirm =>
+      'আপনি কি নিশ্চিত যে আপনি এই যানটি মুছে ফেলতে চান?';
+
+  @override
+  String deleteVehicleCascadeWarning(int count) {
+    return 'এই যানের $count টি জ্বালানি রেকর্ড রয়েছে। এটি মুছে ফেললে সংশ্লিষ্ট সমস্ত রেকর্ড স্থায়ীভাবে মুছে যাবে। আপনি কি এগিয়ে যেতে চান?';
+  }
+
+  @override
+  String get delete => 'মুছে ফেলুন';
+
+  @override
+  String get shareExport => 'এক্সপোর্ট শেয়ার করুন';
+
+  @override
+  String get exportSuccessful => 'ফাইল সফলভাবে প্রস্তুত করা হয়েছে।';
+
+  @override
+  String get folderPathHelper =>
+      'ঐচ্ছিক। সিস্টেম শেয়ার শীট ব্যবহার করতে খালি রাখুন।';
+
+  @override
+  String get clear => 'পরিষ্কার করুন';
 }

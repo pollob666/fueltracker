@@ -51,6 +51,48 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
     _loadVehicles();
   }
 
+  Future<void> _confirmDeleteVehicle(Vehicle vehicle) async {
+    if (_vehicles.length <= 1) return;
+
+    final count = await _vehicleService.getRecordCountForVehicle(vehicle.id!);
+    if (!mounted) return;
+
+    final localizations = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(localizations.deleteVehicle),
+        content: Text(
+          count > 0
+              ? localizations.deleteVehicleCascadeWarning(count)
+              : localizations.deleteVehicleConfirm,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(localizations.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(localizations.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _vehicleService.deleteVehicle(vehicle.id!, cascade: true);
+      if (!mounted) return;
+      await _loadVehicles();
+    }
+  }
+
   String _getVehicleTypeLocalization(BuildContext context, VehicleType type) {
     switch (type) {
       case VehicleType.carOrSedan:
@@ -115,6 +157,20 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
                           );
                           _loadVehicles();
                         },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: _vehicles.length <= 1
+                              ? theme.disabledColor
+                              : theme.colorScheme.error,
+                        ),
+                        tooltip: _vehicles.length <= 1
+                            ? localizations.cannotDeleteOnlyVehicle
+                            : localizations.deleteVehicle,
+                        onPressed: _vehicles.length <= 1
+                            ? null
+                            : () => _confirmDeleteVehicle(vehicle),
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(

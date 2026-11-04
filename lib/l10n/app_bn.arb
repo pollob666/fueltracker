@@ -110,5 +110,21 @@
   },
   "partial": "আংশিক",
   "missed": "বাদ পড়েছে",
-  "confirm": "নিশ্চিত করুন"
+  "confirm": "নিশ্চিত করুন",
+  "deleteVehicle": "যানবাহন মুছে ফেলুন",
+  "cannotDeleteOnlyVehicle": "একমাত্র অবশিষ্ট যানটি মুছে ফেলা যাবে না।",
+  "deleteVehicleConfirm": "আপনি কি নিশ্চিত যে আপনি এই যানটি মুছে ফেলতে চান?",
+  "deleteVehicleCascadeWarning": "এই যানের {count} টি জ্বালানি রেকর্ড রয়েছে। এটি মুছে ফেললে সংশ্লিষ্ট সমস্ত রেকর্ড স্থায়ীভাবে মুছে যাবে। আপনি কি এগিয়ে যেতে চান?",
+  "@deleteVehicleCascadeWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "delete": "মুছে ফেলুন",
+  "shareExport": "এক্সপোর্ট শেয়ার করুন",
+  "exportSuccessful": "ফাইল সফলভাবে প্রস্তুত করা হয়েছে।",
+  "folderPathHelper": "ঐচ্ছিক। সিস্টেম শেয়ার শীট ব্যবহার করতে খালি রাখুন।",
+  "clear": "পরিষ্কার করুন"
 }

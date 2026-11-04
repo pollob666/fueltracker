@@ -330,4 +330,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirm => 'Confirm';
+
+  @override
+  String get deleteVehicle => 'Delete Vehicle';
+
+  @override
+  String get cannotDeleteOnlyVehicle =>
+      'Cannot delete the only remaining vehicle.';
+
+  @override
+  String get deleteVehicleConfirm =>
+      'Are you sure you want to delete this vehicle?';
+
+  @override
+  String deleteVehicleCascadeWarning(int count) {
+    return 'This vehicle has $count fuel records. Deleting it will permanently remove all associated records. Do you wish to proceed?';
+  }
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get shareExport => 'Share Export';
+
+  @override
+  String get exportSuccessful => 'Files prepared successfully.';
+
+  @override
+  String get folderPathHelper =>
+      'Optional. Leave empty to share via system share sheet.';
+
+  @override
+  String get clear => 'Clear';
 }
