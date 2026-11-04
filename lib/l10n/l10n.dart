@@ -661,6 +661,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Language'**
   String get language;
+
+  /// No description provided for @fullTank.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Tank'**
+  String get fullTank;
+
+  /// No description provided for @fullTankSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Was the tank filled to full capacity?'**
+  String get fullTankSubtitle;
+
+  /// No description provided for @missedPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed Previous Refuel'**
+  String get missedPrevious;
+
+  /// No description provided for @missedPreviousSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check if a previous refuel was not recorded'**
+  String get missedPreviousSubtitle;
+
+  /// No description provided for @tripDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip Distance (km)'**
+  String get tripDistance;
+
+  /// No description provided for @enterTripDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter trip distance'**
+  String get enterTripDistance;
+
+  /// No description provided for @odometerWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer Anomaly'**
+  String get odometerWarningTitle;
+
+  /// No description provided for @odometerWarningMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Entered odometer reading ({entered}) is less than or equal to previous reading ({previous}). Do you want to proceed?'**
+  String odometerWarningMessage(String entered, String previous);
+
+  /// No description provided for @partial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial'**
+  String get partial;
+
+  /// No description provided for @missed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get missed;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
 }
 
 class _AppLocalizationsDelegate

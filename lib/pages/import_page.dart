@@ -118,6 +118,21 @@ class _ImportPageState extends State<ImportPage> {
       'পরিশোধের পরিমাণ', 'মোট খরচ',
       if (localizations != null) localizations.paidAmount,
     ]);
+    int fullTankCol = _findColumnIndex(headers, [
+      'Full Tank', 'fullTank', 'isFullTank', 'FullTank',
+      'সম্পূর্ণ ট্যাঙ্ক',
+      if (localizations != null) localizations.fullTank,
+    ]);
+    int missedCol = _findColumnIndex(headers, [
+      'Missed Previous', 'missedPrevious', 'missed', 'Missed',
+      'আগের রিফুয়েল বাদ পড়েছে', 'বাদ পড়েছে',
+      if (localizations != null) localizations.missedPrevious,
+    ]);
+    int tripDistCol = _findColumnIndex(headers, [
+      'Trip Distance', 'tripDistance', 'TripDistance', 'Trip',
+      'ট্রিপ দূরত্ব',
+      if (localizations != null) localizations.tripDistance,
+    ]);
 
     // Positional fallback for legacy or non-header CSVs
     if (dateCol == -1 && headers.isNotEmpty) dateCol = 0;
@@ -213,8 +228,8 @@ class _ImportPageState extends State<ImportPage> {
           }
 
           if (recordVehicleId == null) {
-            if (vehicles.isNotEmpty) {
-              recordVehicleId = vehicles.first.id;
+            if (vehicles.isNotEmpty && vehicles.first.id != null) {
+              recordVehicleId = vehicles.first.id!;
             } else {
               final newVehicle = Vehicle(
                 name: 'Default Vehicle',
@@ -236,6 +251,30 @@ class _ImportPageState extends State<ImportPage> {
               ? double.tryParse(row[paidCol].toString()) ?? 0.0
               : 0.0;
 
+          bool isFullTank = true;
+          if (fullTankCol != -1 && fullTankCol < row.length) {
+            final val = row[fullTankCol].toString().trim().toLowerCase();
+            if (val == 'false' || val == '0' || val == 'no' || val == 'না') {
+              isFullTank = false;
+            }
+          }
+
+          bool missedPrevious = false;
+          if (missedCol != -1 && missedCol < row.length) {
+            final val = row[missedCol].toString().trim().toLowerCase();
+            if (val == 'true' || val == '1' || val == 'yes' || val == 'হ্যাঁ') {
+              missedPrevious = true;
+            }
+          }
+
+          double? tripDistance;
+          if (tripDistCol != -1 && tripDistCol < row.length) {
+            final val = row[tripDistCol].toString().trim();
+            if (val.isNotEmpty && val != 'N/A' && val != 'null') {
+              tripDistance = double.tryParse(val);
+            }
+          }
+
           entries.add(FuelRecord(
             date: recordDate,
             odometer: odometer,
@@ -244,6 +283,9 @@ class _ImportPageState extends State<ImportPage> {
             rate: rate,
             volume: volume,
             paidAmount: paidAmount,
+            isFullTank: isFullTank,
+            missedPrevious: missedPrevious,
+            tripDistance: tripDistance,
           ));
         } catch (e) {
           debugPrint('Error parsing CSV row: $e');

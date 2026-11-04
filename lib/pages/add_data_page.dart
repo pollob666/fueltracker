@@ -29,6 +29,7 @@ class _AddDataPageState extends State<AddDataPage> {
 
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _odometerController = TextEditingController();
+  final TextEditingController _tripDistanceController = TextEditingController();
   int? _selectedVehicleId;
   int? _selectedFuelTypeId;
   List<Vehicle> _vehicles = [];
@@ -40,6 +41,19 @@ class _AddDataPageState extends State<AddDataPage> {
   final TextEditingController _volumeController = TextEditingController();
   final TextEditingController _paidAmountController = TextEditingController();
   bool _isUpdating = false;
+  bool _isFullTank = true;
+  bool _missedPrevious = false;
+
+  Vehicle? get _selectedVehicle {
+    if (_selectedVehicleId == null || _vehicles.isEmpty) return null;
+    try {
+      return _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool get _isBiFuelVehicle => _selectedVehicle?.secondaryFuelTypeId != null;
 
   @override
   void initState() {
@@ -160,6 +174,7 @@ class _AddDataPageState extends State<AddDataPage> {
     _paidAmountController.removeListener(_onRateOrPaidAmountChanged);
     _volumeController.removeListener(_onVolumeChanged);
     _odometerController.dispose();
+    _tripDistanceController.dispose();
     _rateController.dispose();
     _volumeController.dispose();
     _paidAmountController.dispose();
@@ -231,6 +246,19 @@ class _AddDataPageState extends State<AddDataPage> {
                       return null;
                     },
                   ),
+                  if (_isBiFuelVehicle) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _tripDistanceController,
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context)!.tripDistance,
+                        hintText:
+                            AppLocalizations.of(context)!.enterTripDistance,
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ],
                   DropdownButtonFormField<int>(
                     initialValue: _selectedVehicleId,
                     items: _vehicles
@@ -338,30 +366,105 @@ class _AddDataPageState extends State<AddDataPage> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(AppLocalizations.of(context)!.fullTank),
+                    subtitle:
+                        Text(AppLocalizations.of(context)!.fullTankSubtitle),
+                    value: _isFullTank,
+                    onChanged: (val) {
+                      setState(() {
+                        _isFullTank = val;
+                      });
+                    },
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(AppLocalizations.of(context)!.missedPrevious),
+                    subtitle: Text(
+                        AppLocalizations.of(context)!.missedPreviousSubtitle),
+                    value: _missedPrevious,
+                    onChanged: (val) {
+                      setState(() {
+                        _missedPrevious = val;
+                      });
+                    },
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () async {
                       if (_formKey.currentState!.validate()) {
+                        final double enteredOdometer =
+                            double.parse(_odometerController.text);
+
+                        final allRecords =
+                            await DatabaseHelper.instance.getFuelRecords();
+                        final vehicleRecords = allRecords
+                            .where((r) => r.vehicleId == _selectedVehicleId)
+                            .toList();
+                        if (vehicleRecords.isNotEmpty) {
+                          vehicleRecords
+                              .sort((a, b) => a.date.compareTo(b.date));
+                          final latestOdometer = vehicleRecords.last.odometer;
+                          if (enteredOdometer <= latestOdometer) {
+                            if (!context.mounted) return;
+                            final bool? proceed = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(AppLocalizations.of(ctx)!
+                                    .odometerWarningTitle),
+                                content: Text(AppLocalizations.of(ctx)!
+                                    .odometerWarningMessage(
+                                  enteredOdometer.toStringAsFixed(2),
+                                  latestOdometer.toStringAsFixed(2),
+                                )),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
+                                    child:
+                                        Text(AppLocalizations.of(ctx)!.cancel),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
+                                    child:
+                                        Text(AppLocalizations.of(ctx)!.confirm),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (proceed != true) return;
+                          }
+                        }
+
                         await _saveLastValues();
                         final double finalVolume =
                             double.tryParse(_volumeController.text) ?? _volume;
+                        final double? tripDist =
+                            _tripDistanceController.text.isNotEmpty
+                                ? double.tryParse(_tripDistanceController.text)
+                                : null;
                         FuelRecord record = FuelRecord(
                           date: _selectedDate,
-                          odometer: double.parse(_odometerController.text),
+                          odometer: enteredOdometer,
                           fuelTypeId: _selectedFuelTypeId!,
                           vehicleId: _selectedVehicleId!,
                           rate: double.parse(_rateController.text),
                           volume: finalVolume,
                           paidAmount:
                               double.parse(_paidAmountController.text),
+                          isFullTank: _isFullTank,
+                          missedPrevious: _missedPrevious,
+                          tripDistance: tripDist,
                         );
                         await DatabaseHelper.instance.insertFuelRecord(record);
                         if (AppSettings.adsEnabled) {
                           _interstitialAdService.showAd();
                         }
-                        final navigator = Navigator.of(context);
-                        if (!mounted) return;
-                        navigator.pop();
+                        if (!context.mounted) return;
+                        Navigator.of(context).pop();
                       }
                     },
                     child: Text(AppLocalizations.of(context)!.save),

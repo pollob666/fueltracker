@@ -295,4 +295,40 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get language => 'ভাষা';
+
+  @override
+  String get fullTank => 'সম্পূর্ণ ট্যাঙ্ক';
+
+  @override
+  String get fullTankSubtitle => 'ট্যাঙ্ক কি সম্পূর্ণ পূর্ণ করা হয়েছিল?';
+
+  @override
+  String get missedPrevious => 'আগের রিফুয়েল বাদ পড়েছে';
+
+  @override
+  String get missedPreviousSubtitle =>
+      'যদি আগের কোনো রিফুয়েল বাদ পড়ে থাকে তবে এটি চিহ্নিত করুন';
+
+  @override
+  String get tripDistance => 'ট্রিপ দূরত্ব (কিমি)';
+
+  @override
+  String get enterTripDistance => 'ট্রিপ দূরত্ব লিখুন';
+
+  @override
+  String get odometerWarningTitle => 'ওডোমিটার অসঙ্গতি';
+
+  @override
+  String odometerWarningMessage(String entered, String previous) {
+    return 'প্রবেশ করানো ওডোমিটার রিডিং ($entered) আগের রিডিং ($previous) এর চেয়ে কম বা সমান। আপনি কি এগিয়ে যেতে চান?';
+  }
+
+  @override
+  String get partial => 'আংশিক';
+
+  @override
+  String get missed => 'বাদ পড়েছে';
+
+  @override
+  String get confirm => 'নিশ্চিত করুন';
 }

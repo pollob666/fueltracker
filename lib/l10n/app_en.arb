@@ -93,5 +93,22 @@
   "dailyAverages": "Daily Averages",
   "dailyAverageRun": "Daily Average Run",
   "dailyAverageCost": "Daily Average Cost",
-  "language": "Language"
+  "language": "Language",
+  "fullTank": "Full Tank",
+  "fullTankSubtitle": "Was the tank filled to full capacity?",
+  "missedPrevious": "Missed Previous Refuel",
+  "missedPreviousSubtitle": "Check if a previous refuel was not recorded",
+  "tripDistance": "Trip Distance (km)",
+  "enterTripDistance": "Enter trip distance",
+  "odometerWarningTitle": "Odometer Anomaly",
+  "odometerWarningMessage": "Entered odometer reading ({entered}) is less than or equal to previous reading ({previous}). Do you want to proceed?",
+  "@odometerWarningMessage": {
+    "placeholders": {
+      "entered": { "type": "String" },
+      "previous": { "type": "String" }
+    }
+  },
+  "partial": "Partial",
+  "missed": "Missed",
+  "confirm": "Confirm"
 }

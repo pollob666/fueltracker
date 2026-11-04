@@ -10,6 +10,7 @@ import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
+import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/services/version_service.dart';
@@ -102,80 +103,23 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   double calculateCurrentRunningMileage(List<FuelRecord> records) {
-    if (records.length < 2) {
-      return 0;
-    }
-    double lastOdometer = records.last.odometer;
-    double previousOdometer = records[records.length - 2].odometer;
-    double previousVolume = records[records.length - 2].volume;
-
-    if (previousVolume == 0) return 0; // Avoid division by zero
-
-    return (lastOdometer - previousOdometer) / previousVolume;
+    return MileageCalculator.calculateLastIntervalMileage(records);
   }
 
   double calculateRunningAverage(List<FuelRecord> records) {
-    if (records.length < 2) {
-      return 0; // Not enough data for running average
-    }
-
-    List<double> mileages = [];
-    for (int i = 1; i < records.length; i++) {
-      double diff = records[i].odometer - records[i - 1].odometer;
-      if (records[i - 1].volume > 0) {
-        double mileage = diff / records[i - 1].volume;
-        mileages.add(mileage);
-      }
-    }
-
-    if (mileages.isEmpty) {
-      return 0;
-    }
-
-    double totalMileage = mileages.reduce((a, b) => a + b);
-    return totalMileage / mileages.length;
+    return MileageCalculator.calculateWeightedRunningAverage(records);
   }
 
   double calculateCostPerKm(List<FuelRecord> records) {
-    if (records.isEmpty) {
-      return 0;
-    }
-
-    double totalCost = records.map((r) => r.paidAmount).reduce((a, b) => a + b);
-    double totalDistance = records.last.odometer - records.first.odometer;
-
-    if (totalDistance <= 0) {
-      return 0;
-    }
-
-    return totalCost / totalDistance;
+    return MileageCalculator.calculateCostPerKm(records);
   }
 
   double calculateDailyAverageRun(List<FuelRecord> records) {
-    if (records.length < 2) {
-      return 0;
-    }
-    double totalDistance = records.last.odometer - records.first.odometer;
-    int days = records.last.date.difference(records.first.date).inDays;
-    if (days == 0) {
-      return totalDistance;
-    }
-    return totalDistance / days;
+    return MileageCalculator.calculateDailyAverageRun(records);
   }
 
   double calculateDailyAverageCost(List<FuelRecord> records) {
-    if (records.isEmpty) {
-      return 0;
-    }
-    double totalCost = records.map((r) => r.paidAmount).reduce((a, b) => a + b);
-    if (records.length < 2) {
-      return totalCost;
-    }
-    int days = records.last.date.difference(records.first.date).inDays;
-    if (days == 0) {
-      return totalCost;
-    }
-    return totalCost / days;
+    return MileageCalculator.calculateDailyAverageCost(records);
   }
 
   Widget _buildMileageCard(BuildContext context, String title, double value, String unit,

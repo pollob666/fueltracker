@@ -294,4 +294,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get language => 'Language';
+
+  @override
+  String get fullTank => 'Full Tank';
+
+  @override
+  String get fullTankSubtitle => 'Was the tank filled to full capacity?';
+
+  @override
+  String get missedPrevious => 'Missed Previous Refuel';
+
+  @override
+  String get missedPreviousSubtitle =>
+      'Check if a previous refuel was not recorded';
+
+  @override
+  String get tripDistance => 'Trip Distance (km)';
+
+  @override
+  String get enterTripDistance => 'Enter trip distance';
+
+  @override
+  String get odometerWarningTitle => 'Odometer Anomaly';
+
+  @override
+  String odometerWarningMessage(String entered, String previous) {
+    return 'Entered odometer reading ($entered) is less than or equal to previous reading ($previous). Do you want to proceed?';
+  }
+
+  @override
+  String get partial => 'Partial';
+
+  @override
+  String get missed => 'Missed';
+
+  @override
+  String get confirm => 'Confirm';
 }

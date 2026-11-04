@@ -16,8 +16,9 @@ You can download the latest version of the application from the [GitHub Releases
 *   **Fuel Record Management:** Add, view, and manage your fuel records, including odometer readings, fuel volume, and paid amounts.
 *   **Multi-Vehicle Support:** Add and manage multiple vehicles, each with specific fuel types and capacities, and set a default vehicle for quick data entry.
 *   **Immersive User Experience:** Graphical and welcoming prompts for first-time users to guide them through adding their first vehicle and getting started with the app.
-*   **Mileage Calculation:** Automatically calculates and displays the running average mileage and the last time mileage.
-*   **Data Import/Export:** Import and export your fuel data in CSV format. Exported filenames are automatically generated with the date and a sequence number for easy organization (e.g., `fuel_records_2024-10-28_1.csv`).
+*   **Mileage Calculation:** Robust Full-to-Full calculation engine with support for partial fills, missed fill-ups, weighted running average ($\frac{\sum \Delta O}{\sum V}$ avoiding Simpson's Paradox skew), and bi-fuel trip distance recording.
+*   **Odometer Anomaly Safeguard:** Real-time soft confirmation dialog preventing accidental entries when odometer readings are less than or equal to previous records.
+*   **Data Import/Export:** Import and export your fuel data in CSV format, including full attributes (`Full Tank`, `Missed Previous`, `Trip Distance`) with seamless backward compatibility for legacy records. Exported filenames are automatically generated with the date and a sequence number for easy organization (e.g., `refuel_records_20241028T1200_1.csv`).
 *   **Dynamic Theming:** Adapts its color scheme to the user's system-level theme on Android for a personalized look and feel. Users can also manually switch between Light, Dark, and System themes.
 *   **Localization:** Supports multiple languages through the `intl` package.
 *   **Automated CI/CD:** A GitHub Actions workflow automatically builds and releases signed APKs whenever code is pushed to the `release` branch.

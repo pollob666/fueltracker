@@ -121,6 +121,9 @@ class _ExportPageState extends State<ExportPage> {
         'Price Rate',
         'Volume',
         'Paid Amount',
+        'Full Tank',
+        'Missed Previous',
+        'Trip Distance',
       ],
       ...records.map((r) => [
             r.date.toIso8601String(),
@@ -130,6 +133,9 @@ class _ExportPageState extends State<ExportPage> {
             r.rate.toStringAsFixed(2),
             r.volume.toStringAsFixed(2),
             r.paidAmount.toStringAsFixed(2),
+            r.isFullTank.toString(),
+            r.missedPrevious.toString(),
+            r.tripDistance?.toStringAsFixed(2) ?? '',
           ])
     ];
 

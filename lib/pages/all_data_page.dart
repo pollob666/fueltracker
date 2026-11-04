@@ -9,6 +9,7 @@ import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/l10n/l10n.dart'; // Import localization
@@ -71,6 +72,62 @@ class _AllDataPageState extends State<AllDataPage> {
     }
   }
 
+  Widget _buildMileageCell(IntervalResult? interval, AppLocalizations localizations, ThemeData theme) {
+    if (interval == null) return Text(localizations.notAvailable);
+    if (interval.isMissed) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(localizations.notAvailable),
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              localizations.missed,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (interval.isPartial) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(localizations.notAvailable),
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              localizations.partial,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onTertiaryContainer,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (interval.mileage != null) {
+      return Text(interval.mileage!.toStringAsFixed(2));
+    }
+    return Text(localizations.notAvailable);
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
@@ -80,14 +137,26 @@ class _AllDataPageState extends State<AllDataPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    double overallAverageMileage = 0;
-    if (_filteredRecords.length > 1) {
-      final totalDistance =
-          _filteredRecords.first.odometer - _filteredRecords.last.odometer;
-      final totalConsumedVolume =
-          _filteredRecords.skip(1).map((r) => r.volume).reduce((a, b) => a + b);
-      if (totalConsumedVolume > 0) {
-        overallAverageMileage = totalDistance / totalConsumedVolume;
+    final double overallAverageMileage =
+        MileageCalculator.calculateWeightedRunningAverage(_filteredRecords);
+
+    final Map<FuelRecord, IntervalResult> resultMap = {};
+    if (_selectedVehicleId != null) {
+      final results =
+          MileageCalculator.calculateIntervalResults(_filteredRecords);
+      for (final res in results) {
+        resultMap[res.record] = res;
+      }
+    } else {
+      final Map<int, List<FuelRecord>> byVehicle = {};
+      for (final r in _filteredRecords) {
+        byVehicle.putIfAbsent(r.vehicleId, () => []).add(r);
+      }
+      for (final vRecords in byVehicle.values) {
+        final results = MileageCalculator.calculateIntervalResults(vRecords);
+        for (final res in results) {
+          resultMap[res.record] = res;
+        }
       }
     }
 
@@ -141,15 +210,8 @@ class _AllDataPageState extends State<AllDataPage> {
     List<DataRow> dataRows = [];
     for (int i = 0; i < _filteredRecords.length; i++) {
       final record = _filteredRecords[i];
-
-      double tripMileage = 0;
-      if (i < _filteredRecords.length - 1) {
-        final previousRecord = _filteredRecords[i + 1];
-        if (previousRecord.volume > 0) {
-          tripMileage =
-              (record.odometer - previousRecord.odometer) / previousRecord.volume;
-        }
-      }
+      final interval = resultMap[record];
+      final double? tripMileage = interval?.mileage;
 
       final fuelTypeName =
           _fuelTypeMap[record.fuelTypeId]?.name ?? localizations.notAvailable;
@@ -157,7 +219,7 @@ class _AllDataPageState extends State<AllDataPage> {
           _vehicleMap[record.vehicleId]?.name ?? localizations.notAvailable;
 
       Color? rowColor;
-      if (tripMileage > 0 && overallAverageMileage > 0) {
+      if (tripMileage != null && tripMileage > 0 && overallAverageMileage > 0) {
         final differencePercent =
             (tripMileage - overallAverageMileage) / overallAverageMileage;
         if (differencePercent < -0.10) {
@@ -179,7 +241,7 @@ class _AllDataPageState extends State<AllDataPage> {
           DataCell(Text(record.rate.toStringAsFixed(2))),
           DataCell(Text(record.volume.toStringAsFixed(2))),
           DataCell(Text(record.paidAmount.toStringAsFixed(2))),
-          DataCell(Text(tripMileage.toStringAsFixed(2))),
+          DataCell(_buildMileageCell(interval, localizations, theme)),
           DataCell(Text(overallAverageMileage.toStringAsFixed(2))),
         ],
       ));
