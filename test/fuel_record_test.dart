@@ -104,12 +104,18 @@ void main() {
       );
 
       final updated = record.copyWith(
+        odometer: 1200.0,
+        volume: 25.0,
+        paidAmount: 1875.0,
         isFullTank: false,
         missedPrevious: true,
         tripDistance: 80.0,
       );
 
       expect(updated.id, record.id);
+      expect(updated.odometer, 1200.0);
+      expect(updated.volume, 25.0);
+      expect(updated.paidAmount, 1875.0);
       expect(updated.isFullTank, false);
       expect(updated.missedPrevious, true);
       expect(updated.tripDistance, 80.0);

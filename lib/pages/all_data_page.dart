@@ -6,6 +6,7 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
+import 'package:fuel_tracker/pages/add_data_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
@@ -128,6 +129,127 @@ class _AllDataPageState extends State<AllDataPage> {
     return Text(localizations.notAvailable);
   }
 
+  Future<void> _showRecordActions(FuelRecord record) async {
+    final localizations = AppLocalizations.of(context)!;
+    final vehicleName =
+        _vehicleMap[record.vehicleId]?.name ?? localizations.notAvailable;
+    final fuelTypeName =
+        _fuelTypeMap[record.fuelTypeId]?.name ?? localizations.notAvailable;
+    final theme = Theme.of(context);
+
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurfaceVariant.withAlpha(77),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '${record.date.toLocal().toString().substring(0, 16)} — $vehicleName ($fuelTypeName)',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Odometer: ${record.odometer.toStringAsFixed(2)} | Volume: ${record.volume.toStringAsFixed(2)} | Paid: ${record.paidAmount.toStringAsFixed(2)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit Record'),
+                onTap: () async {
+                  Navigator.of(ctx).pop();
+                  final updated = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddDataPage(recordToEdit: record),
+                    ),
+                  );
+                  if (updated == true) {
+                    _loadInitialData();
+                  }
+                },
+              ),
+              ListTile(
+                leading:
+                    Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                title: Text(
+                  'Delete Record',
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _confirmDelete(record);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDelete(FuelRecord record) async {
+    final localizations = AppLocalizations.of(context)!;
+    final vehicleName =
+        _vehicleMap[record.vehicleId]?.name ?? localizations.notAvailable;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Fuel Record'),
+        content: Text(
+          'Are you sure you want to delete the record for $vehicleName on ${record.date.toLocal().toString().substring(0, 16)} (${record.odometer.toStringAsFixed(2)} km)?\n\nThis cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(localizations.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && record.id != null) {
+      await DatabaseHelper.instance.deleteFuelRecord(record.id!);
+      _loadInitialData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
@@ -233,6 +355,7 @@ class _AllDataPageState extends State<AllDataPage> {
 
       dataRows.add(DataRow(
         color: WidgetStateProperty.all(rowColor),
+        onSelectChanged: (_) => _showRecordActions(record),
         cells: [
           DataCell(Text(record.date.toLocal().toString().substring(0, 16))),
           DataCell(Text(record.odometer.toStringAsFixed(2))),
@@ -282,6 +405,7 @@ class _AllDataPageState extends State<AllDataPage> {
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 100.0),
                 child: DataTable(
+                  showCheckboxColumn: false,
                   columns: [
                     DataColumn(label: Text(localizations.dateAndTime)),
                     DataColumn(label: Text(localizations.odometerReading)),

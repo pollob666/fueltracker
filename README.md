@@ -13,7 +13,7 @@ You can download the latest version of the application from the [GitHub Releases
 
 ## Key Features:
 
-*   **Fuel Record Management:** Add, view, and manage your fuel records, including odometer readings, fuel volume, and paid amounts.
+*   **Fuel Record Management:** Full CRUD lifecycle support—add, view, edit, and safely delete fuel records directly from the records table with soft anomaly confirmations.
 *   **Multi-Vehicle Support:** Add and manage multiple vehicles, each with specific fuel types and capacities, and set a default vehicle for quick data entry.
 *   **Immersive User Experience:** Graphical and welcoming prompts for first-time users to guide them through adding their first vehicle and getting started with the app.
 *   **Mileage Calculation:** Robust Full-to-Full calculation engine with support for partial fills, missed fill-ups, weighted running average ($\frac{\sum \Delta O}{\sum V}$ avoiding Simpson's Paradox skew), and bi-fuel trip distance recording.

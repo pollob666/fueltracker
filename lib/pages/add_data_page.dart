@@ -15,7 +15,9 @@ import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddDataPage extends StatefulWidget {
-  const AddDataPage({super.key});
+  final FuelRecord? recordToEdit;
+
+  const AddDataPage({super.key, this.recordToEdit});
 
   @override
   State<AddDataPage> createState() => _AddDataPageState();
@@ -26,6 +28,8 @@ class _AddDataPageState extends State<AddDataPage> {
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
   final InterstitialAdService _interstitialAdService = InterstitialAdService();
+
+  bool get _isEditing => widget.recordToEdit != null;
 
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _odometerController = TextEditingController();
@@ -58,11 +62,28 @@ class _AddDataPageState extends State<AddDataPage> {
   @override
   void initState() {
     super.initState();
-    if (AppSettings.adsEnabled) {
+    if (AppSettings.adsEnabled && !_isEditing) {
       _interstitialAdService.loadAd();
     }
-    _loadLastValues();
-    _volumeController.text = _volume.toStringAsFixed(2);
+    if (_isEditing) {
+      final rec = widget.recordToEdit!;
+      _selectedDate = rec.date;
+      _odometerController.text = rec.odometer.toStringAsFixed(2);
+      if (rec.tripDistance != null) {
+        _tripDistanceController.text = rec.tripDistance!.toStringAsFixed(2);
+      }
+      _rateController.text = rec.rate.toStringAsFixed(2);
+      _volume = rec.volume;
+      _volumeController.text = rec.volume.toStringAsFixed(2);
+      _paidAmountController.text = rec.paidAmount.toStringAsFixed(2);
+      _isFullTank = rec.isFullTank;
+      _missedPrevious = rec.missedPrevious;
+      _selectedVehicleId = rec.vehicleId;
+      _selectedFuelTypeId = rec.fuelTypeId;
+    } else {
+      _loadLastValues();
+      _volumeController.text = _volume.toStringAsFixed(2);
+    }
 
     _rateController.addListener(_onRateOrPaidAmountChanged);
     _paidAmountController.addListener(_onRateOrPaidAmountChanged);
@@ -78,15 +99,17 @@ class _AddDataPageState extends State<AddDataPage> {
       setState(() {
         _vehicles = vehicles;
         _allFuelTypes = allFuelTypes;
-        if (_vehicles.isNotEmpty) {
+        if (!_isEditing && _vehicles.isNotEmpty) {
           _selectedVehicleId = _vehicles.first.id;
           _updateAvailableFuelTypes();
+        } else if (_isEditing) {
+          _updateAvailableFuelTypes(preserveSelectedFuelType: true);
         }
       });
     }
   }
 
-  void _updateAvailableFuelTypes() {
+  void _updateAvailableFuelTypes({bool preserveSelectedFuelType = false}) {
     if (_selectedVehicleId == null || _vehicles.isEmpty) return;
 
     final selectedVehicle =
@@ -116,10 +139,14 @@ class _AddDataPageState extends State<AddDataPage> {
     setState(() {
       _availableFuelTypes = availableFuelTypes.toList();
       if (_availableFuelTypes.isNotEmpty) {
-        _selectedFuelTypeId = _availableFuelTypes.first.id;
-        final fuelName = _availableFuelTypes.first.name;
-        _rateController.text =
-            AppSettings.defaultFuelPrices[fuelName]?.toString() ?? '';
+        if (!preserveSelectedFuelType ||
+            _selectedFuelTypeId == null ||
+            !_availableFuelTypes.any((ft) => ft.id == _selectedFuelTypeId)) {
+          _selectedFuelTypeId = _availableFuelTypes.first.id;
+          final fuelName = _availableFuelTypes.first.name;
+          _rateController.text =
+              AppSettings.defaultFuelPrices[fuelName]?.toString() ?? '';
+        }
       }
     });
   }
@@ -209,7 +236,11 @@ class _AddDataPageState extends State<AddDataPage> {
     final double clampedSliderValue = _volume.clamp(0.0, maxVolume);
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.addFuelData)),
+      appBar: AppBar(
+        title: Text(_isEditing
+            ? 'Edit Fuel Record'
+            : AppLocalizations.of(context)!.addFuelData),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -397,28 +428,56 @@ class _AddDataPageState extends State<AddDataPage> {
                       if (_formKey.currentState!.validate()) {
                         final double enteredOdometer =
                             double.parse(_odometerController.text);
+                        final double finalVolume =
+                            double.tryParse(_volumeController.text) ?? _volume;
+                        final double? tripDist =
+                            _tripDistanceController.text.isNotEmpty
+                                ? double.tryParse(_tripDistanceController.text)
+                                : null;
 
-                        final allRecords =
-                            await DatabaseHelper.instance.getFuelRecords();
-                        final vehicleRecords = allRecords
-                            .where((r) => r.vehicleId == _selectedVehicleId)
-                            .toList();
-                        if (vehicleRecords.isNotEmpty) {
-                          vehicleRecords
+                        if (_isEditing) {
+                          final allRecords =
+                              await DatabaseHelper.instance.getFuelRecords();
+                          final otherVehicleRecords = allRecords
+                              .where((r) =>
+                                  r.vehicleId == _selectedVehicleId &&
+                                  r.id != widget.recordToEdit!.id)
+                              .toList();
+                          otherVehicleRecords
                               .sort((a, b) => a.date.compareTo(b.date));
-                          final latestOdometer = vehicleRecords.last.odometer;
-                          if (enteredOdometer <= latestOdometer) {
+
+                          final prevRecords = otherVehicleRecords
+                              .where((r) => r.date.isBefore(_selectedDate))
+                              .toList();
+                          final nextRecords = otherVehicleRecords
+                              .where((r) => r.date.isAfter(_selectedDate))
+                              .toList();
+
+                          final double? prevOdo = prevRecords.isNotEmpty
+                              ? prevRecords.last.odometer
+                              : null;
+                          final double? nextOdo = nextRecords.isNotEmpty
+                              ? nextRecords.first.odometer
+                              : null;
+
+                          String? warningMessage;
+                          if (prevOdo != null && enteredOdometer < prevOdo) {
+                            warningMessage =
+                                'Entered odometer (${enteredOdometer.toStringAsFixed(2)}) is lower than previous record (${prevOdo.toStringAsFixed(2)}). Continue?';
+                          } else if (nextOdo != null &&
+                              enteredOdometer > nextOdo) {
+                            warningMessage =
+                                'Entered odometer (${enteredOdometer.toStringAsFixed(2)}) is higher than subsequent record (${nextOdo.toStringAsFixed(2)}). Continue?';
+                          }
+
+                          if (warningMessage != null) {
                             if (!context.mounted) return;
                             final bool? proceed = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
                                 title: Text(AppLocalizations.of(ctx)!
                                     .odometerWarningTitle),
-                                content: Text(AppLocalizations.of(ctx)!
-                                    .odometerWarningMessage(
-                                  enteredOdometer.toStringAsFixed(2),
-                                  latestOdometer.toStringAsFixed(2),
-                                )),
+                                content: Text(warningMessage!),
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
@@ -437,37 +496,93 @@ class _AddDataPageState extends State<AddDataPage> {
                             );
                             if (proceed != true) return;
                           }
-                        }
 
-                        await _saveLastValues();
-                        final double finalVolume =
-                            double.tryParse(_volumeController.text) ?? _volume;
-                        final double? tripDist =
-                            _tripDistanceController.text.isNotEmpty
-                                ? double.tryParse(_tripDistanceController.text)
-                                : null;
-                        FuelRecord record = FuelRecord(
-                          date: _selectedDate,
-                          odometer: enteredOdometer,
-                          fuelTypeId: _selectedFuelTypeId!,
-                          vehicleId: _selectedVehicleId!,
-                          rate: double.parse(_rateController.text),
-                          volume: finalVolume,
-                          paidAmount:
-                              double.parse(_paidAmountController.text),
-                          isFullTank: _isFullTank,
-                          missedPrevious: _missedPrevious,
-                          tripDistance: tripDist,
-                        );
-                        await DatabaseHelper.instance.insertFuelRecord(record);
-                        if (AppSettings.adsEnabled) {
-                          _interstitialAdService.showAd();
+                          final updatedRecord = widget.recordToEdit!.copyWith(
+                            date: _selectedDate,
+                            odometer: enteredOdometer,
+                            fuelTypeId: _selectedFuelTypeId!,
+                            vehicleId: _selectedVehicleId!,
+                            rate: double.parse(_rateController.text),
+                            volume: finalVolume,
+                            paidAmount:
+                                double.parse(_paidAmountController.text),
+                            isFullTank: _isFullTank,
+                            missedPrevious: _missedPrevious,
+                            tripDistance: tripDist,
+                          );
+
+                          await DatabaseHelper.instance
+                              .updateFuelRecord(updatedRecord);
+                          if (!context.mounted) return;
+                          Navigator.of(context).pop(true);
+                        } else {
+                          final allRecords =
+                              await DatabaseHelper.instance.getFuelRecords();
+                          final vehicleRecords = allRecords
+                              .where((r) => r.vehicleId == _selectedVehicleId)
+                              .toList();
+                          if (vehicleRecords.isNotEmpty) {
+                            vehicleRecords
+                                .sort((a, b) => a.date.compareTo(b.date));
+                            final latestOdometer = vehicleRecords.last.odometer;
+                            if (enteredOdometer <= latestOdometer) {
+                              if (!context.mounted) return;
+                              final bool? proceed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: Text(AppLocalizations.of(ctx)!
+                                      .odometerWarningTitle),
+                                  content: Text(AppLocalizations.of(ctx)!
+                                      .odometerWarningMessage(
+                                    enteredOdometer.toStringAsFixed(2),
+                                    latestOdometer.toStringAsFixed(2),
+                                  )),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child:
+                                          Text(AppLocalizations.of(ctx)!.cancel),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child:
+                                          Text(AppLocalizations.of(ctx)!.confirm),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (proceed != true) return;
+                            }
+                          }
+
+                          await _saveLastValues();
+                          FuelRecord record = FuelRecord(
+                            date: _selectedDate,
+                            odometer: enteredOdometer,
+                            fuelTypeId: _selectedFuelTypeId!,
+                            vehicleId: _selectedVehicleId!,
+                            rate: double.parse(_rateController.text),
+                            volume: finalVolume,
+                            paidAmount:
+                                double.parse(_paidAmountController.text),
+                            isFullTank: _isFullTank,
+                            missedPrevious: _missedPrevious,
+                            tripDistance: tripDist,
+                          );
+                          await DatabaseHelper.instance.insertFuelRecord(record);
+                          if (AppSettings.adsEnabled) {
+                            _interstitialAdService.showAd();
+                          }
+                          if (!context.mounted) return;
+                          Navigator.of(context).pop(true);
                         }
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop();
                       }
                     },
-                    child: Text(AppLocalizations.of(context)!.save),
+                    child: Text(_isEditing
+                        ? 'Update'
+                        : AppLocalizations.of(context)!.save),
                   ),
                 ],
               ),

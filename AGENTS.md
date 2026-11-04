@@ -121,3 +121,12 @@ The following is a roadmap of planned features to be implemented in the future. 
 ### Cloud Data Backup Options
 
 *   Implement options to back up and restore data from cloud storage providers like Google Drive or Dropbox.
+
+## 8. Development Environment & Workspace Invariants
+
+### Toolchain & Environment
+*   **Flutter Binary:** The Flutter SDK executable is located at `/home/andalib/software/flutter/bin/flutter`. Because this path is outside the workspace sandbox, commands invoking Flutter must run with `BypassSandbox: true`.
+*   **Package Name:** The package is named `fuel_tracker` (with an underscore). Always use `package:fuel_tracker/...` for internal package imports, never `package:fueltracker/...`.
+*   **Git Mutation Operations:** Writing to Git index (`git add`, `git commit`, `git checkout -b`, etc.) requires `BypassSandbox: true` due to filesystem permissions on `.git/index.lock`. Read-only commands (`git status`, `git log`, `git diff`) should run sandboxed first.
+*   **Git Remote Protection:** Never run `git push` or propose pushing to remote repositories unless explicitly requested and confirmed by the user.
+

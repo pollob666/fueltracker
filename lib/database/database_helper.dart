@@ -120,7 +120,13 @@ class DatabaseHelper {
     return await db.delete('fuel_records', where: 'id = ?', whereArgs: [id]);
   }
 
-    // FuelType CRUD methods
+  Future<int> updateFuelRecord(FuelRecord record) async {
+    Database db = await instance.database;
+    return await db.update('fuel_records', record.toMap(),
+        where: 'id = ?', whereArgs: [record.id]);
+  }
+
+  // FuelType CRUD methods
   Future<int> insertFuelType(FuelType fuelType) async {
     Database db = await instance.database;
     return await db.insert('fuel_types', fuelType.toMap());
