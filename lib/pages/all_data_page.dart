@@ -169,7 +169,7 @@ class _AllDataPageState extends State<AllDataPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Odometer: ${record.odometer.toStringAsFixed(2)} | Volume: ${record.volume.toStringAsFixed(2)} | Paid: ${record.paidAmount.toStringAsFixed(2)}',
+                      'Odometer: ${record.odometer.toStringAsFixed(2)} | Volume: ${record.volume.toStringAsFixed(2)} | Paid: ${record.paidAmount.toStringAsFixed(2)}${record.tripDistance != null ? ' | Trip: ${record.tripDistance!.toStringAsFixed(1)}' : ''}${record.secondaryTripDistance != null ? ' | Trip B: ${record.secondaryTripDistance!.toStringAsFixed(1)}' : ''} (${record.drivingCondition == DrivingCondition.city ? '🏙️ City' : record.drivingCondition == DrivingCondition.highway ? '🛣️ Highway' : '🔄 Mixed'})',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -358,7 +358,23 @@ class _AllDataPageState extends State<AllDataPage> {
         onSelectChanged: (_) => _showRecordActions(record),
         cells: [
           DataCell(Text(record.date.toLocal().toString().substring(0, 16))),
-          DataCell(Text(record.odometer.toStringAsFixed(2))),
+          DataCell(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(record.odometer.toStringAsFixed(2)),
+                if (record.drivingCondition != DrivingCondition.mixed) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    record.drivingCondition == DrivingCondition.city
+                        ? '🏙️'
+                        : '🛣️',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
           DataCell(Text(vehicleName)),
           DataCell(Text(fuelTypeName)),
           DataCell(Text(record.rate.toStringAsFixed(2))),

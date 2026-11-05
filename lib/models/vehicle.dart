@@ -10,6 +10,12 @@ enum VehicleType {
   pickupOrTruck,
 }
 
+enum TripMeterMode {
+  none,
+  single,
+  dual,
+}
+
 class Vehicle {
   int? id;
   String name;
@@ -18,6 +24,7 @@ class Vehicle {
   double? primaryFuelCapacity;
   int? secondaryFuelTypeId;
   double? secondaryFuelCapacity;
+  TripMeterMode tripMeterMode;
 
   Vehicle({
     this.id,
@@ -27,6 +34,7 @@ class Vehicle {
     this.primaryFuelCapacity,
     this.secondaryFuelTypeId,
     this.secondaryFuelCapacity,
+    this.tripMeterMode = TripMeterMode.none,
   });
 
   Map<String, dynamic> toMap() {
@@ -38,10 +46,19 @@ class Vehicle {
       'primaryFuelCapacity': primaryFuelCapacity,
       'secondaryFuelTypeId': secondaryFuelTypeId,
       'secondaryFuelCapacity': secondaryFuelCapacity,
+      'tripMeterMode': tripMeterMode.name,
     };
   }
 
   factory Vehicle.fromMap(Map<String, dynamic> map) {
+    TripMeterMode mode = TripMeterMode.none;
+    if (map['tripMeterMode'] != null) {
+      mode = TripMeterMode.values.firstWhere(
+        (e) => e.name == map['tripMeterMode'] || e.toString() == map['tripMeterMode'],
+        orElse: () => TripMeterMode.none,
+      );
+    }
+
     return Vehicle(
       id: map['id'],
       name: map['name'],
@@ -50,6 +67,7 @@ class Vehicle {
       primaryFuelCapacity: map['primaryFuelCapacity'],
       secondaryFuelTypeId: map['secondaryFuelTypeId'],
       secondaryFuelCapacity: map['secondaryFuelCapacity'],
+      tripMeterMode: mode,
     );
   }
 }

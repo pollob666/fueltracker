@@ -34,6 +34,9 @@ class _AddDataPageState extends State<AddDataPage> {
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _odometerController = TextEditingController();
   final TextEditingController _tripDistanceController = TextEditingController();
+  final TextEditingController _secondaryTripDistanceController = TextEditingController();
+  DrivingCondition _drivingCondition = DrivingCondition.mixed;
+  double? _previousOdometer;
   int? _selectedVehicleId;
   int? _selectedFuelTypeId;
   List<Vehicle> _vehicles = [];
@@ -58,6 +61,12 @@ class _AddDataPageState extends State<AddDataPage> {
   }
 
   bool get _isBiFuelVehicle => _selectedVehicle?.secondaryFuelTypeId != null;
+  bool get _hasTripMeter =>
+      (_selectedVehicle?.tripMeterMode != null &&
+          _selectedVehicle!.tripMeterMode != TripMeterMode.none) ||
+      _isBiFuelVehicle;
+  bool get _hasDualTrip =>
+      _selectedVehicle?.tripMeterMode == TripMeterMode.dual;
 
   @override
   void initState() {
@@ -72,6 +81,11 @@ class _AddDataPageState extends State<AddDataPage> {
       if (rec.tripDistance != null) {
         _tripDistanceController.text = rec.tripDistance!.toStringAsFixed(2);
       }
+      if (rec.secondaryTripDistance != null) {
+        _secondaryTripDistanceController.text =
+            rec.secondaryTripDistance!.toStringAsFixed(2);
+      }
+      _drivingCondition = rec.drivingCondition;
       _rateController.text = rec.rate.toStringAsFixed(2);
       _volume = rec.volume;
       _volumeController.text = rec.volume.toStringAsFixed(2);
@@ -88,8 +102,76 @@ class _AddDataPageState extends State<AddDataPage> {
     _rateController.addListener(_onRateOrPaidAmountChanged);
     _paidAmountController.addListener(_onRateOrPaidAmountChanged);
     _volumeController.addListener(_onVolumeChanged);
+    _odometerController.addListener(_onOdoOrTripChanged);
+    _tripDistanceController.addListener(_onOdoOrTripChanged);
 
     _loadInitialData();
+  }
+
+  Widget? _buildDiscrepancyChip(BuildContext context) {
+    if (_previousOdometer == null) return null;
+    final enteredOdo = double.tryParse(_odometerController.text);
+    final enteredTrip = double.tryParse(_tripDistanceController.text);
+    if (enteredOdo == null || enteredTrip == null) return null;
+    if (enteredOdo <= _previousOdometer!) return null;
+
+    final deltaOdo = enteredOdo - _previousOdometer!;
+    final diff = (deltaOdo - enteredTrip).abs();
+    if (diff > 1.0) {
+      final theme = Theme.of(context);
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: ActionChip(
+          avatar: Icon(Icons.warning_amber_rounded,
+              size: 18, color: theme.colorScheme.error),
+          backgroundColor:
+              theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+          label: Text(
+            AppLocalizations.of(context)!.odometerTripMismatch(
+              deltaOdo.toStringAsFixed(1),
+              enteredTrip.toStringAsFixed(1),
+            ),
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onErrorContainer,
+            ),
+          ),
+          onPressed: () {
+            final syncedOdo = _previousOdometer! + enteredTrip;
+            _odometerController.text = syncedOdo.toStringAsFixed(2);
+          },
+        ),
+      );
+    }
+    return null;
+  }
+
+  void _onOdoOrTripChanged() {
+    setState(() {});
+  }
+
+  Future<void> _updatePreviousOdometer() async {
+    if (_selectedVehicleId == null) return;
+    final allRecords = await DatabaseHelper.instance.getFuelRecords();
+    final vehicleRecords = allRecords
+        .where((r) =>
+            r.vehicleId == _selectedVehicleId &&
+            (!_isEditing || r.id != widget.recordToEdit!.id))
+        .toList();
+    if (vehicleRecords.isNotEmpty) {
+      vehicleRecords.sort((a, b) => a.date.compareTo(b.date));
+      if (mounted) {
+        setState(() {
+          _previousOdometer = vehicleRecords.last.odometer;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _previousOdometer = null;
+        });
+      }
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -106,6 +188,7 @@ class _AddDataPageState extends State<AddDataPage> {
           _updateAvailableFuelTypes(preserveSelectedFuelType: true);
         }
       });
+      _updatePreviousOdometer();
     }
   }
 
@@ -200,8 +283,11 @@ class _AddDataPageState extends State<AddDataPage> {
     _rateController.removeListener(_onRateOrPaidAmountChanged);
     _paidAmountController.removeListener(_onRateOrPaidAmountChanged);
     _volumeController.removeListener(_onVolumeChanged);
+    _odometerController.removeListener(_onOdoOrTripChanged);
+    _tripDistanceController.removeListener(_onOdoOrTripChanged);
     _odometerController.dispose();
     _tripDistanceController.dispose();
+    _secondaryTripDistanceController.dispose();
     _rateController.dispose();
     _volumeController.dispose();
     _paidAmountController.dispose();
@@ -262,36 +348,11 @@ class _AddDataPageState extends State<AddDataPage> {
                       ),
                     ],
                   ),
-                  TextFormField(
-                    controller: _odometerController,
-                    decoration: InputDecoration(
-                        labelText:
-                            AppLocalizations.of(context)!.odometerReading),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context)!
-                            .enterOdometerReading;
-                      }
-                      return null;
-                    },
-                  ),
-                  if (_isBiFuelVehicle) ...[
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _tripDistanceController,
-                      decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.tripDistance,
-                        hintText:
-                            AppLocalizations.of(context)!.enterTripDistance,
-                      ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                  ],
                   DropdownButtonFormField<int>(
-                    initialValue: _selectedVehicleId,
+                    initialValue: _selectedVehicleId != null &&
+                            _vehicles.any((v) => v.id == _selectedVehicleId)
+                        ? _selectedVehicleId
+                        : null,
                     items: _vehicles
                         .map((vehicle) => DropdownMenuItem(
                               value: vehicle.id,
@@ -302,13 +363,18 @@ class _AddDataPageState extends State<AddDataPage> {
                       setState(() {
                         _selectedVehicleId = val!;
                         _updateAvailableFuelTypes();
+                        _updatePreviousOdometer();
                       });
                     },
                     decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.vehicle),
                   ),
                   DropdownButtonFormField<int>(
-                    initialValue: _selectedFuelTypeId,
+                    initialValue: _selectedFuelTypeId != null &&
+                            _availableFuelTypes
+                                .any((ft) => ft.id == _selectedFuelTypeId)
+                        ? _selectedFuelTypeId
+                        : null,
                     items: _availableFuelTypes
                         .map((fuel) => DropdownMenuItem(
                               value: fuel.id,
@@ -330,6 +396,138 @@ class _AddDataPageState extends State<AddDataPage> {
                     decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.fuelType),
                   ),
+                  TextFormField(
+                    controller: _odometerController,
+                    decoration: InputDecoration(
+                        labelText:
+                            AppLocalizations.of(context)!.odometerReading),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppLocalizations.of(context)!
+                            .enterOdometerReading;
+                      }
+                      return null;
+                    },
+                  ),
+                  if (_hasTripMeter) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _tripDistanceController,
+                      decoration: InputDecoration(
+                        labelText: _hasDualTrip
+                            ? AppLocalizations.of(context)!.tripA
+                            : AppLocalizations.of(context)!.tripDistance,
+                        hintText:
+                            AppLocalizations.of(context)!.enterTripDistance,
+                        suffixIcon: _previousOdometer != null
+                            ? IconButton(
+                                icon: const Icon(Icons.sync),
+                                tooltip: _tripDistanceController.text.isNotEmpty
+                                    ? AppLocalizations.of(context)!
+                                        .syncOdometerTooltip(
+                                        _previousOdometer!.toStringAsFixed(1),
+                                        _tripDistanceController.text,
+                                      )
+                                    : AppLocalizations.of(context)!
+                                        .syncOdometer,
+                                onPressed: () {
+                                  final trip = double.tryParse(
+                                      _tripDistanceController.text);
+                                  final odo = double.tryParse(
+                                      _odometerController.text);
+                                  if (trip != null && trip > 0) {
+                                    final synced = _previousOdometer! + trip;
+                                    _odometerController.text =
+                                        synced.toStringAsFixed(2);
+                                  } else if (odo != null &&
+                                      odo > _previousOdometer!) {
+                                    final calculatedTrip =
+                                        odo - _previousOdometer!;
+                                    _tripDistanceController.text =
+                                        calculatedTrip.toStringAsFixed(2);
+                                  }
+                                },
+                              )
+                            : null,
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                    if (_hasDualTrip) ...[
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _secondaryTripDistanceController,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.tripB,
+                          hintText: AppLocalizations.of(context)!.tripB,
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                      ),
+                    ],
+                    if (_buildDiscrepancyChip(context) != null)
+                      _buildDiscrepancyChip(context)!,
+                  ],
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      AppLocalizations.of(context)!.drivingCondition,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        ChoiceChip(
+                          avatar: const Text('🔄'),
+                          label: Text(AppLocalizations.of(context)!.mixed),
+                          selected: _drivingCondition == DrivingCondition.mixed,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _drivingCondition = DrivingCondition.mixed;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          avatar: const Text('🏙️'),
+                          label: Text(AppLocalizations.of(context)!.city),
+                          selected: _drivingCondition == DrivingCondition.city,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _drivingCondition = DrivingCondition.city;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          avatar: const Text('🛣️'),
+                          label: Text(AppLocalizations.of(context)!.highway),
+                          selected:
+                              _drivingCondition == DrivingCondition.highway,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _drivingCondition = DrivingCondition.highway;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _rateController,
                     decoration: InputDecoration(
@@ -434,6 +632,11 @@ class _AddDataPageState extends State<AddDataPage> {
                             _tripDistanceController.text.isNotEmpty
                                 ? double.tryParse(_tripDistanceController.text)
                                 : null;
+                        final double? secTripDist =
+                            _secondaryTripDistanceController.text.isNotEmpty
+                                ? double.tryParse(
+                                    _secondaryTripDistanceController.text)
+                                : null;
 
                         if (_isEditing) {
                           final allRecords =
@@ -509,6 +712,8 @@ class _AddDataPageState extends State<AddDataPage> {
                             isFullTank: _isFullTank,
                             missedPrevious: _missedPrevious,
                             tripDistance: tripDist,
+                            secondaryTripDistance: secTripDist,
+                            drivingCondition: _drivingCondition,
                           );
 
                           await DatabaseHelper.instance
@@ -570,6 +775,8 @@ class _AddDataPageState extends State<AddDataPage> {
                             isFullTank: _isFullTank,
                             missedPrevious: _missedPrevious,
                             tripDistance: tripDist,
+                            secondaryTripDistance: secTripDist,
+                            drivingCondition: _drivingCondition,
                           );
                           await DatabaseHelper.instance.insertFuelRecord(record);
                           if (AppSettings.adsEnabled) {

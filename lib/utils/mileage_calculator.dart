@@ -250,4 +250,10 @@ class MileageCalculator {
     if (intervals <= 0 || totalDays <= 0) return 0.0;
     return totalDays / intervals;
   }
+
+  /// Calculates weighted running average for records matching a specific driving condition.
+  static double calculateConditionAverage(List<FuelRecord> records, DrivingCondition condition) {
+    final filtered = records.where((r) => r.drivingCondition == condition).toList();
+    return calculateWeightedRunningAverage(filtered);
+  }
 }

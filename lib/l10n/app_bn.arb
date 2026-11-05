@@ -136,5 +136,53 @@
         "type": "int"
       }
     }
-  }
+  },
+  "updateAvailableTitle": "আপডেট উপলব্ধ",
+  "updateAvailableMessage": "একটি নতুন সংস্করণ ({version}) উপলব্ধ রয়েছে। আপনি কি এখন আপডেট করতে চান?",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateButton": "আপডেট",
+  "laterButton": "পরে",
+  "skipVersionButton": "এই সংস্করণটি এড়িয়ে যান",
+  "tripMeterMode": "ট্রিপ মিটার মোড",
+  "tripModeNone": "নেই",
+  "tripModeSingle": "একটি (ট্রিপ এ)",
+  "tripModeDual": "দুটি (ট্রিপ এ ও বি)",
+  "tripMeterModeSubtitle": "গাড়ির ড্যাশবোর্ডে ট্রিপ মিটার থাকলে নির্বাচন করুন",
+  "tripA": "ট্রিপ এ (জ্বালানি ব্যবধান)",
+  "tripB": "ট্রিপ বি (ট্যুর / মোট ব্যবধান)",
+  "syncOdometer": "ওডোমিটার সিঙ্ক",
+  "syncOdometerTooltip": "ওডোমিটার গণনা করুন = পূর্ববর্তী ({prev}) + ট্রিপ ({trip})",
+  "@syncOdometerTooltip": {
+    "placeholders": {
+      "prev": {
+        "type": "String"
+      },
+      "trip": {
+        "type": "String"
+      }
+    }
+  },
+  "odometerTripMismatch": "ওডোমিটার ব্যবধান ({delta} কিমি) ট্রিপের ({trip} কিমি) সাথে মিলছে না। সিঙ্ক করতে ট্যাপ করুন।",
+  "@odometerTripMismatch": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "trip": {
+        "type": "String"
+      }
+    }
+  },
+  "drivingCondition": "যাত্রার ধরন",
+  "city": "শহর",
+  "highway": "হাইওয়ে",
+  "mixed": "মিশ্র",
+  "cityMileage": "শহরের মাইলেজ",
+  "highwayMileage": "হাইওয়ের মাইলেজ"
 }

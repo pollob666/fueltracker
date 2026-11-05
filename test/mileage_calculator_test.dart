@@ -291,5 +291,103 @@ void main() {
       // Total 10 days across 2 intervals = 5.0 days/refuel
       expect(MileageCalculator.calculateAverageRefuelCadence(multiRecords), 5.0);
     });
+
+    test('calculates driving condition mileage averages correctly', () {
+      final records = [
+        FuelRecord(
+          id: 1,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1000.0,
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 1),
+          isFullTank: true,
+          drivingCondition: DrivingCondition.city,
+        ),
+        FuelRecord(
+          id: 2,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1200.0, // 200 km / 20 L = 10 km/l (City)
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 5),
+          isFullTank: true,
+          drivingCondition: DrivingCondition.city,
+        ),
+        FuelRecord(
+          id: 3,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1500.0, // 300 km / 20 L = 15 km/l (Highway)
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 10),
+          isFullTank: true,
+          drivingCondition: DrivingCondition.highway,
+        ),
+        FuelRecord(
+          id: 4,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1800.0, // 300 km / 20 L = 15 km/l (Highway)
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 15),
+          isFullTank: true,
+          drivingCondition: DrivingCondition.highway,
+        ),
+      ];
+
+      final cityAvg = MileageCalculator.calculateConditionAverage(
+          records, DrivingCondition.city);
+      expect(cityAvg, 10.0);
+
+      final highwayAvg = MileageCalculator.calculateConditionAverage(
+          records, DrivingCondition.highway);
+      // 600 km total / 40 L total = 15.0 km/l
+      expect(highwayAvg, 15.0);
+
+      final mixedAvg = MileageCalculator.calculateConditionAverage(
+          records, DrivingCondition.mixed);
+      expect(mixedAvg, 0.0);
+    });
+
+    test('tripDistance overrides odometer delta in interval distance', () {
+      final records = [
+        FuelRecord(
+          id: 1,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1000.0,
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 1),
+          isFullTank: true,
+        ),
+        FuelRecord(
+          id: 2,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1250.0, // Delta = 250
+          tripDistance: 240.0, // Specific trip meter distance override
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 5),
+          isFullTank: true,
+        ),
+      ];
+
+      final intervals = MileageCalculator.calculateIntervalResults(records);
+      expect(intervals[1].distance, 240.0);
+      expect(intervals[1].mileage, 12.0); // 240 / 20 = 12.0
+    });
   });
 }

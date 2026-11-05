@@ -33,7 +33,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, "fuel_tracker.db");
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onConfigure: _onConfigure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
@@ -63,6 +63,12 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE fuel_records ADD COLUMN missedPrevious INTEGER NOT NULL DEFAULT 0');
       await db.execute('ALTER TABLE fuel_records ADD COLUMN tripDistance REAL');
     }
+
+    if (oldVersion < 5) {
+      await db.execute("ALTER TABLE vehicles ADD COLUMN tripMeterMode TEXT NOT NULL DEFAULT 'none'");
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN secondaryTripDistance REAL');
+      await db.execute("ALTER TABLE fuel_records ADD COLUMN drivingCondition TEXT NOT NULL DEFAULT 'mixed'");
+    }
   }
 
   Future<void> _createTables(Database db) async {
@@ -84,6 +90,7 @@ class DatabaseHelper {
         primaryFuelCapacity REAL,
         secondaryFuelTypeId INTEGER,
         secondaryFuelCapacity REAL,
+        tripMeterMode TEXT NOT NULL DEFAULT 'none',
         FOREIGN KEY (primaryFuelTypeId) REFERENCES fuel_types (id),
         FOREIGN KEY (secondaryFuelTypeId) REFERENCES fuel_types (id)
       )
@@ -102,6 +109,8 @@ class DatabaseHelper {
         isFullTank INTEGER NOT NULL DEFAULT 1,
         missedPrevious INTEGER NOT NULL DEFAULT 0,
         tripDistance REAL,
+        secondaryTripDistance REAL,
+        drivingCondition TEXT NOT NULL DEFAULT 'mixed',
         FOREIGN KEY (fuelTypeId) REFERENCES fuel_types (id),
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id)
       )

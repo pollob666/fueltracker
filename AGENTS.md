@@ -12,7 +12,9 @@ This document provides a comprehensive overview of the Fuel Tracker application,
 *   **Multi-Vehicle Support:** Add and manage multiple vehicles, each with specific fuel types and capacities, and set a default vehicle for quick data entry.
 *   **Immersive User Experience:** Graphical and welcoming prompts for first-time users to guide them through adding their first vehicle and getting started with the app.
 *   **Mileage Calculation:** Robust Full-to-Full calculation engine with support for partial fills, missed fill-ups, weighted running average ($\frac{\sum \Delta O}{\sum V}$ avoiding Simpson's Paradox skew), and bi-fuel trip distance recording.
+*   **Advanced Trip Meter & Driving Condition Analytics:** Configurable per-vehicle trip meter mode (None, Single Trip A, Dual Trip A/B), one-tap odometer auto-sync ($O = O_{\text{prev}} + \text{Trip}$), real-time non-blocking discrepancy warning chips ($|\Delta O - \text{Trip}| > 1.0\text{ km}$), driving condition tagging (City, Highway, Mixed), and condition-segregated mileage cards on the dashboard.
 *   **Odometer Anomaly Safeguard:** Real-time soft confirmation dialog preventing accidental entries when odometer readings are less than or equal to previous records.
+*   **Update Reminder & Version Dismissal:** Checks GitHub releases for newer versions on startup and presents an `AlertDialog` with options to update, postpone for the current session ("Later"), or permanently ignore that specific release ("Skip this version") backed by `SharedPreferences`.
 *   **Data Import/Export:** Import and export your fuel data in CSV format, including full attributes (`Full Tank`, `Missed Previous`, `Trip Distance`) with backward compatibility for legacy records. Exported filenames are automatically generated with the date and a sequence number for easy organization (e.g., `refuel_records_20241028T1200_1.csv`).
 *   **Dynamic Theming:** The app uses the `dynamic_color` package to adapt its color scheme to the user's system-level theme on Android, providing a personalized and integrated look and feel. Users can also manually switch between Light, Dark, and System themes.
 *   **Localization:** The app supports multiple languages through the `intl` package, making it accessible to a global audience.
@@ -57,7 +59,8 @@ fueltracker/
 *   **`theme.dart`**: Centralizes the app's theme management, including dynamic color generation for both light and dark modes.
 *   **`lib/pages/`**: Contains all the UI screens of the application, such as the dashboard, settings, and data entry pages.
 *   **`lib/models/`**: Defines the data models for the application, such as `Vehicle`, `FuelRecord`, and `FuelType`.
-*   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v4 with foreign key enforcement), migrations, and record operations.
+*   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v5 with foreign key enforcement and additive migrations), migrations, and record operations.
+*   **`lib/services/version_service.dart`**: Manages GitHub release version checks, session dismissal state, and permanent version skipping stored in `SharedPreferences`.
 *   **`lib/utils/mileage_calculator.dart`**: Pure Dart engine for full-to-full interval calculation, weighted running averages, cost per km, and daily usage statistics.
 *   **`lib/utils/app_settings.dart`**: A centralized class for managing the app's settings, such as the default fuel prices and theme mode.
 *   **`.github/workflows/release.yml`**: The unified CI/CD pipeline for automating the build and release process. It is triggered on every push to the `release` branch and generates a signed APK and IPA.

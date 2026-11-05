@@ -799,6 +799,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{days} days ago'**
   String daysAgo(int days);
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Available'**
+  String get updateAvailableTitle;
+
+  /// No description provided for @updateAvailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version ({version}) is available. Would you like to update now?'**
+  String updateAvailableMessage(String version);
+
+  /// No description provided for @updateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateButton;
+
+  /// No description provided for @laterButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get laterButton;
+
+  /// No description provided for @skipVersionButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip this version'**
+  String get skipVersionButton;
+
+  /// No description provided for @tripMeterMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip Meter Mode'**
+  String get tripMeterMode;
+
+  /// No description provided for @tripModeNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get tripModeNone;
+
+  /// No description provided for @tripModeSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Single (Trip A)'**
+  String get tripModeSingle;
+
+  /// No description provided for @tripModeDual.
+  ///
+  /// In en, this message translates to:
+  /// **'Dual (Trip A & B)'**
+  String get tripModeDual;
+
+  /// No description provided for @tripMeterModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose if this vehicle has dashboard trip meters'**
+  String get tripMeterModeSubtitle;
+
+  /// No description provided for @tripA.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip A (Fuel Interval)'**
+  String get tripA;
+
+  /// No description provided for @tripB.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip B (Tour / Interval)'**
+  String get tripB;
+
+  /// No description provided for @syncOdometer.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Odometer'**
+  String get syncOdometer;
+
+  /// No description provided for @syncOdometerTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculate Odometer = Previous ({prev}) + Trip ({trip})'**
+  String syncOdometerTooltip(String prev, String trip);
+
+  /// No description provided for @odometerTripMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Odometer delta ({delta} km) differs from Trip ({trip} km). Tap to sync.'**
+  String odometerTripMismatch(String delta, String trip);
+
+  /// No description provided for @drivingCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Driving Condition'**
+  String get drivingCondition;
+
+  /// No description provided for @city.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get city;
+
+  /// No description provided for @highway.
+  ///
+  /// In en, this message translates to:
+  /// **'Highway'**
+  String get highway;
+
+  /// No description provided for @mixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get mixed;
+
+  /// No description provided for @cityMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'City Mileage'**
+  String get cityMileage;
+
+  /// No description provided for @highwayMileage.
+  ///
+  /// In en, this message translates to:
+  /// **'Highway Mileage'**
+  String get highwayMileage;
 }
 
 class _AppLocalizationsDelegate

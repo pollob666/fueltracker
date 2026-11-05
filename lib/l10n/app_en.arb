@@ -136,5 +136,53 @@
         "type": "int"
       }
     }
-  }
+  },
+  "updateAvailableTitle": "Update Available",
+  "updateAvailableMessage": "A new version ({version}) is available. Would you like to update now?",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateButton": "Update",
+  "laterButton": "Later",
+  "skipVersionButton": "Skip this version",
+  "tripMeterMode": "Trip Meter Mode",
+  "tripModeNone": "None",
+  "tripModeSingle": "Single (Trip A)",
+  "tripModeDual": "Dual (Trip A & B)",
+  "tripMeterModeSubtitle": "Choose if this vehicle has dashboard trip meters",
+  "tripA": "Trip A (Fuel Interval)",
+  "tripB": "Trip B (Tour / Interval)",
+  "syncOdometer": "Sync Odometer",
+  "syncOdometerTooltip": "Calculate Odometer = Previous ({prev}) + Trip ({trip})",
+  "@syncOdometerTooltip": {
+    "placeholders": {
+      "prev": {
+        "type": "String"
+      },
+      "trip": {
+        "type": "String"
+      }
+    }
+  },
+  "odometerTripMismatch": "Odometer delta ({delta} km) differs from Trip ({trip} km). Tap to sync.",
+  "@odometerTripMismatch": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "trip": {
+        "type": "String"
+      }
+    }
+  },
+  "drivingCondition": "Driving Condition",
+  "city": "City",
+  "highway": "Highway",
+  "mixed": "Mixed",
+  "cityMileage": "City Mileage",
+  "highwayMileage": "Highway Mileage"
 }

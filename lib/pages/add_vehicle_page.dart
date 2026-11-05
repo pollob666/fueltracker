@@ -29,6 +29,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   double? _primaryFuelCapacity;
   int? _secondaryFuelTypeId;
   double? _secondaryFuelCapacity;
+  TripMeterMode _tripMeterMode = TripMeterMode.none;
 
   List<FuelType> _fuelTypes = [];
 
@@ -42,6 +43,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       _primaryFuelCapacity = widget.vehicle!.primaryFuelCapacity;
       _secondaryFuelTypeId = widget.vehicle!.secondaryFuelTypeId;
       _secondaryFuelCapacity = widget.vehicle!.secondaryFuelCapacity;
+      _tripMeterMode = widget.vehicle!.tripMeterMode;
     }
     _loadFuelTypes();
   }
@@ -194,6 +196,51 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   keyboardType: TextInputType.number,
                   onSaved: (value) => _secondaryFuelCapacity = value!.isEmpty ? null : double.tryParse(value),
                 ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    localizations.tripMeterMode,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    localizations.tripMeterModeSubtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<TripMeterMode>(
+                    segments: [
+                      ButtonSegment(
+                        value: TripMeterMode.none,
+                        icon: const Icon(Icons.block),
+                        label: Text(localizations.tripModeNone),
+                      ),
+                      ButtonSegment(
+                        value: TripMeterMode.single,
+                        icon: const Icon(Icons.looks_one_outlined),
+                        label: Text(localizations.tripModeSingle),
+                      ),
+                      ButtonSegment(
+                        value: TripMeterMode.dual,
+                        icon: const Icon(Icons.looks_two_outlined),
+                        label: Text(localizations.tripModeDual),
+                      ),
+                    ],
+                    selected: {_tripMeterMode},
+                    onSelectionChanged: (newSelection) {
+                      setState(() {
+                        _tripMeterMode = newSelection.first;
+                      });
+                    },
+                  ),
+                ),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () async {
@@ -207,6 +254,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                         primaryFuelCapacity: _primaryFuelCapacity,
                         secondaryFuelTypeId: _secondaryFuelTypeId,
                         secondaryFuelCapacity: _secondaryFuelCapacity,
+                        tripMeterMode: _tripMeterMode,
                       );
                       final navigator = Navigator.of(context);
                       if (widget.vehicle == null) {

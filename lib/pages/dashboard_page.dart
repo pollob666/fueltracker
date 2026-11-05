@@ -47,21 +47,60 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _checkForUpdates() async {
+    if (VersionService.isDismissedForSession) {
+      return;
+    }
     final isUpdateAvailable = await _versionService.isUpdateAvailable;
     if (isUpdateAvailable) {
       final latestVersion = await _versionService.latestVersion;
+      if (latestVersion == null) {
+        return;
+      }
+      final isSkipped = await _versionService.isVersionSkipped(latestVersion);
+      if (isSkipped) {
+        return;
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Update available: $latestVersion'),
-            action: SnackBarAction(
-              label: 'Release',
-              onPressed: () {
-                launchUrl(Uri.parse('https://github.com/pollob666/fueltracker/releases/latest'));
-              },
+        final l10n = AppLocalizations.of(context);
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(l10n?.updateAvailableTitle ?? 'Update Available'),
+            content: Text(
+              l10n?.updateAvailableMessage(latestVersion) ??
+                  'Update available: $latestVersion',
             ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await _versionService.skipVersion(latestVersion);
+                  _versionService.dismissForSession();
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                },
+                child: Text(l10n?.skipVersionButton ?? 'Skip this version'),
+              ),
+              TextButton(
+                onPressed: () {
+                  _versionService.dismissForSession();
+                  Navigator.of(dialogContext).pop();
+                },
+                child: Text(l10n?.laterButton ?? 'Later'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  _versionService.dismissForSession();
+                  Navigator.of(dialogContext).pop();
+                  launchUrl(Uri.parse('https://github.com/pollob666/fueltracker/releases/latest'));
+                },
+                child: Text(l10n?.updateButton ?? 'Update'),
+              ),
+            ],
           ),
-        );
+        ).then((_) {
+          _versionService.dismissForSession();
+        });
       }
     }
   }
@@ -313,6 +352,89 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ));
 
+        final cityMileage = MileageCalculator.calculateConditionAverage(records, DrivingCondition.city);
+        final highwayMileage = MileageCalculator.calculateConditionAverage(records, DrivingCondition.highway);
+
+        if (cityMileage > 0 || highwayMileage > 0) {
+          mileageCards.add(const SizedBox(height: 8));
+          mileageCards.add(Row(
+            children: [
+              if (cityMileage > 0)
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('🏙️', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              localizations.cityMileage,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              '${cityMileage.toStringAsFixed(1)} $unit',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (cityMileage > 0 && highwayMileage > 0)
+                const SizedBox(width: 12),
+              if (highwayMileage > 0)
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('🛣️', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              localizations.highwayMileage,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              '${highwayMileage.toStringAsFixed(1)} $unit',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ));
+        }
+
         costCards.add(_buildCostCard(
             context,
             '${primaryFuelType.name} ${localizations.costPerKm}',
@@ -350,6 +472,90 @@ class _DashboardPageState extends State<DashboardPage> {
                   colorScheme.error),
             ],
           ));
+
+          final secCityMileage = MileageCalculator.calculateConditionAverage(records, DrivingCondition.city);
+          final secHighwayMileage = MileageCalculator.calculateConditionAverage(records, DrivingCondition.highway);
+
+          if (secCityMileage > 0 || secHighwayMileage > 0) {
+            mileageCards.add(const SizedBox(height: 8));
+            mileageCards.add(Row(
+              children: [
+                if (secCityMileage > 0)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('🏙️', style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 6),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                localizations.cityMileage,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                '${secCityMileage.toStringAsFixed(1)} $unit',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (secCityMileage > 0 && secHighwayMileage > 0)
+                  const SizedBox(width: 12),
+                if (secHighwayMileage > 0)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('🛣️', style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 6),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                localizations.highwayMileage,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                '${secHighwayMileage.toStringAsFixed(1)} $unit',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ));
+          }
+
           costCards.add(const SizedBox(width: 16));
           costCards.add(_buildCostCard(
               context,

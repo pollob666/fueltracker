@@ -373,4 +373,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String daysAgo(int days) {
     return '$days days ago';
   }
+
+  @override
+  String get updateAvailableTitle => 'Update Available';
+
+  @override
+  String updateAvailableMessage(String version) {
+    return 'A new version ($version) is available. Would you like to update now?';
+  }
+
+  @override
+  String get updateButton => 'Update';
+
+  @override
+  String get laterButton => 'Later';
+
+  @override
+  String get skipVersionButton => 'Skip this version';
+
+  @override
+  String get tripMeterMode => 'Trip Meter Mode';
+
+  @override
+  String get tripModeNone => 'None';
+
+  @override
+  String get tripModeSingle => 'Single (Trip A)';
+
+  @override
+  String get tripModeDual => 'Dual (Trip A & B)';
+
+  @override
+  String get tripMeterModeSubtitle =>
+      'Choose if this vehicle has dashboard trip meters';
+
+  @override
+  String get tripA => 'Trip A (Fuel Interval)';
+
+  @override
+  String get tripB => 'Trip B (Tour / Interval)';
+
+  @override
+  String get syncOdometer => 'Sync Odometer';
+
+  @override
+  String syncOdometerTooltip(String prev, String trip) {
+    return 'Calculate Odometer = Previous ($prev) + Trip ($trip)';
+  }
+
+  @override
+  String odometerTripMismatch(String delta, String trip) {
+    return 'Odometer delta ($delta km) differs from Trip ($trip km). Tap to sync.';
+  }
+
+  @override
+  String get drivingCondition => 'Driving Condition';
+
+  @override
+  String get city => 'City';
+
+  @override
+  String get highway => 'Highway';
+
+  @override
+  String get mixed => 'Mixed';
+
+  @override
+  String get cityMileage => 'City Mileage';
+
+  @override
+  String get highwayMileage => 'Highway Mileage';
 }

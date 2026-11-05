@@ -145,6 +145,20 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
                         Chip(
                           label: Text(localizations.defaultVehicle),
                         ),
+                      if (vehicle.tripMeterMode != TripMeterMode.none) ...[
+                        const SizedBox(width: 8),
+                        Chip(
+                          avatar: Icon(
+                            vehicle.tripMeterMode == TripMeterMode.single
+                                ? Icons.looks_one_outlined
+                                : Icons.looks_two_outlined,
+                            size: 16,
+                          ),
+                          label: Text(vehicle.tripMeterMode == TripMeterMode.single
+                              ? localizations.tripModeSingle
+                              : localizations.tripModeDual),
+                        ),
+                      ],
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.edit),

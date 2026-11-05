@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+enum DrivingCondition {
+  mixed,
+  city,
+  highway,
+}
+
 class FuelRecord {
   int? id;
   DateTime date;
@@ -13,6 +19,8 @@ class FuelRecord {
   bool isFullTank;
   bool missedPrevious;
   double? tripDistance;
+  double? secondaryTripDistance;
+  DrivingCondition drivingCondition;
 
   FuelRecord({
     this.id,
@@ -26,6 +34,8 @@ class FuelRecord {
     this.isFullTank = true,
     this.missedPrevious = false,
     this.tripDistance,
+    this.secondaryTripDistance,
+    this.drivingCondition = DrivingCondition.mixed,
   });
 
   Map<String, dynamic> toMap() {
@@ -40,6 +50,8 @@ class FuelRecord {
       'isFullTank': isFullTank ? 1 : 0,
       'missedPrevious': missedPrevious ? 1 : 0,
       'tripDistance': tripDistance,
+      'secondaryTripDistance': secondaryTripDistance,
+      'drivingCondition': drivingCondition.name,
     };
     if (id != null) map['id'] = id;
     return map;
@@ -57,10 +69,20 @@ class FuelRecord {
       'isFullTank': isFullTank,
       'missedPrevious': missedPrevious,
       'tripDistance': tripDistance,
+      'secondaryTripDistance': secondaryTripDistance,
+      'drivingCondition': drivingCondition.name,
     };
   }
 
   factory FuelRecord.fromMap(Map<String, dynamic> map) {
+    DrivingCondition condition = DrivingCondition.mixed;
+    if (map['drivingCondition'] != null) {
+      condition = DrivingCondition.values.firstWhere(
+        (e) => e.name == map['drivingCondition'] || e.toString() == map['drivingCondition'],
+        orElse: () => DrivingCondition.mixed,
+      );
+    }
+
     return FuelRecord(
       id: map['id'],
       date: DateTime.parse(map['date']),
@@ -79,10 +101,22 @@ class FuelRecord {
       tripDistance: map['tripDistance'] != null
           ? (map['tripDistance'] as num).toDouble()
           : null,
+      secondaryTripDistance: map['secondaryTripDistance'] != null
+          ? (map['secondaryTripDistance'] as num).toDouble()
+          : null,
+      drivingCondition: condition,
     );
   }
 
   factory FuelRecord.fromJson(Map<String, dynamic> json) {
+    DrivingCondition condition = DrivingCondition.mixed;
+    if (json['drivingCondition'] != null) {
+      condition = DrivingCondition.values.firstWhere(
+        (e) => e.name == json['drivingCondition'] || e.toString() == json['drivingCondition'],
+        orElse: () => DrivingCondition.mixed,
+      );
+    }
+
     return FuelRecord(
       date: DateTime.parse(json['dateTime']),
       odometer: (json['odometer'] as num).toDouble(),
@@ -100,6 +134,10 @@ class FuelRecord {
       tripDistance: json['tripDistance'] != null
           ? (json['tripDistance'] as num).toDouble()
           : null,
+      secondaryTripDistance: json['secondaryTripDistance'] != null
+          ? (json['secondaryTripDistance'] as num).toDouble()
+          : null,
+      drivingCondition: condition,
     );
   }
 
@@ -115,6 +153,8 @@ class FuelRecord {
     bool? isFullTank,
     bool? missedPrevious,
     double? tripDistance,
+    double? secondaryTripDistance,
+    DrivingCondition? drivingCondition,
   }) {
     return FuelRecord(
       id: id ?? this.id,
@@ -128,6 +168,8 @@ class FuelRecord {
       isFullTank: isFullTank ?? this.isFullTank,
       missedPrevious: missedPrevious ?? this.missedPrevious,
       tripDistance: tripDistance ?? this.tripDistance,
+      secondaryTripDistance: secondaryTripDistance ?? this.secondaryTripDistance,
+      drivingCondition: drivingCondition ?? this.drivingCondition,
     );
   }
 }

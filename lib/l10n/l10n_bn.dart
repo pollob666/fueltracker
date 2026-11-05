@@ -374,4 +374,74 @@ class AppLocalizationsBn extends AppLocalizations {
   String daysAgo(int days) {
     return '$days দিন আগে';
   }
+
+  @override
+  String get updateAvailableTitle => 'আপডেট উপলব্ধ';
+
+  @override
+  String updateAvailableMessage(String version) {
+    return 'একটি নতুন সংস্করণ ($version) উপলব্ধ রয়েছে। আপনি কি এখন আপডেট করতে চান?';
+  }
+
+  @override
+  String get updateButton => 'আপডেট';
+
+  @override
+  String get laterButton => 'পরে';
+
+  @override
+  String get skipVersionButton => 'এই সংস্করণটি এড়িয়ে যান';
+
+  @override
+  String get tripMeterMode => 'ট্রিপ মিটার মোড';
+
+  @override
+  String get tripModeNone => 'নেই';
+
+  @override
+  String get tripModeSingle => 'একটি (ট্রিপ এ)';
+
+  @override
+  String get tripModeDual => 'দুটি (ট্রিপ এ ও বি)';
+
+  @override
+  String get tripMeterModeSubtitle =>
+      'গাড়ির ড্যাশবোর্ডে ট্রিপ মিটার থাকলে নির্বাচন করুন';
+
+  @override
+  String get tripA => 'ট্রিপ এ (জ্বালানি ব্যবধান)';
+
+  @override
+  String get tripB => 'ট্রিপ বি (ট্যুর / মোট ব্যবধান)';
+
+  @override
+  String get syncOdometer => 'ওডোমিটার সিঙ্ক';
+
+  @override
+  String syncOdometerTooltip(String prev, String trip) {
+    return 'ওডোমিটার গণনা করুন = পূর্ববর্তী ($prev) + ট্রিপ ($trip)';
+  }
+
+  @override
+  String odometerTripMismatch(String delta, String trip) {
+    return 'ওডোমিটার ব্যবধান ($delta কিমি) ট্রিপের ($trip কিমি) সাথে মিলছে না। সিঙ্ক করতে ট্যাপ করুন।';
+  }
+
+  @override
+  String get drivingCondition => 'যাত্রার ধরন';
+
+  @override
+  String get city => 'শহর';
+
+  @override
+  String get highway => 'হাইওয়ে';
+
+  @override
+  String get mixed => 'মিশ্র';
+
+  @override
+  String get cityMileage => 'শহরের মাইলেজ';
+
+  @override
+  String get highwayMileage => 'হাইওয়ের মাইলেজ';
 }

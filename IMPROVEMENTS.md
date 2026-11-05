@@ -56,7 +56,7 @@ This document outlines strategic, architectural, domain, and UX improvements ide
     - Efficiency Formula (`km/l`, `l/100km`, `MPG US`, `MPG UK`).
   - Automatically convert and format displayed values based on user configuration.
 
-### 2.5 Advanced Trip Meter Support & Driving Condition Analytics `[PENDING]`
+### 2.5 Advanced Trip Meter Support & Driving Condition Analytics `[COMPLETED]`
 - **Concept:** Maximize utility of hardware trip meters (Trip A / Trip B) while remaining completely optional and zero-friction for vehicles without trip meters or users who forget to reset.
 - **Architecture & Implementation Details:**
   - **Vehicle Trip Mode Configuration:**
@@ -269,7 +269,7 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 | Rank | Feature | Complexity | Target Phase | Implementation Scope & Rationale |
 | :--- | :--- | :---: | :---: | :--- |
 | **1** | **Dashboard Last Refuel Recency Counter** (Section 3.6) | **Very Low** (1/5) | **COMPLETED** | **Pure UI Enhancement:** Calculates `DateTime.now().difference(date).inDays` and displays `"Today"`, `"Yesterday"`, or `"X days ago"` with cadence-exceeded warning indicator. |
-| **2** | **Advanced Trip Meter Support** (Section 2.5) | **Low** (2/5) | **IMPLEMENT NOW** (Phase 1) | **Form Intelligence & Fallback:** Vehicle setting (`None`/`Single`/`Dual`), hides fields when `None`, auto-fills odometer from trip, cross-checks typos ($|\Delta O - \text{Trip}|$), and gracefully defaults to total odometer if left blank or forgotten. |
+| **2** | **Advanced Trip Meter Support** (Section 2.5) | **Low** (2/5) | **COMPLETED** | **Form Intelligence & Fallback:** Vehicle setting (`None`/`Single`/`Dual`), hides fields when `None`, auto-fills odometer from trip, cross-checks typos ($|\Delta O - \text{Trip}|$), and gracefully defaults to total odometer if left blank or forgotten. |
 | **3** | **Predictive Refuel Reminder** (Section 3.5) | **Low-Medium** (2.5/5) | **IMPLEMENT NOW** (Phase 1) | **Lightweight Math + Notifications:** Uses existing `MileageCalculator` daily run rate and km/L. Needs minor vehicle settings additions (`tankCapacity`, threshold), `flutter_local_notifications` setup, and dashboard low-fuel banner. |
 | **4** | **Periodic Maintenance & Service Reminders** (Section 3.4) | **Medium** (3/5) | **IMPLEMENT NEXT** (Phase 2) | **Relational Schema + Multi-Task UI:** SQLite schema migration v5 (`maintenance_tasks`, `service_sessions`), new `MaintenancePage` with multi-select visit checklist, hybrid km/month triggers, and bundled notifications. |
 | **5** | **Fuel Station Geofencing & Quality Anomaly Flagging** (Section 5.2) | **Medium-High** (4/5) | **IMPLEMENT LATER** (Phase 3) | **Location Services + Analytics:** Requires `geolocator` plugin, runtime location permissions, radius matching math, `fuel_stations` table, and subsequent-refuel anomaly verification (>15% drop). |
