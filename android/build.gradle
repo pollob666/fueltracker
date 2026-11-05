@@ -5,22 +5,22 @@ allprojects {
     }
     configurations.all {
         resolutionStrategy {
-            force "org.jetbrains.kotlin:kotlin-stdlib:2.2.20"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.20"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.20"
-            force "org.jetbrains.kotlin:kotlin-reflect:2.2.20"
+            force "org.jetbrains.kotlin:kotlin-stdlib:2.4.0"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.4.0"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.4.0"
+            force "org.jetbrains.kotlin:kotlin-reflect:2.4.0"
         }
     }
 }
 
-rootProject.buildDir = "../build"
+rootProject.layout.buildDirectory.value(rootProject.layout.projectDirectory.dir("../build"))
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.layout.buildDirectory.value(rootProject.layout.buildDirectory.dir(project.name))
 }
 subprojects {
     project.evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {
-    delete rootProject.buildDir
+    delete rootProject.layout.buildDirectory
 }

@@ -124,10 +124,12 @@ class _ExportPageState extends State<ExportPage> {
           ? box.localToGlobal(Offset.zero) & box.size
           : null;
 
-      await Share.shareXFiles(
-        xFiles,
-        text: localizations.shareExport,
-        sharePositionOrigin: sharePositionOrigin,
+      await SharePlus.instance.share(
+        ShareParams(
+          files: xFiles,
+          text: localizations.shareExport,
+          sharePositionOrigin: sharePositionOrigin,
+        ),
       );
       await _incrementSequence();
       if (!mounted) return;
@@ -180,7 +182,7 @@ class _ExportPageState extends State<ExportPage> {
             ])
       ];
 
-      String csv = const ListToCsvConverter().convert(csvData);
+      String csv = Csv().encode(csvData);
       String fileName = "${_getFormattedFileName('refuel_records')}.csv";
       File file = File("$folderPath/$fileName");
 
@@ -247,7 +249,7 @@ class _ExportPageState extends State<ExportPage> {
             ])
       ];
 
-      String csv = const ListToCsvConverter().convert(csvData);
+      String csv = Csv().encode(csvData);
       String fileName = "${_getFormattedFileName('vehicle_information')}.csv";
       File file = File("$folderPath/$fileName");
 

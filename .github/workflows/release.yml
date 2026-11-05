@@ -108,12 +108,18 @@ jobs:
             --build-name ${{ needs.calculate-version.outputs.new_version_name }} \
             --build-number ${{ needs.calculate-version.outputs.new_build_number }}
 
-      - name: Rename APK
+      - name: Locate Release APK
         id: rename_apk
         run: |
-          NEW_NAME="fuelTracker-android-release-${{ needs.calculate-version.outputs.new_version_name }}.apk"
-          mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
-          echo "artifact_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
+          CUSTOM_APK=$(find build/app/outputs/flutter-apk -name "fueltracker-v*.apk" | head -n 1)
+          if [ -n "$CUSTOM_APK" ]; then
+            echo "artifact_path=$CUSTOM_APK" >> $GITHUB_OUTPUT
+          else
+            TIMESTAMP=$(date +%Y%m%d-%H%M)
+            NEW_NAME="fueltracker-v${{ needs.calculate-version.outputs.new_version_name }}-${{ needs.calculate-version.outputs.new_build_number }}-${TIMESTAMP}.apk"
+            mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
+            echo "artifact_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

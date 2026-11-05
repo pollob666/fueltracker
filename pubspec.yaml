@@ -12,7 +12,7 @@ version: 2.0.6+6
 
 # The following defines the environment constraints for your application.
 environment:
-  sdk: '>=3.6.2 <4.0.0'
+  sdk: '>=3.13.0 <4.0.0'
 
 # Application dependencies
 dependencies:
@@ -23,26 +23,26 @@ dependencies:
     sdk: flutter
 
   # UI
-  cupertino_icons: ^1.0.8 # Kept for potential iOS-style icons.
-  dynamic_color: ^1.8.1 # For dynamic theming based on user's wallpaper (Android 12+).
+  cupertino_icons: ^2.0.0 # Kept for potential iOS-style icons.
+  dynamic_color: ^1.9.0 # For dynamic theming based on user's wallpaper (Android 12+).
 
   # Data & Storage
-  csv: ^6.0.0
-  file_picker: ^10.3.8
+  csv: ^8.0.0
+  file_picker: ^13.3.2
   path: ^1.9.1
-  path_provider: ^2.1.5
-  share_plus: 11.1.0
-  shared_preferences: ^2.5.4
-  sqflite: ^2.4.2
+  path_provider: ^2.1.6
+  share_plus: ^13.3.1
+  shared_preferences: ^2.5.6
+  sqflite: ^2.4.5
 
   # Internationalization
   intl: ^0.20.2
 
   # Networking & Versioning
   http: ^1.6.0
-  package_info_plus: ^9.0.0
-  url_launcher: ^6.3.2
-  google_mobile_ads: ^7.0.0
+  package_info_plus: ^10.2.2
+  url_launcher: ^6.3.3
+  google_mobile_ads: ^9.2.0
   version: ^3.0.2
   flutter_local_notifications: ^22.3.3
   timezone: ^0.11.2
@@ -54,7 +54,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4 # Generates launcher icons for Android and iOS.
-  sqflite_common_ffi: ^2.3.4+4
+  sqflite_common_ffi: ^2.4.5
 
 # Flutter-specific configurations
 flutter:

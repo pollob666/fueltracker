@@ -80,7 +80,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _pickFolder() async {
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    String? selectedDirectory = await FilePicker.getDirectoryPath();
     if (selectedDirectory != null) {
       setState(() {
         _folderController.text = selectedDirectory;

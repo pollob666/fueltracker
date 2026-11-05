@@ -54,3 +54,4 @@ key.properties
 
 # Exported data files
 *.csv
+/.vscode/settings.json

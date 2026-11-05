@@ -71,7 +71,7 @@ void main() {
     FuelUnit unit = FuelUnit.litre,
   }) async {
     return await testDb.insert('fuel_types', {
-      if (id != null) 'id': id,
+      'id': ?id,
       'name': name,
       'category': category.toString(),
       'unit': unit.toString(),
@@ -88,14 +88,13 @@ void main() {
     double? secondaryFuelCapacity,
   }) async {
     return await testDb.insert('vehicles', {
-      if (id != null) 'id': id,
+      'id': ?id,
       'name': name,
       'type': type.toString(),
       'primaryFuelTypeId': primaryFuelTypeId,
       'primaryFuelCapacity': primaryFuelCapacity,
-      if (secondaryFuelTypeId != null) 'secondaryFuelTypeId': secondaryFuelTypeId,
-      if (secondaryFuelCapacity != null)
-        'secondaryFuelCapacity': secondaryFuelCapacity,
+      'secondaryFuelTypeId': ?secondaryFuelTypeId,
+      'secondaryFuelCapacity': ?secondaryFuelCapacity,
     });
   }
 
@@ -113,7 +112,7 @@ void main() {
     double? tripDistance = 400.0,
   }) async {
     return await testDb.insert('fuel_records', {
-      if (id != null) 'id': id,
+      'id': ?id,
       'date': (date ?? DateTime.now()).toIso8601String(),
       'odometer': odometer,
       'fuelTypeId': fuelTypeId,
@@ -123,7 +122,7 @@ void main() {
       'paidAmount': paidAmount,
       'isFullTank': isFullTank,
       'missedPrevious': missedPrevious,
-      if (tripDistance != null) 'tripDistance': tripDistance,
+      'tripDistance': ?tripDistance,
     });
   }
 

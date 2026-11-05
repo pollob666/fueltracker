@@ -1,6 +1,8 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     id "com.android.application"
-    id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -18,12 +20,9 @@ android {
 
 
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     signingConfigs {
@@ -57,6 +56,72 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+}
+
+def getBuildTimestamp() {
+    return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"))
+}
+
+android.applicationVariants.configureEach { variant ->
+    def variantName = variant.name
+    def capVariantName = variantName.capitalize()
+
+    // Copy custom-named APK alongside standard flutter-apk output
+    variant.assembleProvider.configure { assembleTask ->
+        assembleTask.doLast {
+            def timestamp = getBuildTimestamp()
+            def customBaseName = "fueltracker-v${flutter.versionName}-${flutter.versionCode}-${timestamp}"
+            def customApkName = "${customBaseName}.apk"
+
+            def apkDir = variant.packageApplicationProvider.get().outputDirectory.get().asFile
+            def flutterApkDir = project.layout.buildDirectory.dir("outputs/flutter-apk").get().asFile
+
+            flutterApkDir.mkdirs()
+
+            apkDir.listFiles()?.findAll { it.name.endsWith(".apk") && !it.name.startsWith("fueltracker-") }?.each { apkFile ->
+                project.copy {
+                    from(apkFile)
+                    into(apkDir)
+                    rename { customApkName }
+                }
+                project.copy {
+                    from(apkFile)
+                    into(flutterApkDir)
+                    rename { customApkName }
+                }
+            }
+        }
+    }
+
+    // Copy custom-named AAB alongside standard bundle output
+    tasks.matching { it.name == "bundle${capVariantName}" }.configureEach { bundleTask ->
+        bundleTask.doLast {
+            def timestamp = getBuildTimestamp()
+            def customBaseName = "fueltracker-v${flutter.versionName}-${flutter.versionCode}-${timestamp}"
+            def customAabName = "${customBaseName}.aab"
+
+            def bundleDir = project.layout.buildDirectory.dir("outputs/bundle/${variantName}").get().asFile
+            if (bundleDir.exists()) {
+                bundleDir.listFiles()?.findAll { it.name.endsWith(".aab") && !it.name.startsWith("fueltracker-") }?.each { aabFile ->
+                    project.copy {
+                        from(aabFile)
+                        into(bundleDir)
+                        rename { customAabName }
+                    }
+                }
+            }
+        }
+    }
 }

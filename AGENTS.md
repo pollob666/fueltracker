@@ -130,12 +130,16 @@ The following is a roadmap of planned features to be implemented in the future. 
 
 ### Toolchain & Environment
 *   **Flutter Binary:** The Flutter SDK executable is located at `/home/andalib/software/flutter/bin/flutter`. Because this path is outside the workspace sandbox, commands invoking Flutter must run with `BypassSandbox: true`.
+*   **Build Toolchain:** Flutter 3.47.9 / Dart 3.13.7, Gradle 9.4.1 wrapper, Android Gradle Plugin (AGP) 9.2.1, Kotlin 2.4.0, and Foojay Resolver Convention 1.0.0.
+*   **Artifact Naming Convention:** Android release APK and App Bundle artifacts are generated with custom naming format `fueltracker-v<versionName>-<versionCode>-<yyyyMMdd-HHmm>.apk` / `.aab` alongside default Gradle/Flutter names (`app-release.apk` / `app-release.aab`) to ensure both custom artifact archiving and standard Flutter CLI detection work concurrently.
 *   **Package Name:** The package is named `fuel_tracker` (with an underscore). Always use `package:fuel_tracker/...` for internal package imports, never `package:fueltracker/...`.
+*   **Self-Compilation Allowed:** The agent is explicitly authorized to execute Flutter and Gradle build and compilation commands directly (`flutter build apk`, `flutter build appbundle`, `./gradlew`, etc.) inside the workspace to verify builds and diagnose build issues.
+*   **Automatic Workspace File Reading:** The agent is explicitly authorized to automatically read, inspect, search, and analyze any files inside the workspace as needed without prompting for interactive permission.
 *   **Git Mutation Operations:** Writing to Git index (`git add`, `git commit`, `git checkout -b`, etc.) requires `BypassSandbox: true` due to filesystem permissions on `.git/index.lock`. Read-only commands (`git status`, `git log`, `git diff`) should run sandboxed first.
 *   **Git Remote Protection:** Never run `git push` or propose pushing to remote repositories unless explicitly requested and confirmed by the user.
 
 ### Storage & Export Invariant
-*   **Scoped Storage & File Export:** Do not rely on persistent user-selected filesystem directories or request legacy storage permissions (`WRITE_EXTERNAL_STORAGE`, `MANAGE_EXTERNAL_STORAGE`). For data exports (CSV/JSON), stage payload files into the temporary cache directory (`getTemporaryDirectory()`) and dispatch via native share sheet (`share_plus: Share.shareXFiles`).
+*   **Scoped Storage & File Export:** Do not rely on persistent user-selected filesystem directories or request legacy storage permissions (`WRITE_EXTERNAL_STORAGE`, `MANAGE_EXTERNAL_STORAGE`). For data exports (CSV/JSON), stage payload files into the temporary cache directory (`getTemporaryDirectory()`) and dispatch via native share sheet (`share_plus: SharePlus.instance.share(ShareParams(files: xFiles, ...))`).
 
 ### Database Deletion Invariant
 *   **Foreign Key Cascade Protection:** Because `PRAGMA foreign_keys = ON;` is enforced and schema alters for `ON DELETE CASCADE` carry migration risks on active installs, entity deletions must execute inside an explicit atomic transaction in `DatabaseHelper` deleting child foreign key dependencies prior to the parent record.

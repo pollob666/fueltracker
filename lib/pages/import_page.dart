@@ -29,12 +29,14 @@ class _ImportPageState extends State<ImportPage> {
   final VehicleService _vehicleService = VehicleService();
 
   Future<void> _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom, allowedExtensions: ['csv']);
+    final PlatformFile? file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
 
-    if (result != null && result.files.single.path != null) {
+    if (file != null && file.path != null) {
       setState(() {
-        _filePath = result.files.single.path!;
+        _filePath = file.path!;
       });
       await _previewFile();
     }
@@ -47,7 +49,7 @@ class _ImportPageState extends State<ImportPage> {
       final file = File(_filePath!);
       final content = await file.readAsString();
 
-      List<List<dynamic>> csvTable = const CsvToListConverter().convert(content);
+      List<List<dynamic>> csvTable = Csv().decode(content);
 
       if (csvTable.isNotEmpty) {
         setState(() {
