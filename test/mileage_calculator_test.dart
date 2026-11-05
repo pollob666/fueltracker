@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
+import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 
 void main() {
@@ -388,6 +389,161 @@ void main() {
       final intervals = MileageCalculator.calculateIntervalResults(records);
       expect(intervals[1].distance, 240.0);
       expect(intervals[1].mileage, 12.0); // 240 / 20 = 12.0
+    });
+
+    group('Refuel Prediction & Reminders', () {
+      final testVehicle = Vehicle(
+        id: 1,
+        name: 'Test Bike',
+        type: VehicleType.motorcycle,
+        primaryFuelTypeId: 1,
+        primaryFuelCapacity: 12.0,
+        volumeReminderEnabled: true,
+        volumeReminderValue: 3.0,
+        distanceReminderEnabled: true,
+        distanceReminderValue: 50.0,
+      );
+
+      test('returns isCalibrated false when no full tank record exists', () {
+        final records = [
+          FuelRecord(
+            id: 1,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 5.0,
+            odometer: 1000.0,
+            paidAmount: 500.0,
+            date: DateTime(2026, 1, 1),
+            isFullTank: false, // partial only
+          ),
+        ];
+
+        final prediction = MileageCalculator.calculateRefuelPrediction(
+          vehicle: testVehicle,
+          records: records,
+        );
+        expect(prediction.isCalibrated, false);
+        expect(prediction.isAlertActive, false);
+      });
+
+      test('forecasts fuel level and triggers volume alert when below threshold', () {
+        final records = [
+          FuelRecord(
+            id: 1,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 12.0,
+            odometer: 1000.0,
+            paidAmount: 1200.0,
+            date: DateTime(2026, 1, 1),
+            isFullTank: true,
+          ),
+          FuelRecord(
+            id: 2,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 10.0,
+            odometer: 1400.0, // 400 km / 10 L = 40 km/l
+            paidAmount: 1000.0,
+            date: DateTime(2026, 1, 5),
+            isFullTank: true,
+          ),
+        ];
+
+        // On day of fill (Jan 5): Tank is full at 12.0 L, 0 days elapsed
+        final predJan5 = MileageCalculator.calculateRefuelPrediction(
+          vehicle: testVehicle,
+          records: records,
+          currentDate: DateTime(2026, 1, 5),
+        );
+        expect(predJan5.isCalibrated, true);
+        expect(predJan5.primaryRemainingFuel, 12.0);
+        expect(predJan5.isVolumeTriggered, false);
+        expect(predJan5.isAlertActive, false);
+
+        // 4 days later (Jan 9): Daily run is 100 km/day (400 km / 4 days).
+        // Projected distance = 4 days * 100 km/day = 400 km driven.
+        // At 40 km/l, fuel consumed = 400 / 40 = 10.0 L.
+        // Remaining fuel = 12.0 - 10.0 = 2.0 L (< 3.0 L volume threshold).
+        final predJan9 = MileageCalculator.calculateRefuelPrediction(
+          vehicle: testVehicle,
+          records: records,
+          currentDate: DateTime(2026, 1, 9),
+        );
+        expect(predJan9.isCalibrated, true);
+        expect(predJan9.primaryRemainingFuel, closeTo(2.0, 0.1));
+        expect(predJan9.isVolumeTriggered, true);
+        expect(predJan9.isAlertActive, true);
+      });
+
+      test('forecasts combined DTE for dual-fuel vehicle', () {
+        final dualVehicle = Vehicle(
+          id: 2,
+          name: 'Bi-Fuel Sedan',
+          type: VehicleType.carOrSedan,
+          primaryFuelTypeId: 1,
+          primaryFuelCapacity: 40.0,
+          secondaryFuelTypeId: 2,
+          secondaryFuelCapacity: 60.0,
+          volumeReminderEnabled: false,
+          distanceReminderEnabled: true,
+          distanceReminderValue: 100.0,
+        );
+
+        final records = [
+          FuelRecord(
+            id: 1,
+            vehicleId: 2,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 40.0,
+            odometer: 10000.0,
+            paidAmount: 4000.0,
+            date: DateTime(2026, 1, 1),
+            isFullTank: true,
+          ),
+          FuelRecord(
+            id: 2,
+            vehicleId: 2,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 20.0,
+            odometer: 10200.0, // 200 km / 20 L = 10 km/l
+            paidAmount: 2000.0,
+            date: DateTime(2026, 1, 3),
+            isFullTank: true,
+          ),
+          FuelRecord(
+            id: 3,
+            vehicleId: 2,
+            fuelTypeId: 2, // Secondary CNG
+            rate: 50.0,
+            volume: 60.0,
+            odometer: 10200.0,
+            paidAmount: 3000.0,
+            date: DateTime(2026, 1, 3),
+            isFullTank: true,
+          ),
+        ];
+
+        // On Jan 3: Primary full (40 L * 10 km/l = 400 km DTE)
+        // Secondary full (60 L * 10 km/l = 600 km DTE)
+        // Combined total DTE = 1000 km
+        final pred = MileageCalculator.calculateRefuelPrediction(
+          vehicle: dualVehicle,
+          records: records,
+          currentDate: DateTime(2026, 1, 3),
+        );
+        expect(pred.isCalibrated, true);
+        expect(pred.primaryDte, closeTo(400.0, 1.0));
+        expect(pred.secondaryDte, closeTo(600.0, 1.0));
+        expect(pred.totalDte, closeTo(1000.0, 2.0));
+        expect(pred.isDistanceTriggered, false);
+        expect(pred.isAlertActive, false);
+      });
     });
   });
 }

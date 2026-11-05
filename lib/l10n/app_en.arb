@@ -188,5 +188,42 @@
   "supportedFuelTypes": "Supported Fuel Types",
   "singleFuel": "Single Fuel",
   "dualFuel": "Dual / Bi-Fuel",
-  "dualFuelSubtitle": "Vehicle supports two fuel types (e.g. Petrol + CNG/LPG)"
+  "dualFuelSubtitle": "Vehicle supports two fuel types (e.g. Petrol + CNG/LPG)",
+  "refuelReminders": "Predictive Refuel Reminders",
+  "volumeReminderTitle": "Primary Fuel Volume Reminder",
+  "volumeReminderSubtitle": "Alert before primary tank reaches reserve volume",
+  "volumeThresholdLabel": "Trigger Volume Threshold",
+  "distanceReminderTitle": "Distance-to-Empty (DTE) Reminder",
+  "distanceReminderSubtitle": "Alert when combined range drops below threshold",
+  "distanceThresholdLabel": "Trigger Range Threshold",
+  "refuelWarningTitle": "Refuel Required",
+  "lowFuelWarning": "Low Fuel Alert",
+  "refuelNow": "Refuel Now",
+  "refuelCalibrationPrompt": "Fill a full tank once and mark Full Tank to calibrate range forecasting.",
+  "primaryFuelEstimate": "Primary Fuel: ~{volume} L",
+  "@primaryFuelEstimate": {
+    "placeholders": {
+      "volume": {
+        "type": "String"
+      }
+    }
+  },
+  "combinedRangeEstimate": "Combined Range: ~{range} km",
+  "@combinedRangeEstimate": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "projectedRefuelIn": "Refuel in ~{days} days",
+  "@projectedRefuelIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationTime": "Reminder Notification Time",
+  "notificationTimeSubtitle": "Daily time to check and schedule refuel reminders"
 }

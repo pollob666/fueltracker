@@ -177,6 +177,24 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
                                     ? localizations.tripModeSingle
                                     : localizations.tripModeDual),
                               ),
+                            if (vehicle.volumeReminderEnabled)
+                              Chip(
+                                avatar: const Icon(
+                                  Icons.notifications_active_outlined,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                    '≤ ${vehicle.volumeReminderValue.toStringAsFixed(1)} L'),
+                              ),
+                            if (vehicle.distanceReminderEnabled)
+                              Chip(
+                                avatar: const Icon(
+                                  Icons.notifications_active_outlined,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                    '≤ ${vehicle.distanceReminderValue.toStringAsFixed(0)} km'),
+                              ),
                           ],
                         ),
                       ),

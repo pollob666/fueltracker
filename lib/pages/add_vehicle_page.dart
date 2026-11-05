@@ -7,7 +7,9 @@ import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 
 class AddVehiclePage extends StatefulWidget {
@@ -31,6 +33,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   double? _secondaryFuelCapacity;
   TripMeterMode _tripMeterMode = TripMeterMode.none;
   bool _isDualFuel = false;
+  bool _volumeReminderEnabled = false;
+  double _volumeReminderValue = 3.0;
+  bool _distanceReminderEnabled = false;
+  double _distanceReminderValue = 50.0;
 
   List<FuelType> _fuelTypes = [];
 
@@ -46,6 +52,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       _secondaryFuelCapacity = widget.vehicle!.secondaryFuelCapacity;
       _tripMeterMode = widget.vehicle!.tripMeterMode;
       _isDualFuel = widget.vehicle!.isDualFuel;
+      _volumeReminderEnabled = widget.vehicle!.volumeReminderEnabled;
+      _volumeReminderValue = widget.vehicle!.volumeReminderValue;
+      _distanceReminderEnabled = widget.vehicle!.distanceReminderEnabled;
+      _distanceReminderValue = widget.vehicle!.distanceReminderValue;
     }
     _loadFuelTypes();
   }
@@ -289,6 +299,135 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     },
                   ),
                 ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    localizations.refuelReminders,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(localizations.volumeReminderTitle, style: theme.textTheme.titleSmall),
+                          subtitle: Text(localizations.volumeReminderSubtitle),
+                          value: _volumeReminderEnabled,
+                          onChanged: (val) {
+                            setState(() {
+                              _volumeReminderEnabled = val;
+                            });
+                          },
+                        ),
+                        if (_volumeReminderEnabled) ...[
+                          const SizedBox(height: 8),
+                          Builder(
+                            builder: (context) {
+                              final double maxCap = _primaryFuelCapacity ?? 50.0;
+                              final double effectiveMax = maxCap > 0.8 ? maxCap : 50.0;
+                              final double clampedVal = _volumeReminderValue.clamp(0.8, effectiveMax);
+                              final double pct = (clampedVal / effectiveMax) * 100.0;
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        localizations.volumeThresholdLabel,
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      Text(
+                                        '${clampedVal.toStringAsFixed(1)} L (${pct.toStringAsFixed(1)}%)',
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Slider(
+                                    value: clampedVal,
+                                    min: 0.8,
+                                    max: effectiveMax,
+                                    divisions: ((effectiveMax - 0.8) * 10).toInt().clamp(1, 200),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _volumeReminderValue = double.parse(val.toStringAsFixed(1));
+                                      });
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(localizations.distanceReminderTitle, style: theme.textTheme.titleSmall),
+                          subtitle: Text(localizations.distanceReminderSubtitle),
+                          value: _distanceReminderEnabled,
+                          onChanged: (val) {
+                            setState(() {
+                              _distanceReminderEnabled = val;
+                            });
+                          },
+                        ),
+                        if (_distanceReminderEnabled) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                localizations.distanceThresholdLabel,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              Text(
+                                '${_distanceReminderValue.toInt()} km',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Slider(
+                            value: _distanceReminderValue.clamp(15.0, 200.0),
+                            min: 15.0,
+                            max: 200.0,
+                            divisions: 37,
+                            onChanged: (val) {
+                              setState(() {
+                                _distanceReminderValue = val.roundToDouble();
+                              });
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () async {
@@ -303,13 +442,30 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                         secondaryFuelTypeId: _isDualFuel ? _secondaryFuelTypeId : null,
                         secondaryFuelCapacity: _isDualFuel ? _secondaryFuelCapacity : null,
                         tripMeterMode: _tripMeterMode,
+                        volumeReminderEnabled: _volumeReminderEnabled,
+                        volumeReminderValue: _volumeReminderValue,
+                        distanceReminderEnabled: _distanceReminderEnabled,
+                        distanceReminderValue: _distanceReminderValue,
                       );
                       final navigator = Navigator.of(context);
                       if (widget.vehicle == null) {
-                        await DatabaseHelper.instance.insertVehicle(vehicle);
+                        final id = await DatabaseHelper.instance.insertVehicle(vehicle);
+                        vehicle.id = id;
                       } else {
                         await DatabaseHelper.instance.updateVehicle(vehicle);
                       }
+
+                      final allRecords = await DatabaseHelper.instance.getFuelRecords();
+                      final vehicleRecords =
+                          allRecords.where((r) => r.vehicleId == vehicle.id).toList();
+                      final prediction = MileageCalculator.calculateRefuelPrediction(
+                        vehicle: vehicle,
+                        records: vehicleRecords,
+                      );
+                      await NotificationService.instance.scheduleRefuelReminder(
+                        vehicle: vehicle,
+                        prediction: prediction,
+                      );
 
                       if (mounted) {
                         navigator.pop();

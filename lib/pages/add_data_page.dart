@@ -11,6 +11,8 @@ import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
+import 'package:fuel_tracker/services/notification_service.dart';
+import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -276,6 +278,24 @@ class _AddDataPageState extends State<AddDataPage> {
   Future<void> _saveLastValues() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_fuel_price', _rateController.text);
+  }
+
+  Future<void> _rescheduleReminderForVehicle(int vehicleId) async {
+    final vehicles = await _vehicleService.getVehicles();
+    final vehicle = vehicles.where((v) => v.id == vehicleId).firstOrNull;
+    if (vehicle != null) {
+      final allRecords = await DatabaseHelper.instance.getFuelRecords();
+      final vehicleRecords =
+          allRecords.where((r) => r.vehicleId == vehicleId).toList();
+      final prediction = MileageCalculator.calculateRefuelPrediction(
+        vehicle: vehicle,
+        records: vehicleRecords,
+      );
+      await NotificationService.instance.scheduleRefuelReminder(
+        vehicle: vehicle,
+        prediction: prediction,
+      );
+    }
   }
 
   @override
@@ -718,6 +738,7 @@ class _AddDataPageState extends State<AddDataPage> {
 
                           await DatabaseHelper.instance
                               .updateFuelRecord(updatedRecord);
+                          await _rescheduleReminderForVehicle(_selectedVehicleId!);
                           if (!context.mounted) return;
                           Navigator.of(context).pop(true);
                         } else {
@@ -779,6 +800,7 @@ class _AddDataPageState extends State<AddDataPage> {
                             drivingCondition: _drivingCondition,
                           );
                           await DatabaseHelper.instance.insertFuelRecord(record);
+                          await _rescheduleReminderForVehicle(_selectedVehicleId!);
                           if (AppSettings.adsEnabled) {
                             _interstitialAdService.showAd();
                           }

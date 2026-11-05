@@ -132,21 +132,22 @@ This document outlines strategic, architectural, domain, and UX improvements ide
       - Visual health cards with progress indicators ($\frac{O_{\text{current}} - O_{\text{last}}}{\text{Interval Km}}$).
       - Single-visit checklist modal: User enters current odometer, date, workshop name, total cost, and selects multiple completed tasks via checkboxes (e.g., [x] Servicing, [x] Oil Filter, [x] Air Filter), atomically resetting all selected task intervals in a single database transaction.
 
-### 3.5 Predictive Refuel Reminder `[PENDING]`
-- **Concept:** Proactively alert users before fuel reaches critical reserve levels based on vehicle tank capacity, running fuel efficiency, and daily driving habits.
+### 3.5 Predictive Refuel Reminder & Tank Range Forecasting `[COMPLETED]`
+- **Concept:** Proactively alert users before fuel reaches critical reserve levels based on vehicle tank capacity, running fuel efficiency, daily driving habits, and bi-fuel tank configuration.
 - **Architecture & Implementation Details:**
-  - **Configuration & Storage:**
-    - Add `refuelReminderThreshold` (in Liters, e.g., 5.0 L) and `tankCapacity` per vehicle in `vehicles` table and Vehicle Profile editor.
-    - Global default threshold option in `AppSettings`.
-  - **Prediction & Math Engine:**
-    - Running Fuel Efficiency: Weighted harmonic/running average ($E = \text{km/L}$) from `MileageCalculator`.
-    - Remaining Fuel: $V_{\text{rem}} = V_{\text{tank}} - \frac{O_{\text{current}} - O_{\text{last\_full}}}{E}$.
-    - Distance to Reserve Threshold: $D_{\text{to\_reserve}} = (V_{\text{rem}} - V_{\text{threshold}}) \times E$.
-    - Projected Refuel Date: $T_{\text{refuel\_days}} = \frac{D_{\text{to\_reserve}}}{\text{Daily Run Rate}}$.
-    - Cold-Start Fallback: Uses fallback daily run (default 20 km/day) if insufficient refuel records exist.
-  - **Notification & UX Delivery:**
-    - **Android OS Notification:** Scheduled target notification via `flutter_local_notifications` when projected date reaches low-fuel threshold. Rescheduled automatically on every new refuel entry.
-    - **In-App Banner Card:** Dashboard indicator showing remaining fuel estimate, estimated distance-to-empty, and quick "Refuel Now" action button.
+  - **Dual Independent Reminders & Vehicle Configuration:**
+    - **Primary Fuel Volume Reminder:** Triggers when primary tank remaining volume drops below a configurable threshold (slider from 0.8 L to tank capacity, displaying live volume and percentage of full tank).
+    - **Combined Distance-to-Empty (DTE) Reminder:** Triggers when combined range across all vehicle fuel tanks drops below a configurable distance threshold (slider from 15 to 200 km).
+    - **Vehicle Fuel Setup:** Material 3 `SegmentedButton` configuring `[Single Fuel]` vs `[Dual / Bi-Fuel]`, dynamically adjusting secondary tank inputs and auto-clearing secondary settings on single fuel.
+    - **Vehicle Management Chips:** `ManageVehiclesPage` displays active reminder threshold badges (`[🔔 ≤ X L]`, `[🔔 ≤ Y km]`) alongside fuel setup chips.
+  - **Forecasting Engine (`MileageCalculator`):**
+    - **Anchor-to-Full-Tank Tracking:** Anchors burn calculations strictly to the most recent full-tank fill ($O_{\text{anchor}}$), accumulating subsequent partial fills to prevent volume uncertainty.
+    - **Burn Rate & Autonomy:** Computes daily run rate (km/day) and daily fuel burn rate (L/day), deriving remaining primary volume ($V_{\text{rem}} = C_{\text{primary}} - \text{burn}$) and dual-fuel combined range ($\text{DTE}_{\text{total}} = \text{DTE}_{\text{primary}} + \text{DTE}_{\text{secondary}}$).
+    - **Calibration Guard:** Safely marks vehicles without a historical full-tank fill as uncalibrated (`isCalibrated == false`), rendering a friendly dashboard prompt instead of false alarms.
+  - **Configurable Push Scheduling & Delivery:**
+    - **Configurable Global Time:** TimePicker setting in `SettingsPage` (default 09:00 AM, stored in `AppSettings` / `SharedPreferences`); auto-reschedules active reminders across all vehicles on update.
+    - **Local Notifications:** Exact alarm scheduling via `flutter_local_notifications` 22.3.3 and `timezone` on the projected low-fuel date, with immediate alert dispatch if already below threshold.
+    - **Dashboard Card:** Unified Material 3 telemetry card displaying live remaining volume, combined DTE, and days remaining, dynamically shifting to warning accent with a one-tap "Refuel Now" action button. Auto-rescheduled on any refuel entry change in `AddDataPage`.
 
 ### 3.6 Dashboard Last Refuel Recency & Elapsed Counter `[COMPLETED]`
 - **Status:** Implemented in `DashboardPage`, `MileageCalculator`, and localization resources (`app_en.arb`, `app_bn.arb`).
@@ -270,7 +271,7 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 | :--- | :--- | :---: | :---: | :--- |
 | **1** | **Dashboard Last Refuel Recency Counter** (Section 3.6) | **Very Low** (1/5) | **COMPLETED** | **Pure UI Enhancement:** Calculates `DateTime.now().difference(date).inDays` and displays `"Today"`, `"Yesterday"`, or `"X days ago"` with cadence-exceeded warning indicator. |
 | **2** | **Advanced Trip Meter Support** (Section 2.5) | **Low** (2/5) | **COMPLETED** | **Form Intelligence & Fallback:** Vehicle setting (`None`/`Single`/`Dual`), hides fields when `None`, auto-fills odometer from trip, cross-checks typos ($|\Delta O - \text{Trip}|$), and gracefully defaults to total odometer if left blank or forgotten. |
-| **3** | **Predictive Refuel Reminder** (Section 3.5) | **Low-Medium** (2.5/5) | **IMPLEMENT NOW** (Phase 1) | **Lightweight Math + Notifications:** Uses existing `MileageCalculator` daily run rate and km/L. Needs minor vehicle settings additions (`tankCapacity`, threshold), `flutter_local_notifications` setup, and dashboard low-fuel banner. |
-| **4** | **Periodic Maintenance & Service Reminders** (Section 3.4) | **Medium** (3/5) | **IMPLEMENT NEXT** (Phase 2) | **Relational Schema + Multi-Task UI:** SQLite schema migration v5 (`maintenance_tasks`, `service_sessions`), new `MaintenancePage` with multi-select visit checklist, hybrid km/month triggers, and bundled notifications. |
+| **3** | **Predictive Refuel Reminder** (Section 3.5) | **Low-Medium** (2.5/5) | **COMPLETED** | **Dual Independent Reminders & Range Forecasting:** Configurable Volume-based (primary tank) and Distance-based (combined DTE) reminders, unified Material 3 dashboard card, active threshold chips in vehicle management, and user-configurable daily Android notification time via `flutter_local_notifications`. |
+| **4** | **Periodic Maintenance & Service Reminders** (Section 3.4) | **Medium** (3/5) | **IMPLEMENT NEXT** (Phase 2) | **Relational Schema + Multi-Task UI:** SQLite schema migration v7 (`maintenance_tasks`, `service_sessions`), new `MaintenancePage` with multi-select visit checklist, hybrid km/month triggers, and bundled notifications. |
 | **5** | **Fuel Station Geofencing & Quality Anomaly Flagging** (Section 5.2) | **Medium-High** (4/5) | **IMPLEMENT LATER** (Phase 3) | **Location Services + Analytics:** Requires `geolocator` plugin, runtime location permissions, radius matching math, `fuel_stations` table, and subsequent-refuel anomaly verification (>15% drop). |
 | **6** | **On-Device OCR Vision Pipeline (Odo & Dispenser LCD)** (Section 5.1) | **High** (5/5) | **IMPLEMENT LATER** (Future Roadmap) | **Machine Learning & Image Parsing:** Integrates `google_mlkit_text_recognition`, camera capture, image pre-processing, and regex parsers for 7-segment / odometer dial digits. |

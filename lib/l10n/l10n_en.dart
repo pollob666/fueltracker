@@ -456,4 +456,62 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dualFuelSubtitle =>
       'Vehicle supports two fuel types (e.g. Petrol + CNG/LPG)';
+
+  @override
+  String get refuelReminders => 'Predictive Refuel Reminders';
+
+  @override
+  String get volumeReminderTitle => 'Primary Fuel Volume Reminder';
+
+  @override
+  String get volumeReminderSubtitle =>
+      'Alert before primary tank reaches reserve volume';
+
+  @override
+  String get volumeThresholdLabel => 'Trigger Volume Threshold';
+
+  @override
+  String get distanceReminderTitle => 'Distance-to-Empty (DTE) Reminder';
+
+  @override
+  String get distanceReminderSubtitle =>
+      'Alert when combined range drops below threshold';
+
+  @override
+  String get distanceThresholdLabel => 'Trigger Range Threshold';
+
+  @override
+  String get refuelWarningTitle => 'Refuel Required';
+
+  @override
+  String get lowFuelWarning => 'Low Fuel Alert';
+
+  @override
+  String get refuelNow => 'Refuel Now';
+
+  @override
+  String get refuelCalibrationPrompt =>
+      'Fill a full tank once and mark Full Tank to calibrate range forecasting.';
+
+  @override
+  String primaryFuelEstimate(String volume) {
+    return 'Primary Fuel: ~$volume L';
+  }
+
+  @override
+  String combinedRangeEstimate(String range) {
+    return 'Combined Range: ~$range km';
+  }
+
+  @override
+  String projectedRefuelIn(int days) {
+    return 'Refuel in ~$days days';
+  }
+
+  @override
+  String get notificationTime => 'Reminder Notification Time';
+
+  @override
+  String get notificationTimeSubtitle =>
+      'Daily time to check and schedule refuel reminders';
 }

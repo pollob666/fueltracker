@@ -15,6 +15,8 @@ class AppSettings {
   static String themeMode = 'system'; // 'light', 'dark', 'system'
   static String darkTheme = 'monet'; // 'monet', 'black'
   static bool adsEnabled = false;
+  static int reminderHour = 9;
+  static int reminderMinute = 0;
   static Map<String, double> defaultFuelPrices = {};
 
   static Future<void> loadSettings() async {
@@ -28,6 +30,8 @@ class AppSettings {
     themeMode = prefs.getString('themeMode') ?? 'system';
     darkTheme = prefs.getString('darkTheme') ?? 'monet';
     adsEnabled = prefs.getBool('adsEnabled') ?? false;
+    reminderHour = prefs.getInt('reminderHour') ?? 9;
+    reminderMinute = prefs.getInt('reminderMinute') ?? 0;
 
     final defaultPricesString = prefs.getString('defaultFuelPrices');
     if (defaultPricesString != null) {
@@ -46,6 +50,8 @@ class AppSettings {
     await prefs.setString('themeMode', themeMode);
     await prefs.setString('darkTheme', darkTheme);
     await prefs.setBool('adsEnabled', adsEnabled);
+    await prefs.setInt('reminderHour', reminderHour);
+    await prefs.setInt('reminderMinute', reminderMinute);
     await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }
 }

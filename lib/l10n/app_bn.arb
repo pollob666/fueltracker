@@ -188,5 +188,42 @@
   "supportedFuelTypes": "জ্বালানির ধরন",
   "singleFuel": "একক জ্বালানি",
   "dualFuel": "দ্বৈত / দ্বি-জ্বালানি",
-  "dualFuelSubtitle": "যানবাহন দুটি জ্বালানি সমর্থন করে (যেমন: পেট্রোল + সিএনজি/এলপিজি)"
+  "dualFuelSubtitle": "যানবাহন দুটি জ্বালানি সমর্থন করে (যেমন: পেট্রোল + সিএনজি/এলপিজি)",
+  "refuelReminders": "আগাম রিফুয়েল সতর্কতা",
+  "volumeReminderTitle": "প্রধান জ্বালানি পরিমাণের সতর্কতা",
+  "volumeReminderSubtitle": "প্রধান ট্যাঙ্কের রিজার্ভ শেষ হওয়ার আগেই সতর্ক করবে",
+  "volumeThresholdLabel": "সতর্কতার জ্বালানি সীমা",
+  "distanceReminderTitle": "সম্ভাব্য দূরত্বের (DTE) সতর্কতা",
+  "distanceReminderSubtitle": "মোট সম্ভাব্য দূরত্ব সীমার নিচে নামলে সতর্ক করবে",
+  "distanceThresholdLabel": "সতর্কতার দূরত্ব সীমা",
+  "refuelWarningTitle": "জ্বালানি ভরা প্রয়োজন",
+  "lowFuelWarning": "কম জ্বালানি সতর্কতা",
+  "refuelNow": "এখনই রিফুয়েল করুন",
+  "refuelCalibrationPrompt": "রেঞ্জ পূর্বাভাসের জন্য একবার সম্পূর্ণ ট্যাঙ্ক ভর্তি করে 'ফুল ট্যাঙ্ক' হিসেবে রেকর্ড করুন।",
+  "primaryFuelEstimate": "প্রধান জ্বালানি: ~{volume} লিটার",
+  "@primaryFuelEstimate": {
+    "placeholders": {
+      "volume": {
+        "type": "String"
+      }
+    }
+  },
+  "combinedRangeEstimate": "মোট সম্ভাব্য রেঞ্জ: ~{range} কিমি",
+  "@combinedRangeEstimate": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "projectedRefuelIn": "~{days} দিনের মধ্যে রিফুয়েল প্রয়োজন",
+  "@projectedRefuelIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationTime": "সতর্কতা বিজ্ঞপ্তির সময়",
+  "notificationTimeSubtitle": "দৈনিক রিফুয়েল সতর্কতা বিজ্ঞপ্তি নির্ধারণের সময়"
 }

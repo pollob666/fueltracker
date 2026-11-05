@@ -457,4 +457,62 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String get dualFuelSubtitle =>
       'যানবাহন দুটি জ্বালানি সমর্থন করে (যেমন: পেট্রোল + সিএনজি/এলপিজি)';
+
+  @override
+  String get refuelReminders => 'আগাম রিফুয়েল সতর্কতা';
+
+  @override
+  String get volumeReminderTitle => 'প্রধান জ্বালানি পরিমাণের সতর্কতা';
+
+  @override
+  String get volumeReminderSubtitle =>
+      'প্রধান ট্যাঙ্কের রিজার্ভ শেষ হওয়ার আগেই সতর্ক করবে';
+
+  @override
+  String get volumeThresholdLabel => 'সতর্কতার জ্বালানি সীমা';
+
+  @override
+  String get distanceReminderTitle => 'সম্ভাব্য দূরত্বের (DTE) সতর্কতা';
+
+  @override
+  String get distanceReminderSubtitle =>
+      'মোট সম্ভাব্য দূরত্ব সীমার নিচে নামলে সতর্ক করবে';
+
+  @override
+  String get distanceThresholdLabel => 'সতর্কতার দূরত্ব সীমা';
+
+  @override
+  String get refuelWarningTitle => 'জ্বালানি ভরা প্রয়োজন';
+
+  @override
+  String get lowFuelWarning => 'কম জ্বালানি সতর্কতা';
+
+  @override
+  String get refuelNow => 'এখনই রিফুয়েল করুন';
+
+  @override
+  String get refuelCalibrationPrompt =>
+      'রেঞ্জ পূর্বাভাসের জন্য একবার সম্পূর্ণ ট্যাঙ্ক ভর্তি করে \'ফুল ট্যাঙ্ক\' হিসেবে রেকর্ড করুন।';
+
+  @override
+  String primaryFuelEstimate(String volume) {
+    return 'প্রধান জ্বালানি: ~$volume লিটার';
+  }
+
+  @override
+  String combinedRangeEstimate(String range) {
+    return 'মোট সম্ভাব্য রেঞ্জ: ~$range কিমি';
+  }
+
+  @override
+  String projectedRefuelIn(int days) {
+    return '~$days দিনের মধ্যে রিফুয়েল প্রয়োজন';
+  }
+
+  @override
+  String get notificationTime => 'সতর্কতা বিজ্ঞপ্তির সময়';
+
+  @override
+  String get notificationTimeSubtitle =>
+      'দৈনিক রিফুয়েল সতর্কতা বিজ্ঞপ্তি নির্ধারণের সময়';
 }

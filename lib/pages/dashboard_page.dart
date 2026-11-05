@@ -10,6 +10,7 @@ import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
@@ -140,6 +141,18 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {
       _filteredRecords = _allRecords.where((r) => r.vehicleId == _selectedVehicleId).toList();
     });
+
+    final vehicle = _vehicleMap[_selectedVehicleId];
+    if (vehicle != null && (vehicle.volumeReminderEnabled || vehicle.distanceReminderEnabled)) {
+      final prediction = MileageCalculator.calculateRefuelPrediction(
+        vehicle: vehicle,
+        records: _filteredRecords,
+      );
+      NotificationService.instance.scheduleRefuelReminder(
+        vehicle: vehicle,
+        prediction: prediction,
+      );
+    }
   }
 
   double calculateCurrentRunningMileage(List<FuelRecord> records) {
@@ -247,6 +260,251 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Widget _buildRefuelReminderCard(
+    BuildContext context,
+    Vehicle vehicle,
+    RefuelPredictionResult prediction,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final localizations = AppLocalizations.of(context)!;
+
+    if (!prediction.isCalibrated) {
+      return Card(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: colorScheme.outlineVariant,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Icon(Icons.hourglass_empty_rounded,
+                  size: 32, color: colorScheme.secondary),
+              const SizedBox(height: 8),
+              Text(
+                localizations.refuelReminders,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                localizations.refuelCalibrationPrompt,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final bool isAlert = prediction.isAlertActive;
+    final cardBgColor = isAlert
+        ? colorScheme.errorContainer.withValues(alpha: 0.7)
+        : colorScheme.surfaceContainerHighest;
+    final cardBorderColor =
+        isAlert ? colorScheme.error : colorScheme.outlineVariant;
+
+    return Card(
+      elevation: isAlert ? 3.0 : 1.0,
+      color: cardBgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: cardBorderColor,
+          width: isAlert ? 1.5 : 1.0,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isAlert
+                          ? Icons.warning_amber_rounded
+                          : Icons.local_gas_station_outlined,
+                      color: isAlert ? colorScheme.error : colorScheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isAlert
+                          ? localizations.lowFuelWarning
+                          : localizations.refuelReminders,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isAlert
+                            ? colorScheme.onErrorContainer
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                if (prediction.daysRemaining != null)
+                  Text(
+                    localizations.projectedRefuelIn(prediction.daysRemaining!),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isAlert
+                          ? colorScheme.error
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (prediction.primaryRemainingFuel != null)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10.0),
+                      decoration: BoxDecoration(
+                        color: isAlert
+                            ? colorScheme.surface.withValues(alpha: 0.7)
+                            : colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: prediction.isVolumeTriggered
+                              ? colorScheme.error
+                              : colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            localizations.primaryFuelEstimate(
+                              prediction.primaryRemainingFuel!
+                                  .toStringAsFixed(1),
+                            ),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: prediction.isVolumeTriggered
+                                  ? colorScheme.error
+                                  : colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            prediction.isVolumeTriggered
+                                ? '≤ ${prediction.volumeThreshold.toStringAsFixed(1)} L'
+                                : '${prediction.primaryFuelPercentage?.toStringAsFixed(0) ?? 0}% Full',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: prediction.isVolumeTriggered
+                                  ? colorScheme.error
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: prediction.isVolumeTriggered
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                if (prediction.totalDte != null)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10.0),
+                      decoration: BoxDecoration(
+                        color: isAlert
+                            ? colorScheme.surface.withValues(alpha: 0.7)
+                            : colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: prediction.isDistanceTriggered
+                              ? colorScheme.error
+                              : colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            localizations.combinedRangeEstimate(
+                              prediction.totalDte!.toStringAsFixed(0),
+                            ),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: prediction.isDistanceTriggered
+                                  ? colorScheme.error
+                                  : colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            prediction.isDistanceTriggered
+                                ? '≤ ${prediction.distanceThreshold.toInt()} km'
+                                : 'Threshold: ${prediction.distanceThreshold.toInt()} km',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: prediction.isDistanceTriggered
+                                  ? colorScheme.error
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: prediction.isDistanceTriggered
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: (prediction.primaryFuelPercentage ?? 0.0) / 100.0,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                color: isAlert ? colorScheme.error : colorScheme.primary,
+                minHeight: 6,
+              ),
+            ),
+            if (isAlert) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.error,
+                    foregroundColor: colorScheme.onError,
+                  ),
+                  icon: const Icon(Icons.local_gas_station),
+                  label: Text(localizations.refuelNow),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const AddDataPage()),
+                    );
+                    _loadInitialData();
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
@@ -324,6 +582,16 @@ class _DashboardPageState extends State<DashboardPage> {
     List<Widget> mileageCards = [];
     List<Widget> costCards = [];
     final selectedVehicle = _selectedVehicleId != null ? _vehicleMap[_selectedVehicleId] : null;
+
+    RefuelPredictionResult? prediction;
+    if (selectedVehicle != null &&
+        (selectedVehicle.volumeReminderEnabled ||
+            selectedVehicle.distanceReminderEnabled)) {
+      prediction = MileageCalculator.calculateRefuelPrediction(
+        vehicle: selectedVehicle,
+        records: _filteredRecords,
+      );
+    }
 
     if (selectedVehicle != null) {
       final primaryFuelType = _fuelTypeMap[selectedVehicle.primaryFuelTypeId];
@@ -678,6 +946,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (prediction != null && selectedVehicle != null) ...[
+                  _buildRefuelReminderCard(context, selectedVehicle, prediction),
+                  const SizedBox(height: 24),
+                ],
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),

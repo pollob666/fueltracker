@@ -949,6 +949,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vehicle supports two fuel types (e.g. Petrol + CNG/LPG)'**
   String get dualFuelSubtitle;
+
+  /// No description provided for @refuelReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Predictive Refuel Reminders'**
+  String get refuelReminders;
+
+  /// No description provided for @volumeReminderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Fuel Volume Reminder'**
+  String get volumeReminderTitle;
+
+  /// No description provided for @volumeReminderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alert before primary tank reaches reserve volume'**
+  String get volumeReminderSubtitle;
+
+  /// No description provided for @volumeThresholdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trigger Volume Threshold'**
+  String get volumeThresholdLabel;
+
+  /// No description provided for @distanceReminderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance-to-Empty (DTE) Reminder'**
+  String get distanceReminderTitle;
+
+  /// No description provided for @distanceReminderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alert when combined range drops below threshold'**
+  String get distanceReminderSubtitle;
+
+  /// No description provided for @distanceThresholdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trigger Range Threshold'**
+  String get distanceThresholdLabel;
+
+  /// No description provided for @refuelWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refuel Required'**
+  String get refuelWarningTitle;
+
+  /// No description provided for @lowFuelWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Low Fuel Alert'**
+  String get lowFuelWarning;
+
+  /// No description provided for @refuelNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Refuel Now'**
+  String get refuelNow;
+
+  /// No description provided for @refuelCalibrationPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill a full tank once and mark Full Tank to calibrate range forecasting.'**
+  String get refuelCalibrationPrompt;
+
+  /// No description provided for @primaryFuelEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Fuel: ~{volume} L'**
+  String primaryFuelEstimate(String volume);
+
+  /// No description provided for @combinedRangeEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Combined Range: ~{range} km'**
+  String combinedRangeEstimate(String range);
+
+  /// No description provided for @projectedRefuelIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Refuel in ~{days} days'**
+  String projectedRefuelIn(int days);
+
+  /// No description provided for @notificationTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder Notification Time'**
+  String get notificationTime;
+
+  /// No description provided for @notificationTimeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily time to check and schedule refuel reminders'**
+  String get notificationTimeSubtitle;
 }
 
 class _AppLocalizationsDelegate

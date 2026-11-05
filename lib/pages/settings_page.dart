@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
@@ -26,6 +27,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _folderController = TextEditingController();
   Locale? _currentLocale;
   late String _currentThemeSetting;
+  late TimeOfDay _reminderTime;
   final FuelTypeService _fuelTypeService = FuelTypeService();
   List<FuelType> _fuelTypes = [];
   final Map<String, TextEditingController> _priceControllers = {};
@@ -37,6 +39,10 @@ class _SettingsPageState extends State<SettingsPage> {
     _folderController.text = _getCurrentFolderPath();
     _currentLocale = Locale(AppSettings.language);
     _setCurrentThemeSetting();
+    _reminderTime = TimeOfDay(
+      hour: AppSettings.reminderHour,
+      minute: AppSettings.reminderMinute,
+    );
     _loadFuelTypes();
   }
 
@@ -129,7 +135,15 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       });
 
+      final reminderTimeChanged = AppSettings.reminderHour != _reminderTime.hour ||
+          AppSettings.reminderMinute != _reminderTime.minute;
+      AppSettings.reminderHour = _reminderTime.hour;
+      AppSettings.reminderMinute = _reminderTime.minute;
+
       await AppSettings.saveSettings();
+      if (reminderTimeChanged) {
+        await NotificationService.instance.rescheduleAllReminders();
+      }
       if (mounted) {
         MyApp.setLocale(context, _currentLocale!);
         MyApp.setThemeMode(context, AppSettings.themeMode);
@@ -278,6 +292,30 @@ class _SettingsPageState extends State<SettingsPage> {
                         if (newTheme != null) {
                           setState(() {
                             _currentThemeSetting = newTheme;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    title: Text(localizations.notificationTime,
+                        style: theme.textTheme.titleMedium),
+                    subtitle: Text(localizations.notificationTimeSubtitle),
+                    trailing: OutlinedButton.icon(
+                      icon: const Icon(Icons.access_time, size: 18),
+                      label: Text(
+                        _reminderTime.format(context),
+                        style: theme.textTheme.labelLarge,
+                      ),
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: _reminderTime,
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _reminderTime = picked;
                           });
                         }
                       },

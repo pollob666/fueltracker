@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/pages/dashboard_page.dart';
+import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/theme.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -17,6 +18,7 @@ Future<void> main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     await AppSettings.loadSettings();
+    await NotificationService.instance.initialize();
 
     // Set preferred orientations to portrait up and down
     await SystemChrome.setPreferredOrientations([

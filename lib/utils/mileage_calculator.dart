@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+import 'dart:math' as math;
 import 'package:fuel_tracker/models/fuel_record.dart';
+import 'package:fuel_tracker/models/vehicle.dart';
 
 /// Holds the computed efficiency metrics for a specific fuel record interval.
 class IntervalResult {
@@ -256,4 +258,233 @@ class MileageCalculator {
     final filtered = records.where((r) => r.drivingCondition == condition).toList();
     return calculateWeightedRunningAverage(filtered);
   }
+
+  /// Calculates predictive fuel level and range forecasting for a given vehicle.
+  static RefuelPredictionResult calculateRefuelPrediction({
+    required Vehicle vehicle,
+    required List<FuelRecord> records,
+    DateTime? currentDate,
+  }) {
+    final now = currentDate ?? DateTime.now();
+    final bool isVolEn = vehicle.volumeReminderEnabled;
+    final bool isDistEn = vehicle.distanceReminderEnabled;
+    final double volThresh = vehicle.volumeReminderValue;
+    final double distThresh = vehicle.distanceReminderValue;
+
+    final double? primaryCap = vehicle.primaryFuelCapacity;
+    if (primaryCap == null || primaryCap <= 0) {
+      return RefuelPredictionResult(
+        isVolumeEnabled: isVolEn,
+        isDistanceEnabled: isDistEn,
+        isCalibrated: false,
+        isVolumeTriggered: false,
+        isDistanceTriggered: false,
+        volumeThreshold: volThresh,
+        distanceThreshold: distThresh,
+      );
+    }
+
+    final vehicleRecords =
+        records.where((r) => r.vehicleId == vehicle.id).toList();
+    if (vehicleRecords.isEmpty) {
+      return RefuelPredictionResult(
+        isVolumeEnabled: isVolEn,
+        isDistanceEnabled: isDistEn,
+        isCalibrated: false,
+        primaryTankCapacity: primaryCap,
+        isVolumeTriggered: false,
+        isDistanceTriggered: false,
+        volumeThreshold: volThresh,
+        distanceThreshold: distThresh,
+      );
+    }
+
+    final sorted = sortChronological(vehicleRecords);
+    final primaryRecords = sorted
+        .where((r) => r.fuelTypeId == vehicle.primaryFuelTypeId)
+        .toList();
+    final int lastFullIdx = primaryRecords.lastIndexWhere((r) => r.isFullTank);
+
+    if (lastFullIdx < 0) {
+      return RefuelPredictionResult(
+        isVolumeEnabled: isVolEn,
+        isDistanceEnabled: isDistEn,
+        isCalibrated: false,
+        primaryTankCapacity: primaryCap,
+        isVolumeTriggered: false,
+        isDistanceTriggered: false,
+        volumeThreshold: volThresh,
+        distanceThreshold: distThresh,
+      );
+    }
+
+    final fullRecord = primaryRecords[lastFullIdx];
+    double runningEffPrimary = calculateWeightedRunningAverage(primaryRecords);
+    if (runningEffPrimary <= 0) {
+      runningEffPrimary = (vehicle.type == VehicleType.motorcycle ||
+              vehicle.type == VehicleType.scooterOrMoped)
+          ? 35.0
+          : 12.0;
+    }
+
+    double currentPrimaryFuel = primaryCap;
+    for (int i = lastFullIdx + 1; i < primaryRecords.length; i++) {
+      currentPrimaryFuel += primaryRecords[i].volume;
+    }
+
+    final latestRecord = sorted.last;
+    final double odoDeltaLogged =
+        math.max(0.0, latestRecord.odometer - fullRecord.odometer);
+
+    double dailyRun = calculateDailyAverageRun(sorted);
+    if (dailyRun <= 0) {
+      dailyRun = 20.0;
+    }
+
+    final int daysSinceLatest =
+        math.max(0, now.difference(latestRecord.date).inDays);
+    final double projectedDistanceSinceLatest = daysSinceLatest * dailyRun;
+    final double totalDistanceSinceAnchor =
+        odoDeltaLogged + projectedDistanceSinceLatest;
+
+    final double fuelBurned = totalDistanceSinceAnchor / runningEffPrimary;
+    double primaryRemaining = math.max(0.0, currentPrimaryFuel - fuelBurned);
+    if (primaryRemaining > primaryCap) {
+      primaryRemaining = primaryCap;
+    }
+
+    final double primaryPct = (primaryRemaining / primaryCap) * 100.0;
+    final double primaryDte = primaryRemaining * runningEffPrimary;
+
+    double? secRemaining;
+    double? secDte;
+    if (vehicle.isDualFuel &&
+        vehicle.secondaryFuelTypeId != null &&
+        vehicle.secondaryFuelCapacity != null &&
+        vehicle.secondaryFuelCapacity! > 0) {
+      final secCap = vehicle.secondaryFuelCapacity!;
+      final secRecords = sorted
+          .where((r) => r.fuelTypeId == vehicle.secondaryFuelTypeId)
+          .toList();
+      if (secRecords.isNotEmpty) {
+        final int secLastFullIdx =
+            secRecords.lastIndexWhere((r) => r.isFullTank);
+        double secEff = calculateWeightedRunningAverage(secRecords);
+        if (secEff <= 0) secEff = runningEffPrimary;
+
+        if (secLastFullIdx >= 0) {
+          final secAnchor = secRecords[secLastFullIdx];
+          double secFuel = secCap;
+          for (int i = secLastFullIdx + 1; i < secRecords.length; i++) {
+            secFuel += secRecords[i].volume;
+          }
+          final double secDistLogged =
+              math.max(0.0, latestRecord.odometer - secAnchor.odometer);
+          final double secTotalDist =
+              secDistLogged + projectedDistanceSinceLatest;
+          final double secBurned = secTotalDist / secEff;
+          secRemaining = math.max(0.0, math.min(secCap, secFuel - secBurned));
+          secDte = secRemaining * secEff;
+        } else {
+          final lastSec = secRecords.last;
+          secRemaining = math.max(
+              0.0, lastSec.volume - (projectedDistanceSinceLatest / secEff));
+          secDte = secRemaining * secEff;
+        }
+      }
+    }
+
+    final double totalDte = primaryDte + (secDte ?? 0.0);
+
+    final bool isVolTriggered =
+        isVolEn && (primaryRemaining <= volThresh);
+    final bool isDistTriggered =
+        isDistEn && (totalDte <= distThresh);
+
+    int? daysLeft;
+    DateTime? projectedDate;
+
+    double? kmToThreshold;
+    if (isVolEn && isDistEn) {
+      final double kmToVol =
+          math.max(0.0, (primaryRemaining - volThresh) * runningEffPrimary);
+      final double kmToDist = math.max(0.0, totalDte - distThresh);
+      kmToThreshold = math.min(kmToVol, kmToDist);
+    } else if (isVolEn) {
+      kmToThreshold =
+          math.max(0.0, (primaryRemaining - volThresh) * runningEffPrimary);
+    } else if (isDistEn) {
+      kmToThreshold = math.max(0.0, totalDte - distThresh);
+    }
+
+    if (kmToThreshold != null) {
+      daysLeft = (kmToThreshold / dailyRun).ceil();
+      if (daysLeft < 0) daysLeft = 0;
+      projectedDate = now.add(Duration(days: daysLeft));
+    }
+
+    return RefuelPredictionResult(
+      isVolumeEnabled: isVolEn,
+      isDistanceEnabled: isDistEn,
+      isCalibrated: true,
+      primaryRemainingFuel: primaryRemaining,
+      primaryTankCapacity: primaryCap,
+      primaryFuelPercentage: primaryPct,
+      primaryDte: primaryDte,
+      secondaryRemainingFuel: secRemaining,
+      secondaryDte: secDte,
+      totalDte: totalDte,
+      daysRemaining: daysLeft,
+      projectedRefuelDate: projectedDate,
+      isVolumeTriggered: isVolTriggered,
+      isDistanceTriggered: isDistTriggered,
+      volumeThreshold: volThresh,
+      distanceThreshold: distThresh,
+    );
+  }
+}
+
+/// Represents the calculated forecast and warning states for a vehicle's refuel status.
+class RefuelPredictionResult {
+  final bool isVolumeEnabled;
+  final bool isDistanceEnabled;
+  final bool isCalibrated;
+  final double? primaryRemainingFuel;
+  final double? primaryTankCapacity;
+  final double? primaryFuelPercentage;
+  final double? primaryDte;
+  final double? secondaryRemainingFuel;
+  final double? secondaryDte;
+  final double? totalDte;
+  final int? daysRemaining;
+  final DateTime? projectedRefuelDate;
+  final bool isVolumeTriggered;
+  final bool isDistanceTriggered;
+  final double volumeThreshold;
+  final double distanceThreshold;
+
+  const RefuelPredictionResult({
+    required this.isVolumeEnabled,
+    required this.isDistanceEnabled,
+    required this.isCalibrated,
+    this.primaryRemainingFuel,
+    this.primaryTankCapacity,
+    this.primaryFuelPercentage,
+    this.primaryDte,
+    this.secondaryRemainingFuel,
+    this.secondaryDte,
+    this.totalDte,
+    this.daysRemaining,
+    this.projectedRefuelDate,
+    required this.isVolumeTriggered,
+    required this.isDistanceTriggered,
+    required this.volumeThreshold,
+    required this.distanceThreshold,
+  });
+
+  bool get isAlertActive =>
+      (isVolumeEnabled && isVolumeTriggered) ||
+      (isDistanceEnabled && isDistanceTriggered);
+
+  bool get hasAnyReminderEnabled => isVolumeEnabled || isDistanceEnabled;
 }

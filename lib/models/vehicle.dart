@@ -25,6 +25,10 @@ class Vehicle {
   int? secondaryFuelTypeId;
   double? secondaryFuelCapacity;
   TripMeterMode tripMeterMode;
+  bool volumeReminderEnabled;
+  double volumeReminderValue;
+  bool distanceReminderEnabled;
+  double distanceReminderValue;
 
   bool get isDualFuel => secondaryFuelTypeId != null;
 
@@ -37,6 +41,10 @@ class Vehicle {
     this.secondaryFuelTypeId,
     this.secondaryFuelCapacity,
     this.tripMeterMode = TripMeterMode.none,
+    this.volumeReminderEnabled = false,
+    this.volumeReminderValue = 3.0,
+    this.distanceReminderEnabled = false,
+    this.distanceReminderValue = 50.0,
   });
 
   Map<String, dynamic> toMap() {
@@ -49,6 +57,10 @@ class Vehicle {
       'secondaryFuelTypeId': secondaryFuelTypeId,
       'secondaryFuelCapacity': secondaryFuelCapacity,
       'tripMeterMode': tripMeterMode.name,
+      'volumeReminderEnabled': volumeReminderEnabled ? 1 : 0,
+      'volumeReminderValue': volumeReminderValue,
+      'distanceReminderEnabled': distanceReminderEnabled ? 1 : 0,
+      'distanceReminderValue': distanceReminderValue,
     };
   }
 
@@ -70,6 +82,40 @@ class Vehicle {
       secondaryFuelTypeId: map['secondaryFuelTypeId'],
       secondaryFuelCapacity: map['secondaryFuelCapacity'],
       tripMeterMode: mode,
+      volumeReminderEnabled: map['volumeReminderEnabled'] == 1 || map['volumeReminderEnabled'] == true,
+      volumeReminderValue: (map['volumeReminderValue'] as num?)?.toDouble() ?? 3.0,
+      distanceReminderEnabled: map['distanceReminderEnabled'] == 1 || map['distanceReminderEnabled'] == true,
+      distanceReminderValue: (map['distanceReminderValue'] as num?)?.toDouble() ?? 50.0,
+    );
+  }
+
+  Vehicle copyWith({
+    int? id,
+    String? name,
+    VehicleType? type,
+    int? primaryFuelTypeId,
+    double? primaryFuelCapacity,
+    int? secondaryFuelTypeId,
+    double? secondaryFuelCapacity,
+    TripMeterMode? tripMeterMode,
+    bool? volumeReminderEnabled,
+    double? volumeReminderValue,
+    bool? distanceReminderEnabled,
+    double? distanceReminderValue,
+  }) {
+    return Vehicle(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      primaryFuelTypeId: primaryFuelTypeId ?? this.primaryFuelTypeId,
+      primaryFuelCapacity: primaryFuelCapacity ?? this.primaryFuelCapacity,
+      secondaryFuelTypeId: secondaryFuelTypeId ?? this.secondaryFuelTypeId,
+      secondaryFuelCapacity: secondaryFuelCapacity ?? this.secondaryFuelCapacity,
+      tripMeterMode: tripMeterMode ?? this.tripMeterMode,
+      volumeReminderEnabled: volumeReminderEnabled ?? this.volumeReminderEnabled,
+      volumeReminderValue: volumeReminderValue ?? this.volumeReminderValue,
+      distanceReminderEnabled: distanceReminderEnabled ?? this.distanceReminderEnabled,
+      distanceReminderValue: distanceReminderValue ?? this.distanceReminderValue,
     );
   }
 }
