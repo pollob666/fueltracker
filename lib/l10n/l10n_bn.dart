@@ -363,4 +363,15 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get clear => 'পরিষ্কার করুন';
+
+  @override
+  String get today => 'আজ';
+
+  @override
+  String get yesterday => 'গতকাল';
+
+  @override
+  String daysAgo(int days) {
+    return '$days দিন আগে';
+  }
 }

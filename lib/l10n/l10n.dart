@@ -781,6 +781,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get clear;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days ago'**
+  String daysAgo(int days);
 }
 
 class _AppLocalizationsDelegate

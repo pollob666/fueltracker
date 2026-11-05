@@ -126,5 +126,15 @@
   "shareExport": "Share Export",
   "exportSuccessful": "Files prepared successfully.",
   "folderPathHelper": "Optional. Leave empty to share via system share sheet.",
-  "clear": "Clear"
+  "clear": "Clear",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "daysAgo": "{days} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  }
 }

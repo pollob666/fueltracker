@@ -126,5 +126,15 @@
   "shareExport": "এক্সপোর্ট শেয়ার করুন",
   "exportSuccessful": "ফাইল সফলভাবে প্রস্তুত করা হয়েছে।",
   "folderPathHelper": "ঐচ্ছিক। সিস্টেম শেয়ার শীট ব্যবহার করতে খালি রাখুন।",
-  "clear": "পরিষ্কার করুন"
+  "clear": "পরিষ্কার করুন",
+  "today": "আজ",
+  "yesterday": "গতকাল",
+  "daysAgo": "{days} দিন আগে",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  }
 }

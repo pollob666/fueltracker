@@ -56,6 +56,24 @@ This document outlines strategic, architectural, domain, and UX improvements ide
     - Efficiency Formula (`km/l`, `l/100km`, `MPG US`, `MPG UK`).
   - Automatically convert and format displayed values based on user configuration.
 
+### 2.5 Advanced Trip Meter Support & Driving Condition Analytics `[PENDING]`
+- **Concept:** Maximize utility of hardware trip meters (Trip A / Trip B) while remaining completely optional and zero-friction for vehicles without trip meters or users who forget to reset.
+- **Architecture & Implementation Details:**
+  - **Vehicle Trip Mode Configuration:**
+    - Per-vehicle preference `tripMeterMode`:
+      - `None` (Default for vehicles without trip meters): Completely conceals all trip meter fields across data entry and details forms to eliminate UI clutter.
+      - `Single Trip` (Trip A): Exposes optional `tripDistance` field with auto-sync and validation.
+      - `Dual Trip` (Trip A & Trip B): Exposes two configurable fields (e.g., "Trip A: Fuel Interval", "Trip B: Oil/Tour Interval").
+  - **Auto-Sync & Typo Cross-Validation:**
+    - **One-Tap Odometer Sync:** Entering `tripDistance` offers an auto-fill button to compute current odometer: $O_{\text{current}} = O_{\text{previous}} + \text{Trip}$.
+    - **Non-Blocking Sanity Hint:** If user manually enters both odometer and trip, and $|\Delta O - \text{Trip}| > 1.0\text{ km}$, show non-blocking helper chip: *"Odometer delta differs from Trip. Reset late or forgot to reset?"*
+  - **Fail-Safe & Missing Data Fallback:**
+    - **Total Odometer as Ground Truth Anchor:** If user leaves trip field blank or forgets to reset trip, `MileageCalculator` seamlessly falls back to total odometer delta $(O_i - O_{i-1})$.
+    - **Broken Odometer Fallback:** If vehicle total odometer is broken or 5-digit roll-over occurred, trip distance serves as primary interval distance for full-to-full calculation.
+  - **Driving Condition Tagging:**
+    - Add optional `drivingCondition` enum (`City`, `Highway`, `Mixed`) when entering trip distance.
+    - Enables comparative efficiency analytics: City mileage vs. Highway cruising efficiency.
+
 ---
 
 ## 3. Medium-Priority: UI, UX & Visual Analytics
@@ -78,9 +96,65 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 - **Solution:**
   - Either remove the misleading cloud dropdown options and rely on native file export/sharing, or integrate standard OAuth backup clients (e.g., Google Drive REST API / App Data folder).
 
-### 3.4 Vehicle Maintenance & Service Reminders `[PENDING]`
-- **New Feature Expansion:**
-  - Add scheduled vehicle maintenance logging (oil change, tire replacement, insurance renewal, filter check) with odometer- and date-based notifications.
+### 3.4 Comprehensive Vehicle Maintenance & Periodic Service Reminders `[PENDING]`
+- **Concept:** Track recurring distance- and time-based periodic maintenance (e.g., General Servicing, Spark Plug, Oil Filter, Fuel Filter, Chain & Sprocket, Air Filter) with customizable intervals, bundled notifications, and multi-task service visit logging.
+- **Architecture & Implementation Details:**
+  - **Extensible Maintenance Catalog & Storage:**
+    - SQLite table `maintenance_tasks` with foreign key cascade to `vehicles(id)`:
+      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `vehicleId INTEGER NOT NULL`, `taskKey TEXT`, `title TEXT NOT NULL`, `intervalKm REAL NOT NULL`, `intervalMonths INTEGER`, `lastServiceOdo REAL NOT NULL`, `lastServiceDate TEXT NOT NULL`, `reminderBufferKm REAL DEFAULT 100`, `isEnabled INTEGER DEFAULT 1`.
+    - **Default Pre-Populated Tasks per Vehicle:**
+      - **General Servicing:** Every 4,000 km / 6 months.
+      - **Engine Oil Change:** Every 2,000–3,000 km / 3 months.
+      - **Engine Oil Filter Change:** Every 4,000 km / 6 months.
+      - **Air Filter Clean/Replacement:** Every 4,000 km / 6 months.
+      - **Spark Plug Replacement:** Every 4,000–8,000 km / 12 months.
+      - **Fuel Filter Replacement:** Every 4,000–8,000 km / 12 months.
+      - **Chain & Sprocket Kit Inspection/Replacement:** Every 4,000–12,000 km.
+      - *Custom Items:* Users can create custom maintenance tasks with user-defined names, km intervals, and optional month ceilings.
+    - SQLite table `service_sessions` (Unified Service Visit / Receipt):
+      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `vehicleId INTEGER NOT NULL`, `odometer REAL NOT NULL`, `serviceDate TEXT NOT NULL`, `totalCost REAL`, `workshopName TEXT`, `notes TEXT`.
+    - SQLite table `service_session_items` (Tasks completed in session):
+      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `sessionId INTEGER NOT NULL`, `taskId INTEGER NOT NULL`, `cost REAL`, `notes TEXT`, linking completed tasks to the session.
+  - **Hybrid Prediction & Trigger Algorithm:**
+    - Target Odometer: $O_{\text{due}} = O_{\text{last\_service}} + \text{Interval Km}$.
+    - Calendar Limit Date (Optional): $D_{\text{time\_limit}} = D_{\text{last\_service}} + \text{Interval Months}$.
+    - Projected Odometer Due Date: $D_{\text{odo\_due}} = \text{Today} + \frac{O_{\text{due}} - O_{\text{current}}}{\text{Daily Run Rate}}$.
+    - Effective Due Date: $\min(D_{\text{odo\_due}}, D_{\text{time\_limit}})$ (whichever comes first).
+    - Cold-Start Fallback: Falls back to user-configured default daily run (20 km/day) if $< 2$ refuel records exist.
+    - Two-Stage Trigger:
+      1. *Advance Warning:* Triggers when $(O_{\text{due}} - O_{\text{current}}) \le \text{Buffer Km}$ (100 km) or $\le 3\text{ days}$ to target date.
+      2. *Overdue Alert:* Triggers when odometer or calendar ceiling is exceeded.
+  - **Bundled Notifications & In-App Presentation:**
+    - **Bundled Android Notifications:** Co-occurring due tasks are aggregated into a single non-spamming system notification (e.g., *"3 maintenance items due: General Servicing, Oil Filter, Air Filter"*) scheduled via `flutter_local_notifications`.
+    - **Dashboard Summary Card:** High-visibility dashboard card showing total pending items and the nearest upcoming service with remaining km / days.
+    - **Multi-Task Logging UI (`MaintenancePage`):**
+      - Navigation Drawer entry point to `MaintenancePage`.
+      - Visual health cards with progress indicators ($\frac{O_{\text{current}} - O_{\text{last}}}{\text{Interval Km}}$).
+      - Single-visit checklist modal: User enters current odometer, date, workshop name, total cost, and selects multiple completed tasks via checkboxes (e.g., [x] Servicing, [x] Oil Filter, [x] Air Filter), atomically resetting all selected task intervals in a single database transaction.
+
+### 3.5 Predictive Refuel Reminder `[PENDING]`
+- **Concept:** Proactively alert users before fuel reaches critical reserve levels based on vehicle tank capacity, running fuel efficiency, and daily driving habits.
+- **Architecture & Implementation Details:**
+  - **Configuration & Storage:**
+    - Add `refuelReminderThreshold` (in Liters, e.g., 5.0 L) and `tankCapacity` per vehicle in `vehicles` table and Vehicle Profile editor.
+    - Global default threshold option in `AppSettings`.
+  - **Prediction & Math Engine:**
+    - Running Fuel Efficiency: Weighted harmonic/running average ($E = \text{km/L}$) from `MileageCalculator`.
+    - Remaining Fuel: $V_{\text{rem}} = V_{\text{tank}} - \frac{O_{\text{current}} - O_{\text{last\_full}}}{E}$.
+    - Distance to Reserve Threshold: $D_{\text{to\_reserve}} = (V_{\text{rem}} - V_{\text{threshold}}) \times E$.
+    - Projected Refuel Date: $T_{\text{refuel\_days}} = \frac{D_{\text{to\_reserve}}}{\text{Daily Run Rate}}$.
+    - Cold-Start Fallback: Uses fallback daily run (default 20 km/day) if insufficient refuel records exist.
+  - **Notification & UX Delivery:**
+    - **Android OS Notification:** Scheduled target notification via `flutter_local_notifications` when projected date reaches low-fuel threshold. Rescheduled automatically on every new refuel entry.
+    - **In-App Banner Card:** Dashboard indicator showing remaining fuel estimate, estimated distance-to-empty, and quick "Refuel Now" action button.
+
+### 3.6 Dashboard Last Refuel Recency & Elapsed Counter `[COMPLETED]`
+- **Status:** Implemented in `DashboardPage`, `MileageCalculator`, and localization resources (`app_en.arb`, `app_bn.arb`).
+- **Current Architecture & Implementation Details:**
+  - **Data Display:**
+    - Displays formatted calendar date (e.g., `Oct 28, 2024`) via `intl` (`DateFormat.yMMMd`).
+    - Relative elapsed time counter: `"Today"`, `"Yesterday"`, or `"X days ago"` calculated from calendar date differences (`nowDate.difference(targetDate).inDays`).
+    - **Cadence Warning Indicator:** `MileageCalculator.calculateAverageRefuelCadence(_filteredRecords)` calculates average days between fills. If elapsed days exceed $1.5\times$ average cadence, the badge shifts from `secondaryContainer` to `errorContainer` accent.
 
 ---
 
@@ -103,19 +177,31 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 
 ## 5. Domain & Expense Tracking Expansion `[NEW]`
 
-### 5.1 Fuel Receipt & Pump Meter Photo Attachments `[PENDING]`
-- **Concept:** Allow capturing or picking photos of the fuel pump display or paper receipt when logging a refuel.
-- **Solution:**
-  - Save image files into local app documents directory.
-  - Store relative image paths in `FuelRecord`.
+### 5.1 Fuel Receipt & Pump Meter Photo Attachments + OCR Vision Pipeline `[PENDING]`
+- **Concept:** Allow capturing or picking photos of the fuel pump display or paper receipt when logging a refuel, with privacy-first on-device computer vision to automate data entry.
+- **Solution & Storage:**
+  - Save image files into local app documents directory; store relative image paths in `FuelRecord`.
   - Provide thumbnail preview in record details and full-screen zoom dialog.
+- **Future Roadmap (TODOs):**
+  - **TODO 1: Dashboard Cluster Odometer OCR:** On-device text recognition (`google_mlkit_text_recognition`) to extract digital or analog odometer reading directly from user-snapped dashboard photo, auto-populating the odometer field with confidence score.
+  - **TODO 2: Dispenser Unit LCD Reader:** On-device computer vision parser to extract fuel volume (liters/gallons) and total monetary payment amount directly from the fuel station dispenser display image, bypassing manual typing.
 
-### 5.2 Fuel Brand & Station Location Tracking `[PENDING]`
-- **Concept:** Compare fuel quality and fuel efficiency across different fuel brands or gas stations.
-- **Solution:**
-  - Add optional `stationName` / `fuelBrand` field (e.g., Shell, BP, Total, Octane 95).
-  - Add optional geolocation tag (lat/lng) with station name autofill via reverse geocoding.
-  - Generate brand-level efficiency and price comparison metrics.
+### 5.2 Fuel Station Geofencing & Poor Fuel Quality Anomaly Flagging `[PENDING]`
+- **Concept:** Capture fueling station GPS location with a proximity radius, detect return visits, and automatically flag suspect stations if vehicle mileage experiences a sudden drop.
+- **Architecture & Implementation Details:**
+  - **Data Model & Geofencing:**
+    - SQLite table `fuel_stations`:
+      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `name TEXT NOT NULL`, `latitude REAL NOT NULL`, `longitude REAL NOT NULL`, `radiusMeters REAL DEFAULT 80.0`, `isSuspectQuality INTEGER DEFAULT 0`, `rating REAL`, `notes TEXT`.
+    - Link `FuelRecord` to `stationId` (optional foreign key with `SET NULL` on delete).
+    - Capture location on refuel entry via `geolocator`:
+      - If user is within existing station radius (75–100m): Auto-fill station name and show quality indicator.
+      - If new coordinates: Prompt user to save station name with configured radius (default 80m).
+  - **Fuel Quality Anomaly Detection:**
+    - **Timing:** Evaluated on the *subsequent* full-to-full refuel (when actual distance and consumption of tank $N$ are recorded).
+    - **Trigger Condition:** If interval fuel efficiency drops $>15\%$ below the vehicle's rolling average km/L ($E_{\text{interval}} < 0.85 \times E_{\text{running}}$).
+    - **Confirmation Prompt:** Display soft confirmation dialog explaining the mileage drop and asking user if they want to flag the station as "Suspect / Low Quality Fuel" (ruling out external anomalies like heavy traffic or AC usage).
+  - **Proximity Alert on Return:**
+    - When user opens "Add Refuel" while inside the geofence radius of a previously flagged station, display an prominent warning banner: *"⚠️ Warning: Lower fuel efficiency was recorded after fueling at this station."*
 
 ### 5.3 Total Cost of Ownership (TCO) & Multi-Category Expenses `[PENDING]`
 - **Concept:** Fuel is only one component of vehicle expenses.
@@ -175,3 +261,16 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 - **Solution:**
   - Update `analysis_options.yaml` with modern strict lint rule sets (`flutter_lints` / `very_good_analysis`).
   - Enable strict type checks (`strict-casts`, `strict-inference`, `strict-raw-types`).
+
+---
+
+## 8. Implementation Priority Matrix (Ranked by Complexity: Lowest to Highest)
+
+| Rank | Feature | Complexity | Target Phase | Implementation Scope & Rationale |
+| :--- | :--- | :---: | :---: | :--- |
+| **1** | **Dashboard Last Refuel Recency Counter** (Section 3.6) | **Very Low** (1/5) | **COMPLETED** | **Pure UI Enhancement:** Calculates `DateTime.now().difference(date).inDays` and displays `"Today"`, `"Yesterday"`, or `"X days ago"` with cadence-exceeded warning indicator. |
+| **2** | **Advanced Trip Meter Support** (Section 2.5) | **Low** (2/5) | **IMPLEMENT NOW** (Phase 1) | **Form Intelligence & Fallback:** Vehicle setting (`None`/`Single`/`Dual`), hides fields when `None`, auto-fills odometer from trip, cross-checks typos ($|\Delta O - \text{Trip}|$), and gracefully defaults to total odometer if left blank or forgotten. |
+| **3** | **Predictive Refuel Reminder** (Section 3.5) | **Low-Medium** (2.5/5) | **IMPLEMENT NOW** (Phase 1) | **Lightweight Math + Notifications:** Uses existing `MileageCalculator` daily run rate and km/L. Needs minor vehicle settings additions (`tankCapacity`, threshold), `flutter_local_notifications` setup, and dashboard low-fuel banner. |
+| **4** | **Periodic Maintenance & Service Reminders** (Section 3.4) | **Medium** (3/5) | **IMPLEMENT NEXT** (Phase 2) | **Relational Schema + Multi-Task UI:** SQLite schema migration v5 (`maintenance_tasks`, `service_sessions`), new `MaintenancePage` with multi-select visit checklist, hybrid km/month triggers, and bundled notifications. |
+| **5** | **Fuel Station Geofencing & Quality Anomaly Flagging** (Section 5.2) | **Medium-High** (4/5) | **IMPLEMENT LATER** (Phase 3) | **Location Services + Analytics:** Requires `geolocator` plugin, runtime location permissions, radius matching math, `fuel_stations` table, and subsequent-refuel anomaly verification (>15% drop). |
+| **6** | **On-Device OCR Vision Pipeline (Odo & Dispenser LCD)** (Section 5.1) | **High** (5/5) | **IMPLEMENT LATER** (Future Roadmap) | **Machine Learning & Image Parsing:** Integrates `google_mlkit_text_recognition`, camera capture, image pre-processing, and regex parsers for 7-segment / odometer dial digits. |

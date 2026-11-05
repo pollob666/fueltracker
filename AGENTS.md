@@ -130,3 +130,9 @@ The following is a roadmap of planned features to be implemented in the future. 
 *   **Git Mutation Operations:** Writing to Git index (`git add`, `git commit`, `git checkout -b`, etc.) requires `BypassSandbox: true` due to filesystem permissions on `.git/index.lock`. Read-only commands (`git status`, `git log`, `git diff`) should run sandboxed first.
 *   **Git Remote Protection:** Never run `git push` or propose pushing to remote repositories unless explicitly requested and confirmed by the user.
 
+### Storage & Export Invariant
+*   **Scoped Storage & File Export:** Do not rely on persistent user-selected filesystem directories or request legacy storage permissions (`WRITE_EXTERNAL_STORAGE`, `MANAGE_EXTERNAL_STORAGE`). For data exports (CSV/JSON), stage payload files into the temporary cache directory (`getTemporaryDirectory()`) and dispatch via native share sheet (`share_plus: Share.shareXFiles`).
+
+### Database Deletion Invariant
+*   **Foreign Key Cascade Protection:** Because `PRAGMA foreign_keys = ON;` is enforced and schema alters for `ON DELETE CASCADE` carry migration risks on active installs, entity deletions must execute inside an explicit atomic transaction in `DatabaseHelper` deleting child foreign key dependencies prior to the parent record.
+

@@ -233,5 +233,63 @@ void main() {
       // Cost per km across all records: (2000 + 2200) / 200 = 21.0
       expect(MileageCalculator.calculateCostPerKm(records), 21.0);
     });
+
+    test('calculates average refuel cadence correctly', () {
+      expect(MileageCalculator.calculateAverageRefuelCadence([]), 0.0);
+
+      final singleRecord = [
+        FuelRecord(
+          id: 1,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1000.0,
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 1),
+          isFullTank: true,
+        ),
+      ];
+      expect(MileageCalculator.calculateAverageRefuelCadence(singleRecord), 0.0);
+
+      final multiRecords = [
+        FuelRecord(
+          id: 1,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1000.0,
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 1),
+          isFullTank: true,
+        ),
+        FuelRecord(
+          id: 2,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1200.0,
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 5),
+          isFullTank: true,
+        ),
+        FuelRecord(
+          id: 3,
+          vehicleId: 1,
+          fuelTypeId: 1,
+          rate: 100.0,
+          volume: 20.0,
+          odometer: 1400.0,
+          paidAmount: 2000.0,
+          date: DateTime(2026, 1, 11),
+          isFullTank: true,
+        ),
+      ];
+
+      // Total 10 days across 2 intervals = 5.0 days/refuel
+      expect(MileageCalculator.calculateAverageRefuelCadence(multiRecords), 5.0);
+    });
   });
 }

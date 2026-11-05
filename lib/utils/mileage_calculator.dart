@@ -239,4 +239,15 @@ class MileageCalculator {
     if (days <= 0) return totalCost;
     return totalCost / days;
   }
+
+  /// Calculates the average number of days between consecutive refuel events.
+  /// Returns 0.0 if fewer than 2 records are available.
+  static double calculateAverageRefuelCadence(List<FuelRecord> records) {
+    if (records.length < 2) return 0.0;
+    final sorted = sortChronological(records);
+    final int totalDays = sorted.last.date.difference(sorted.first.date).inDays;
+    final int intervals = sorted.length - 1;
+    if (intervals <= 0 || totalDays <= 0) return 0.0;
+    return totalDays / intervals;
+  }
 }

@@ -77,7 +77,7 @@ class _MyDrawerState extends State<MyDrawer> {
             leading: const Icon(Icons.add_circle_outline),
             title: Text(AppLocalizations.of(context)!.addFuelData),
             selected: _selectedIndex == 6,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
             selectedColor: colorScheme.primary,
             onTap: () {
               _onItemTapped(6);

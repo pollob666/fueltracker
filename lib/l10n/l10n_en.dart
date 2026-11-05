@@ -362,4 +362,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clear => 'Clear';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String daysAgo(int days) {
+    return '$days days ago';
+  }
 }

@@ -2,6 +2,7 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
@@ -120,6 +121,23 @@ class _DashboardPageState extends State<DashboardPage> {
 
   double calculateDailyAverageCost(List<FuelRecord> records) {
     return MileageCalculator.calculateDailyAverageCost(records);
+  }
+
+  String _formatRecency(BuildContext context, DateTime recordDate) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return '';
+    final now = DateTime.now();
+    final nowDate = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(recordDate.year, recordDate.month, recordDate.day);
+    final diffDays = nowDate.difference(targetDate).inDays;
+
+    if (diffDays <= 0) {
+      return l10n.today;
+    } else if (diffDays == 1) {
+      return l10n.yesterday;
+    } else {
+      return l10n.daysAgo(diffDays);
+    }
   }
 
   Widget _buildMileageCard(BuildContext context, String title, double value, String unit,
@@ -485,7 +503,60 @@ class _DashboardPageState extends State<DashboardPage> {
                           style: theme.textTheme.headlineSmall,
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 24),
+                        if (lastRecord != null) ...[
+                          const SizedBox(height: 8),
+                          Builder(
+                            builder: (context) {
+                              final avgCadence =
+                                  MileageCalculator.calculateAverageRefuelCadence(_filteredRecords);
+                              final now = DateTime.now();
+                              final diffDays = DateTime(now.year, now.month, now.day)
+                                  .difference(DateTime(
+                                      lastRecord.date.year, lastRecord.date.month, lastRecord.date.day))
+                                  .inDays;
+                              final isCadenceExceeded =
+                                  avgCadence > 0 && diffDays > (avgCadence * 1.5);
+
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.calendar_today_outlined,
+                                      size: 16, color: colorScheme.secondary),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    DateFormat.yMMMd(Localizations.localeOf(context).toString())
+                                        .format(lastRecord.date),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: isCadenceExceeded
+                                          ? colorScheme.errorContainer
+                                          : colorScheme.secondaryContainer,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _formatRecency(context, lastRecord.date),
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        color: isCadenceExceeded
+                                            ? colorScheme.onErrorContainer
+                                            : colorScheme.onSecondaryContainer,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 20),
                         Wrap(
                           alignment: WrapAlignment.spaceAround,
                           spacing: 16.0,
