@@ -26,6 +26,8 @@ class Vehicle {
   double? secondaryFuelCapacity;
   TripMeterMode tripMeterMode;
 
+  bool get isDualFuel => secondaryFuelTypeId != null;
+
   Vehicle({
     this.id,
     required this.name,

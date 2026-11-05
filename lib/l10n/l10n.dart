@@ -925,6 +925,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Highway Mileage'**
   String get highwayMileage;
+
+  /// No description provided for @supportedFuelTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported Fuel Types'**
+  String get supportedFuelTypes;
+
+  /// No description provided for @singleFuel.
+  ///
+  /// In en, this message translates to:
+  /// **'Single Fuel'**
+  String get singleFuel;
+
+  /// No description provided for @dualFuel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dual / Bi-Fuel'**
+  String get dualFuel;
+
+  /// No description provided for @dualFuelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle supports two fuel types (e.g. Petrol + CNG/LPG)'**
+  String get dualFuelSubtitle;
 }
 
 class _AppLocalizationsDelegate

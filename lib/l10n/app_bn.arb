@@ -184,5 +184,9 @@
   "highway": "হাইওয়ে",
   "mixed": "মিশ্র",
   "cityMileage": "শহরের মাইলেজ",
-  "highwayMileage": "হাইওয়ের মাইলেজ"
+  "highwayMileage": "হাইওয়ের মাইলেজ",
+  "supportedFuelTypes": "জ্বালানির ধরন",
+  "singleFuel": "একক জ্বালানি",
+  "dualFuel": "দ্বৈত / দ্বি-জ্বালানি",
+  "dualFuelSubtitle": "যানবাহন দুটি জ্বালানি সমর্থন করে (যেমন: পেট্রোল + সিএনজি/এলপিজি)"
 }

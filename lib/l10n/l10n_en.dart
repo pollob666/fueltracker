@@ -443,4 +443,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get highwayMileage => 'Highway Mileage';
+
+  @override
+  String get supportedFuelTypes => 'Supported Fuel Types';
+
+  @override
+  String get singleFuel => 'Single Fuel';
+
+  @override
+  String get dualFuel => 'Dual / Bi-Fuel';
+
+  @override
+  String get dualFuelSubtitle =>
+      'Vehicle supports two fuel types (e.g. Petrol + CNG/LPG)';
 }

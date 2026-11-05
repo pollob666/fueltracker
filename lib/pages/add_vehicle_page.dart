@@ -30,6 +30,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   int? _secondaryFuelTypeId;
   double? _secondaryFuelCapacity;
   TripMeterMode _tripMeterMode = TripMeterMode.none;
+  bool _isDualFuel = false;
 
   List<FuelType> _fuelTypes = [];
 
@@ -44,6 +45,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       _secondaryFuelTypeId = widget.vehicle!.secondaryFuelTypeId;
       _secondaryFuelCapacity = widget.vehicle!.secondaryFuelCapacity;
       _tripMeterMode = widget.vehicle!.tripMeterMode;
+      _isDualFuel = widget.vehicle!.isDualFuel;
     }
     _loadFuelTypes();
   }
@@ -153,6 +155,48 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   },
                   decoration: InputDecoration(labelText: localizations.vehicleType),
                 ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    localizations.supportedFuelTypes,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<bool>(
+                    segments: [
+                      ButtonSegment(
+                        value: false,
+                        icon: const Icon(Icons.local_gas_station_outlined),
+                        label: Text(localizations.singleFuel),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        icon: const Icon(Icons.electric_bolt_outlined),
+                        label: Text(localizations.dualFuel),
+                      ),
+                    ],
+                    selected: {_isDualFuel},
+                    onSelectionChanged: (newSelection) {
+                      setState(() {
+                        _isDualFuel = newSelection.first;
+                        if (!_isDualFuel) {
+                          _secondaryFuelTypeId = null;
+                          _secondaryFuelCapacity = null;
+                        } else if (_secondaryFuelTypeId == null && _fuelTypes.length > 1) {
+                          _secondaryFuelTypeId = _fuelTypes.firstWhere(
+                            (ft) => ft.id != _primaryFuelTypeId,
+                            orElse: () => _fuelTypes.last,
+                          ).id;
+                        }
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
                   initialValue: _primaryFuelTypeId,
                   items: _fuelTypes
@@ -175,27 +219,31 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   onSaved: (value) =>
                       _primaryFuelCapacity = value!.isEmpty ? null : double.tryParse(value),
                 ),
-                DropdownButtonFormField<int>(
-                  initialValue: _secondaryFuelTypeId,
-                  items: _fuelTypes
-                      .map((fuel) => DropdownMenuItem(
-                            value: fuel.id,
-                            child: Text(fuel.name),
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _secondaryFuelTypeId = value;
-                    });
-                  },
-                  decoration: InputDecoration(labelText: localizations.secondaryFuelType),
-                ),
-                TextFormField(
-                  initialValue: _secondaryFuelCapacity?.toString(),
-                  decoration: InputDecoration(labelText: localizations.secondaryFuelCapacity),
-                  keyboardType: TextInputType.number,
-                  onSaved: (value) => _secondaryFuelCapacity = value!.isEmpty ? null : double.tryParse(value),
-                ),
+                if (_isDualFuel) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    initialValue: _secondaryFuelTypeId,
+                    items: _fuelTypes
+                        .map((fuel) => DropdownMenuItem(
+                              value: fuel.id,
+                              child: Text(fuel.name),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _secondaryFuelTypeId = value;
+                      });
+                    },
+                    decoration: InputDecoration(labelText: localizations.secondaryFuelType),
+                  ),
+                  TextFormField(
+                    initialValue: _secondaryFuelCapacity?.toString(),
+                    decoration: InputDecoration(labelText: localizations.secondaryFuelCapacity),
+                    keyboardType: TextInputType.number,
+                    onSaved: (value) =>
+                        _secondaryFuelCapacity = value!.isEmpty ? null : double.tryParse(value),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -252,8 +300,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                         type: _vehicleType,
                         primaryFuelTypeId: _primaryFuelTypeId!,
                         primaryFuelCapacity: _primaryFuelCapacity,
-                        secondaryFuelTypeId: _secondaryFuelTypeId,
-                        secondaryFuelCapacity: _secondaryFuelCapacity,
+                        secondaryFuelTypeId: _isDualFuel ? _secondaryFuelTypeId : null,
+                        secondaryFuelCapacity: _isDualFuel ? _secondaryFuelCapacity : null,
                         tripMeterMode: _tripMeterMode,
                       );
                       final navigator = Navigator.of(context);

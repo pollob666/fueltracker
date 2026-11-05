@@ -184,5 +184,9 @@
   "highway": "Highway",
   "mixed": "Mixed",
   "cityMileage": "City Mileage",
-  "highwayMileage": "Highway Mileage"
+  "highwayMileage": "Highway Mileage",
+  "supportedFuelTypes": "Supported Fuel Types",
+  "singleFuel": "Single Fuel",
+  "dualFuel": "Dual / Bi-Fuel",
+  "dualFuelSubtitle": "Vehicle supports two fuel types (e.g. Petrol + CNG/LPG)"
 }

@@ -444,4 +444,17 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get highwayMileage => 'হাইওয়ের মাইলেজ';
+
+  @override
+  String get supportedFuelTypes => 'জ্বালানির ধরন';
+
+  @override
+  String get singleFuel => 'একক জ্বালানি';
+
+  @override
+  String get dualFuel => 'দ্বৈত / দ্বি-জ্বালানি';
+
+  @override
+  String get dualFuelSubtitle =>
+      'যানবাহন দুটি জ্বালানি সমর্থন করে (যেমন: পেট্রোল + সিএনজি/এলপিজি)';
 }

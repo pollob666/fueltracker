@@ -139,27 +139,47 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
                   ),
                   const SizedBox(height: 16),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (isDefault)
-                        Chip(
-                          label: Text(localizations.defaultVehicle),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (isDefault)
+                              Chip(
+                                label: Text(localizations.defaultVehicle),
+                              ),
+                            Chip(
+                              avatar: Icon(
+                                vehicle.isDualFuel
+                                    ? Icons.electric_bolt_outlined
+                                    : Icons.local_gas_station_outlined,
+                                size: 16,
+                              ),
+                              label: Text(vehicle.isDualFuel
+                                  ? localizations.dualFuel
+                                  : localizations.singleFuel),
+                              backgroundColor: vehicle.isDualFuel
+                                  ? theme.colorScheme.tertiaryContainer
+                                  : null,
+                            ),
+                            if (vehicle.tripMeterMode != TripMeterMode.none)
+                              Chip(
+                                avatar: Icon(
+                                  vehicle.tripMeterMode == TripMeterMode.single
+                                      ? Icons.looks_one_outlined
+                                      : Icons.looks_two_outlined,
+                                  size: 16,
+                                ),
+                                label: Text(vehicle.tripMeterMode == TripMeterMode.single
+                                    ? localizations.tripModeSingle
+                                    : localizations.tripModeDual),
+                              ),
+                          ],
                         ),
-                      if (vehicle.tripMeterMode != TripMeterMode.none) ...[
-                        const SizedBox(width: 8),
-                        Chip(
-                          avatar: Icon(
-                            vehicle.tripMeterMode == TripMeterMode.single
-                                ? Icons.looks_one_outlined
-                                : Icons.looks_two_outlined,
-                            size: 16,
-                          ),
-                          label: Text(vehicle.tripMeterMode == TripMeterMode.single
-                              ? localizations.tripModeSingle
-                              : localizations.tripModeDual),
-                        ),
-                      ],
-                      const Spacer(),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () async {
