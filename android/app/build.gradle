@@ -53,6 +53,12 @@ android {
                 signingConfig signingConfigs.release
             }
         }
+        debug {
+            // Sign debug builds with release key when key.properties exists
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
     }
 }
 

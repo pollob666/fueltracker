@@ -1,8 +1,10 @@
 # GitHub Actions workflow for building and releasing Flutter APKs.
 #
-# This workflow is triggered on every push to the 'release' branch.
-# It automatically increments the version number based on the commit message,
-# builds a signed APK, and creates a new GitHub Release with the file.
+# This workflow is triggered on every push to the 'master' branch.
+# It verifies that the commit is cryptographically signed and authored/committed
+# by 'pollob666@gmail.com'. It automatically increments the version number based
+# on conventional commit messages, builds a signed release APK, and creates a
+# new GitHub Release with the file.
 # The version bump is only committed if the build and release are successful.
 #
 name: Build and Release APK
@@ -10,12 +12,14 @@ name: Build and Release APK
 on:
   push:
     branches:
-      - release
+      - master
 
 jobs:
   calculate-version:
-    if: "!contains(github.event.head_commit.message, 'ci: Bump version')"
+    if: "!contains(github.event.head_commit.message, 'ci: Bump version') && (github.event.head_commit.author.email == 'pollob666@gmail.com' || github.event.head_commit.committer.email == 'pollob666@gmail.com')"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       new_version: ${{ steps.version-increment.outputs.new_version }}
       new_version_name: ${{ steps.version-increment.outputs.new_version_name }}
@@ -26,13 +30,39 @@ jobs:
         with:
           fetch-depth: 0 # Fetches all history for version bumping.
 
+      - name: Verify Signed Commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT_DATA=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }})
+          VERIFIED=$(echo "$COMMIT_DATA" | jq -r '.commit.verification.verified')
+          REASON=$(echo "$COMMIT_DATA" | jq -r '.commit.verification.reason')
+          AUTHOR_EMAIL=$(echo "$COMMIT_DATA" | jq -r '.commit.author.email' | tr '[:upper:]' '[:lower:]')
+          COMMITTER_EMAIL=$(echo "$COMMIT_DATA" | jq -r '.commit.committer.email' | tr '[:upper:]' '[:lower:]')
+
+          echo "Commit: ${{ github.sha }}"
+          echo "Signature Status: verified=$VERIFIED, reason=$REASON"
+          echo "Author: $AUTHOR_EMAIL, Committer: $COMMITTER_EMAIL"
+
+          if [[ "$VERIFIED" != "true" || "$REASON" != "valid" ]]; then
+            echo "::error::Commit ${{ github.sha }} signature is invalid or unverified (status: $VERIFIED, reason: $REASON)."
+            exit 1
+          fi
+
+          if [[ "$AUTHOR_EMAIL" != "pollob666@gmail.com" && "$COMMITTER_EMAIL" != "pollob666@gmail.com" ]]; then
+            echo "::error::Commit ${{ github.sha }} is not authored or committed by pollob666@gmail.com."
+            exit 1
+          fi
+
+          echo "Cryptographic signature and identity verified for pollob666@gmail.com."
+
       - name: Determine Version Increment
         id: version-increment-type
         run: |
           COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$COMMIT_MSG" == *"majorUpdate"* || "$COMMIT_MSG" == *"refactor:"* ]]; then
+          if [[ "$COMMIT_MSG" == *"majorUpdate"* || "$COMMIT_MSG" == *"BREAKING CHANGE"* || "$COMMIT_MSG" == *"refactor:"* || "$COMMIT_MSG" == *"refactor("* ]]; then
             echo "increment=major" >> $GITHUB_OUTPUT
-          elif [[ "$COMMIT_MSG" == *"feat:"* || "$COMMIT_MSG" == *"feat(ci):"* ]]; then
+          elif [[ "$COMMIT_MSG" == *"feat:"* || "$COMMIT_MSG" == *"feat("* ]]; then
             echo "increment=minor" >> $GITHUB_OUTPUT
           else
             echo "increment=patch" >> $GITHUB_OUTPUT
@@ -171,4 +201,5 @@ jobs:
           sed -i "s/^version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
           git add pubspec.yaml
           git commit -m "ci: Bump version to ${{ needs.calculate-version.outputs.new_version }}"
-          git push
+          git pull --rebase origin master
+          git push origin master

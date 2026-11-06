@@ -85,19 +85,19 @@ The project is built with Flutter and relies on several key packages to provide 
 
 ## 5. CI/CD and Release Process
 
-The project uses a unified GitHub Actions workflow to automate the build and release process for both Android and iOS. The workflow is defined in `.github/workflows/release.yml` and is triggered on every push to the `release` branch.
+The project uses a unified GitHub Actions workflow to automate the build and release process for Android. The workflow is defined in `.github/workflows/release.yml` and is triggered on every push to the `master` branch containing a cryptographically signed commit authored or committed by `pollob666@gmail.com`.
 
 ### Workflow Steps:
 
-1.  **Version Bump**: The workflow begins by determining the new version number based on the commit message, updating `pubspec.yaml`, and committing the change. This job runs first to ensure the version is bumped only once per release.
+1.  **Verification & Version Bump**: The workflow checks that the push event is not an automated bump commit (`ci: Bump version`) and verifies via GitHub API that the commit is cryptographically signed (`verification.verified == true`, `verification.reason == 'valid'`) and that the author or committer email is `pollob666@gmail.com`. It then calculates the new version number based on conventional commit messages (`feat:`, `feat(*):`, `refactor:`, `majorUpdate`, `BREAKING CHANGE`), and sets step outputs.
 
-2.  **Build Android & iOS (Parallel)**: After the version is bumped, two jobs run in parallel:
-    *   **Build Android**: Builds the signed APK on a Linux runner.
-    *   **Build iOS**: Builds the unsigned IPA on a macOS runner.
+2.  **Build Android**: Decodes the release keystore from GitHub secrets, generates `key.properties`, and builds the signed release APK using Flutter.
 
-3.  **Create Release**: Once both build jobs are complete, a final job downloads the APK and IPA artifacts and creates a single GitHub Release containing both files.
+3.  **Create Release**: Downloads the generated APK artifact and creates a GitHub Release containing the signed APK file tagged with the new version.
 
-This automated process ensures that every release is built consistently and securely, without the need for manual intervention.
+4.  **Commit and Push Version Bump**: Updates `pubspec.yaml` with the new version, commits with message `ci: Bump version to <version>`, and rebase-pushes back to `master`.
+
+This automated process ensures that only verified, signed commits from the project owner trigger production releases, and prevents recursive build loops.
 
 ## 6. Monetization
 
@@ -136,6 +136,7 @@ The following is a roadmap of planned features to be implemented in the future. 
 ### Toolchain & Environment
 *   **Flutter Binary:** The Flutter SDK executable is located at `/home/andalib/software/flutter/bin/flutter`. Because this path is outside the workspace sandbox, commands invoking Flutter must run with `BypassSandbox: true`.
 *   **Build Toolchain:** Flutter 3.47.9 / Dart 3.13.7, Gradle 9.4.1 wrapper, Android Gradle Plugin (AGP) 9.2.1, Kotlin 2.4.0, and Foojay Resolver Convention 1.0.0.
+*   **Dual Build Signing:** `android/app/build.gradle` is configured so that both `release` and `debug` build types use `signingConfigs.release` when `android/app/key.properties` is present. If `key.properties` is absent, `debug` builds gracefully fall back to default debug keystore signing, ensuring external checkouts build without errors while local and CI environments produce debug APKs matching the release signature.
 *   **Artifact Naming Convention:** Android release APK and App Bundle artifacts are generated with custom naming format `fueltracker-v<versionName>-<versionCode>-<yyyyMMdd-HHmm>.apk` / `.aab` alongside default Gradle/Flutter names (`app-release.apk` / `app-release.aab`) to ensure both custom artifact archiving and standard Flutter CLI detection work concurrently.
 *   **Package Name:** The package is named `fuel_tracker` (with an underscore). Always use `package:fuel_tracker/...` for internal package imports, never `package:fueltracker/...`.
 *   **Self-Compilation Allowed:** The agent is explicitly authorized to execute Flutter and Gradle build and compilation commands directly (`flutter build apk`, `flutter build appbundle`, `./gradlew`, etc.) inside the workspace to verify builds and diagnose build issues.
