@@ -46,6 +46,8 @@ fueltracker/
 │   ├── l10n/                 # Localization files
 │   ├── models/               # Data models for the application
 │   ├── pages/                # UI screens for the application
+│   ├── providers/            # Riverpod state notifiers and reactive providers
+│   ├── repositories/         # Repository contracts and SQLite implementations
 │   ├── services/             # Services for handling business logic
 │   ├── utils/                # Utility classes and helper functions
 │   ├── widgets/              # Reusable UI widgets
@@ -62,7 +64,9 @@ fueltracker/
 *   **`theme.dart`**: Centralizes the app's theme management, including dynamic color generation for both light and dark modes.
 *   **`lib/pages/`**: Contains all the UI screens of the application, such as the dashboard, settings, and data entry pages.
 *   **`lib/models/`**: Defines the data models for the application, such as `Vehicle`, `FuelRecord`, and `FuelType`.
-*   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v8 with foreign key enforcement, `saved_locations` table, and additive migrations), migrations, and record operations.
+*   **`lib/repositories/`**: Repository layer abstracting SQLite persistence (`VehicleRepository`, `FuelRecordRepository`) with reactive broadcast stream support.
+*   **`lib/providers/`**: Riverpod 2.x providers (`vehiclesProvider`, `activeVehicleProvider`, `fuelRecordsProvider`) delivering reactive asynchronous state updates across widgets.
+*   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v9 with composite performance indexes, forward-compatible attachment/currency columns, foreign key enforcement, `saved_locations` table, and additive migrations), migrations, and record operations.
 *   **`lib/services/location_service.dart`**: Geolocation capture, 80m proximity clustering, multi-station disambiguation, and attribution candidate lookup.
 *   **`lib/pages/saved_locations_page.dart`**: Management interface for saved fuel stations and workshops with category filters, unnamed location toggle, and flag management.
 *   **`lib/services/version_service.dart`**: Manages GitHub release version checks, session dismissal state, and permanent version skipping stored in `SharedPreferences`.
@@ -76,7 +80,9 @@ fueltracker/
 The project is built with Flutter and relies on several key packages to provide its functionality:
 
 *   **`flutter`**: The core framework for building the application.
+*   **`flutter_riverpod`**: Modern, compile-safe reactive state management with declarative family providers and stream-based invalidation.
 *   **`sqflite`**: A database plugin for Flutter, used for local data storage.
+*   **`crypto`**: Cryptographic utilities for SHA-256 duplicate detection during CSV/JSON import dry-runs.
 *   **`shared_preferences`**: Used for storing simple key-value data, such as user settings and the export filename sequence.
 *   **`dynamic_color`**: Enables the app to use the system's dynamic color on Android, providing a more integrated UI.
 *   **`intl`**: A package for internationalization and localization, allowing the app to support multiple languages.

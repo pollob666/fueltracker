@@ -2,6 +2,8 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuel_tracker/providers/fuel_record_providers.dart';
 import 'package:intl/intl.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
@@ -25,14 +27,14 @@ import 'package:url_launcher/url_launcher.dart';
 import 'add_data_page.dart';
 import 'settings_page.dart';
 
-class DashboardPage extends StatefulWidget {
+class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends ConsumerState<DashboardPage> {
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
   final VersionService _versionService = VersionService();
@@ -775,6 +777,14 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_selectedVehicleId != null) {
+      ref.listen(fuelRecordsProvider(_selectedVehicleId!), (previous, next) {
+        if (previous != null) {
+          _loadInitialData();
+        }
+      });
+    }
+
     final localizations = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;

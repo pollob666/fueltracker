@@ -59,6 +59,7 @@ class ServiceSession {
   double? latitude;
   double? longitude;
   String? notes;
+  String? invoiceImagePath;
   List<ServiceSessionItem> items;
 
   ServiceSession({
@@ -72,6 +73,7 @@ class ServiceSession {
     this.latitude,
     this.longitude,
     this.notes,
+    this.invoiceImagePath,
     this.items = const [],
   });
 
@@ -87,6 +89,7 @@ class ServiceSession {
       'latitude': latitude,
       'longitude': longitude,
       'notes': notes,
+      'invoiceImagePath': invoiceImagePath,
     };
   }
 
@@ -102,6 +105,7 @@ class ServiceSession {
       latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
       longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
       notes: map['notes'] as String?,
+      invoiceImagePath: map['invoiceImagePath'] as String?,
       items: items,
     );
   }

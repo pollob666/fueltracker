@@ -3,6 +3,7 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
@@ -12,19 +13,21 @@ import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
+import 'package:fuel_tracker/providers/fuel_record_providers.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
+import 'package:fuel_tracker/widgets/import_dry_run_sheet.dart';
 
-class ImportPage extends StatefulWidget {
+class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
 
   @override
-  State<ImportPage> createState() => _ImportPageState();
+  ConsumerState<ImportPage> createState() => _ImportPageState();
 }
 
-class _ImportPageState extends State<ImportPage> {
+class _ImportPageState extends ConsumerState<ImportPage> {
   List<List<dynamic>> _previewData = [];
   String? _filePath;
 
@@ -150,6 +153,21 @@ class _ImportPageState extends State<ImportPage> {
       'ট্রিপ দূরত্ব',
       if (localizations != null) localizations.tripDistance,
     ]);
+    int secTripCol = _findColumnIndex(headers, [
+      'Secondary Trip Distance', 'secondaryTripDistance', 'Trip B', 'TripB', 'Trip 2',
+    ]);
+    int conditionCol = _findColumnIndex(headers, [
+      'Driving Condition', 'drivingCondition', 'Condition', 'driving_condition',
+    ]);
+    int locationCol = _findColumnIndex(headers, [
+      'Location Name', 'locationName', 'Location', 'location', 'Station', 'station',
+    ]);
+    int latCol = _findColumnIndex(headers, [
+      'Latitude', 'latitude', 'lat', 'Lat',
+    ]);
+    int lngCol = _findColumnIndex(headers, [
+      'Longitude', 'longitude', 'lng', 'Lng', 'lon', 'Lon',
+    ]);
 
     // Positional fallback for legacy or non-header CSVs
     if (dateCol == -1 && headers.isNotEmpty) dateCol = 0;
@@ -189,6 +207,7 @@ class _ImportPageState extends State<ImportPage> {
     try {
       final fuelTypes = await _fuelTypeService.getFuelTypes();
       final vehicles = await _vehicleService.getVehicles();
+      final savedLocations = await DatabaseHelper.instance.getSavedLocations();
       final Map<String, int> fuelTypeMap = {
         for (var ft in fuelTypes) ft.name.toLowerCase(): ft.id!
       };
@@ -292,6 +311,64 @@ class _ImportPageState extends State<ImportPage> {
             }
           }
 
+          double? secondaryTripDistance;
+          if (secTripCol != -1 && secTripCol < row.length) {
+            final val = row[secTripCol].toString().trim();
+            if (val.isNotEmpty && val != 'N/A' && val != 'null') {
+              secondaryTripDistance = double.tryParse(val);
+            }
+          }
+
+          DrivingCondition drivingCondition = DrivingCondition.mixed;
+          if (conditionCol != -1 && conditionCol < row.length) {
+            final val = row[conditionCol].toString().trim().toLowerCase();
+            if (val.contains('city')) {
+              drivingCondition = DrivingCondition.city;
+            } else if (val.contains('highway')) {
+              drivingCondition = DrivingCondition.highway;
+            }
+          }
+
+          double? latitude;
+          if (latCol != -1 && latCol < row.length) {
+            final val = row[latCol].toString().trim();
+            if (val.isNotEmpty && val != 'N/A') {
+              latitude = double.tryParse(val);
+            }
+          }
+
+          double? longitude;
+          if (lngCol != -1 && lngCol < row.length) {
+            final val = row[lngCol].toString().trim();
+            if (val.isNotEmpty && val != 'N/A') {
+              longitude = double.tryParse(val);
+            }
+          }
+
+          int? locationId;
+          if (locationCol != -1 && locationCol < row.length) {
+            final locName = row[locationCol].toString().trim();
+            if (locName.isNotEmpty && locName != 'N/A') {
+              final locMap = {
+                for (var l in savedLocations) l.name.toLowerCase(): l.id!
+              };
+              if (locMap.containsKey(locName.toLowerCase())) {
+                locationId = locMap[locName.toLowerCase()];
+              } else {
+                final newLoc = SavedLocation(
+                  name: locName,
+                  isNamed: true,
+                  type: 'fuel_station',
+                  latitude: latitude,
+                  longitude: longitude,
+                );
+                locationId =
+                    await DatabaseHelper.instance.insertSavedLocation(newLoc);
+                savedLocations.add(newLoc..id = locationId);
+              }
+            }
+          }
+
           entries.add(FuelRecord(
             date: recordDate,
             odometer: odometer,
@@ -303,33 +380,104 @@ class _ImportPageState extends State<ImportPage> {
             isFullTank: isFullTank,
             missedPrevious: missedPrevious,
             tripDistance: tripDistance,
+            secondaryTripDistance: secondaryTripDistance,
+            drivingCondition: drivingCondition,
+            locationId: locationId,
+            latitude: latitude,
+            longitude: longitude,
           ));
         } catch (e) {
           debugPrint('Error parsing CSV row: $e');
         }
       }
 
-      for (var record in entries) {
-        await DatabaseHelper.instance.insertFuelRecord(record);
+      if (entries.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(localizations?.csvFileEmptyOrIncorrectlyFormatted ??
+                "CSV file empty or incorrectly formatted")));
+        return;
       }
+
+      final existingRecords = await DatabaseHelper.instance.getFuelRecords();
+      final existingMap = <String, FuelRecord>{};
+      for (final ex in existingRecords) {
+        final fp = ImportDryRunSheet.computeFingerprint(
+          vehicleId: ex.vehicleId,
+          date: ex.date,
+          odometer: ex.odometer,
+          volume: ex.volume,
+        );
+        existingMap[fp] = ex;
+      }
+
+      final List<FuelRecord> newRecords = [];
+      final List<MapEntry<FuelRecord, FuelRecord>> duplicatePairs = [];
+
+      for (final entry in entries) {
+        final fp = ImportDryRunSheet.computeFingerprint(
+          vehicleId: entry.vehicleId,
+          date: entry.date,
+          odometer: entry.odometer,
+          volume: entry.volume,
+        );
+        if (existingMap.containsKey(fp)) {
+          duplicatePairs.add(MapEntry(entry, existingMap[fp]!));
+        } else {
+          newRecords.add(entry);
+        }
+      }
+
+      final summary = ImportDryRunSummary(
+        newRecords: newRecords,
+        duplicatePairs: duplicatePairs,
+        totalFound: _previewData.length - 1,
+        corruptedCount: (_previewData.length - 1) - entries.length,
+      );
 
       if (!mounted) return;
-      if (entries.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${entries.length} ${localizations?.dataImportedSuccessfully ?? "records imported"}')));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(localizations?.csvFileEmptyOrIncorrectlyFormatted ?? "CSV file empty or incorrectly formatted")));
-      }
 
-      setState(() {
-        _previewData = [];
-        _filePath = null;
-      });
+      await ImportDryRunSheet.show(
+        context: context,
+        summary: summary,
+        onCommit: (strategy) async {
+          final repo = ref.read(fuelRecordRepositoryProvider);
+          if (strategy == ConflictStrategy.skip) {
+            for (final r in newRecords) {
+              await repo.insertFuelRecord(r);
+            }
+          } else if (strategy == ConflictStrategy.overwrite) {
+            for (final pair in duplicatePairs) {
+              final updated = pair.key.copyWith(id: pair.value.id);
+              await repo.updateFuelRecord(updated);
+            }
+            for (final r in newRecords) {
+              await repo.insertFuelRecord(r);
+            }
+          } else {
+            // merge
+            for (final r in entries) {
+              await repo.insertFuelRecord(r);
+            }
+          }
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    '${localizations?.dataImportedSuccessfully ?? "Import completed"}')),
+          );
+
+          setState(() {
+            _previewData = [];
+            _filePath = null;
+          });
+        },
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("${localizations?.errorImportingData ?? 'Error: '}$e")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("${localizations?.errorImportingData ?? 'Error: '}$e")));
     }
   }
 

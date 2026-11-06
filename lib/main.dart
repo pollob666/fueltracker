@@ -7,6 +7,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
@@ -26,8 +27,12 @@ Future<void> main() async {
       DeviceOrientation.portraitDown,
     ]);
 
-    // Enable immersive mode
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // Enable edge-to-edge mode
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+    ));
 
     // Initialize Google Mobile Ads SDK
     if (AppSettings.adsEnabled) {
@@ -38,7 +43,7 @@ Future<void> main() async {
       await MobileAds.instance.initialize();
     }
 
-    runApp(const MyApp());
+    runApp(const ProviderScope(child: MyApp()));
   } catch (error, stackTrace) {
     // In a real-world app, you would use a robust error logging framework
     // like Sentry or Firebase Crashlytics to report errors.

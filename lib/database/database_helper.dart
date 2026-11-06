@@ -36,7 +36,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, "fuel_tracker.db");
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onConfigure: _onConfigure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
@@ -180,6 +180,19 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE service_sessions ADD COLUMN latitude REAL');
       await db.execute('ALTER TABLE service_sessions ADD COLUMN longitude REAL');
     }
+
+    if (oldVersion < 9) {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_fuel_records_vehicle_date ON fuel_records(vehicleId, date);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_fuel_records_odometer ON fuel_records(odometer);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_service_sessions_vehicle ON service_sessions(vehicleId, serviceDate);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_saved_locations_coords ON saved_locations(latitude, longitude);');
+
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN receiptImagePath TEXT');
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN odometerImagePath TEXT');
+      await db.execute("ALTER TABLE fuel_records ADD COLUMN currencyCode TEXT DEFAULT 'BDT'");
+
+      await db.execute('ALTER TABLE service_sessions ADD COLUMN invoiceImagePath TEXT');
+    }
   }
 
   Future<void> _createTables(Database db) async {
@@ -250,6 +263,9 @@ class DatabaseHelper {
         locationId INTEGER,
         latitude REAL,
         longitude REAL,
+        receiptImagePath TEXT,
+        odometerImagePath TEXT,
+        currencyCode TEXT DEFAULT 'BDT',
         FOREIGN KEY (fuelTypeId) REFERENCES fuel_types (id),
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id),
         FOREIGN KEY (locationId) REFERENCES saved_locations (id) ON DELETE SET NULL
@@ -284,6 +300,7 @@ class DatabaseHelper {
         latitude REAL,
         longitude REAL,
         notes TEXT,
+        invoiceImagePath TEXT,
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE,
         FOREIGN KEY (locationId) REFERENCES saved_locations (id) ON DELETE SET NULL
       )
@@ -303,6 +320,11 @@ class DatabaseHelper {
         FOREIGN KEY (locationId) REFERENCES saved_locations (id) ON DELETE SET NULL
       )
     ''');
+
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_fuel_records_vehicle_date ON fuel_records(vehicleId, date);');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_fuel_records_odometer ON fuel_records(odometer);');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_service_sessions_vehicle ON service_sessions(vehicleId, serviceDate);');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_saved_locations_coords ON saved_locations(latitude, longitude);');
   }
 
   static Future<void> _seedDefaultTasksForVehicle(

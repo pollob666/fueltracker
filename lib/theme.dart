@@ -13,11 +13,7 @@ class AppTheme {
       seedColor: _primaryColor, brightness: Brightness.dark);
 
   static ThemeData getLightTheme(ColorScheme? lightDynamic) {
-    final baseScheme = lightDynamic?.harmonized() ?? _defaultLightColorScheme;
-    final colorScheme = baseScheme.copyWith(
-      primary: _primaryColor,
-      onPrimary: Colors.white,
-    );
+    final colorScheme = lightDynamic?.harmonized() ?? _defaultLightColorScheme;
     return ThemeData(
       colorScheme: colorScheme,
       appBarTheme: AppBarTheme(
@@ -25,7 +21,7 @@ class AppTheme {
         foregroundColor: colorScheme.onPrimary,
       ),
       cardTheme: const CardThemeData(
-        elevation: 6.0,
+        elevation: 1.5,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -38,31 +34,21 @@ class AppTheme {
   }
 
   static ThemeData getMonetDarkTheme(ColorScheme? darkDynamic) {
-    final colorScheme = darkDynamic != null
-        ? ColorScheme.fromSeed(
-            seedColor: darkDynamic.primary,
-            brightness: Brightness.dark,
-          )
-        : _defaultDarkColorScheme;
-
-    final finalScheme = colorScheme.copyWith(
-      primary: _primaryColor,
-      onPrimary: Colors.white,
-    );
+    final colorScheme = darkDynamic?.harmonized() ?? _defaultDarkColorScheme;
 
     return ThemeData(
-      colorScheme: finalScheme,
+      colorScheme: colorScheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: finalScheme.primary,
-        foregroundColor: finalScheme.onPrimary,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
       ),
       cardTheme: const CardThemeData(
-        elevation: 6.0,
+        elevation: 1.5,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: finalScheme.primary,
-          foregroundColor: finalScheme.onPrimary,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
         ),
       ),
       useMaterial3: true,
@@ -72,8 +58,6 @@ class AppTheme {
   static ThemeData getBlackDarkTheme(ColorScheme? darkDynamic) {
     final baseScheme = darkDynamic?.harmonized() ?? _defaultDarkColorScheme;
     final colorScheme = baseScheme.copyWith(
-      primary: _primaryColor,
-      onPrimary: Colors.white,
       surface: Colors.black,
     );
     return ThemeData(
@@ -83,7 +67,7 @@ class AppTheme {
         foregroundColor: colorScheme.onPrimary,
       ),
       cardTheme: const CardThemeData(
-        elevation: 6.0,
+        elevation: 1.5,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

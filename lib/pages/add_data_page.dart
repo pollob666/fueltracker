@@ -2,8 +2,10 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
+import 'package:fuel_tracker/providers/fuel_record_providers.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/interstitial_ad_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
@@ -19,16 +21,22 @@ import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AddDataPage extends StatefulWidget {
+enum CalculationLockTarget {
+  paidAmount,
+  volume,
+  rate,
+}
+
+class AddDataPage extends ConsumerStatefulWidget {
   final FuelRecord? recordToEdit;
 
   const AddDataPage({super.key, this.recordToEdit});
 
   @override
-  State<AddDataPage> createState() => _AddDataPageState();
+  ConsumerState<AddDataPage> createState() => _AddDataPageState();
 }
 
-class _AddDataPageState extends State<AddDataPage> {
+class _AddDataPageState extends ConsumerState<AddDataPage> {
   final _formKey = GlobalKey<FormState>();
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
@@ -36,10 +44,18 @@ class _AddDataPageState extends State<AddDataPage> {
 
   bool get _isEditing => widget.recordToEdit != null;
 
+  CalculationLockTarget _lockTarget = CalculationLockTarget.paidAmount;
+
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _odometerController = TextEditingController();
   final TextEditingController _tripDistanceController = TextEditingController();
   final TextEditingController _secondaryTripDistanceController = TextEditingController();
+  final FocusNode _odometerFocus = FocusNode();
+  final FocusNode _tripDistanceFocus = FocusNode();
+  final FocusNode _secondaryTripDistanceFocus = FocusNode();
+  final FocusNode _rateFocus = FocusNode();
+  final FocusNode _volumeFocus = FocusNode();
+  final FocusNode _paidAmountFocus = FocusNode();
   DrivingCondition _drivingCondition = DrivingCondition.mixed;
   double? _previousOdometer;
   int? _selectedVehicleId;
@@ -111,9 +127,9 @@ class _AddDataPageState extends State<AddDataPage> {
       _volumeController.text = _volume.toStringAsFixed(2);
     }
 
-    _rateController.addListener(_onRateOrPaidAmountChanged);
-    _paidAmountController.addListener(_onRateOrPaidAmountChanged);
-    _volumeController.addListener(_onVolumeChanged);
+    _rateController.addListener(_onFormCalculationTriggered);
+    _paidAmountController.addListener(_onFormCalculationTriggered);
+    _volumeController.addListener(_onFormCalculationTriggered);
     _odometerController.addListener(_onOdoOrTripChanged);
     _tripDistanceController.addListener(_onOdoOrTripChanged);
 
@@ -246,34 +262,35 @@ class _AddDataPageState extends State<AddDataPage> {
     });
   }
 
-  void _onRateOrPaidAmountChanged() {
+  void _onFormCalculationTriggered() {
     if (_isUpdating) return;
     final double? rate = double.tryParse(_rateController.text);
+    final double? vol = double.tryParse(_volumeController.text);
     final double? paidAmount = double.tryParse(_paidAmountController.text);
 
-    if (rate != null && rate > 0 && paidAmount != null && paidAmount > 0) {
-      _isUpdating = true;
-      _volume = paidAmount / rate;
-      _volumeController.text = _volume.toStringAsFixed(2);
-      _isUpdating = false;
-      setState(() {});
+    _isUpdating = true;
+    switch (_lockTarget) {
+      case CalculationLockTarget.paidAmount:
+        if (rate != null && rate > 0 && vol != null && vol >= 0) {
+          _volume = vol;
+          _paidAmountController.text = (vol * rate).toStringAsFixed(2);
+        }
+        break;
+      case CalculationLockTarget.volume:
+        if (rate != null && rate > 0 && paidAmount != null && paidAmount >= 0) {
+          _volume = paidAmount / rate;
+          _volumeController.text = _volume.toStringAsFixed(2);
+        }
+        break;
+      case CalculationLockTarget.rate:
+        if (vol != null && vol > 0 && paidAmount != null && paidAmount >= 0) {
+          _volume = vol;
+          _rateController.text = (paidAmount / vol).toStringAsFixed(2);
+        }
+        break;
     }
-  }
-
-  void _onVolumeChanged() {
-    if (_isUpdating) return;
-    final double? vol = double.tryParse(_volumeController.text);
-    final double? rate = double.tryParse(_rateController.text);
-
-    if (vol != null && vol >= 0) {
-      _volume = vol;
-      if (rate != null && rate > 0) {
-        _isUpdating = true;
-        _paidAmountController.text = (vol * rate).toStringAsFixed(2);
-        _isUpdating = false;
-      }
-      setState(() {});
-    }
+    _isUpdating = false;
+    setState(() {});
   }
 
   Future<void> _loadLastValues() async {
@@ -324,17 +341,25 @@ class _AddDataPageState extends State<AddDataPage> {
 
   @override
   void dispose() {
-    _rateController.removeListener(_onRateOrPaidAmountChanged);
-    _paidAmountController.removeListener(_onRateOrPaidAmountChanged);
-    _volumeController.removeListener(_onVolumeChanged);
+    _rateController.removeListener(_onFormCalculationTriggered);
+    _paidAmountController.removeListener(_onFormCalculationTriggered);
+    _volumeController.removeListener(_onFormCalculationTriggered);
     _odometerController.removeListener(_onOdoOrTripChanged);
     _tripDistanceController.removeListener(_onOdoOrTripChanged);
+
     _odometerController.dispose();
     _tripDistanceController.dispose();
     _secondaryTripDistanceController.dispose();
     _rateController.dispose();
     _volumeController.dispose();
     _paidAmountController.dispose();
+
+    _odometerFocus.dispose();
+    _tripDistanceFocus.dispose();
+    _secondaryTripDistanceFocus.dispose();
+    _rateFocus.dispose();
+    _volumeFocus.dispose();
+    _paidAmountFocus.dispose();
     super.dispose();
   }
 
@@ -454,6 +479,10 @@ class _AddDataPageState extends State<AddDataPage> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _odometerController,
+                    focusNode: _odometerFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) => FocusScope.of(context)
+                        .requestFocus(_hasTripMeter ? _tripDistanceFocus : _rateFocus),
                     decoration: InputDecoration(
                         labelText:
                             AppLocalizations.of(context)!.odometerReading),
@@ -471,6 +500,10 @@ class _AddDataPageState extends State<AddDataPage> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _tripDistanceController,
+                      focusNode: _tripDistanceFocus,
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(
+                          _hasDualTrip ? _secondaryTripDistanceFocus : _rateFocus),
                       decoration: InputDecoration(
                         labelText: _hasDualTrip
                             ? AppLocalizations.of(context)!.tripA
@@ -515,6 +548,10 @@ class _AddDataPageState extends State<AddDataPage> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _secondaryTripDistanceController,
+                        focusNode: _secondaryTripDistanceFocus,
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) =>
+                            FocusScope.of(context).requestFocus(_rateFocus),
                         decoration: InputDecoration(
                           labelText: AppLocalizations.of(context)!.tripB,
                           hintText: AppLocalizations.of(context)!.tripB,
@@ -586,9 +623,34 @@ class _AddDataPageState extends State<AddDataPage> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _rateController,
+                    focusNode: _rateFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_volumeFocus),
                     decoration: InputDecoration(
-                        labelText:
-                            AppLocalizations.of(context)!.fuelPriceRate),
+                      labelText:
+                          AppLocalizations.of(context)!.fuelPriceRate,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _lockTarget == CalculationLockTarget.rate
+                              ? Icons.lock
+                              : Icons.lock_open_outlined,
+                          size: 20,
+                          color: _lockTarget == CalculationLockTarget.rate
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.outline,
+                        ),
+                        tooltip: _lockTarget == CalculationLockTarget.rate
+                            ? 'Auto-calculated'
+                            : 'Click to auto-calculate Rate',
+                        onPressed: () {
+                          setState(() {
+                            _lockTarget = CalculationLockTarget.rate;
+                            _onFormCalculationTriggered();
+                          });
+                        },
+                      ),
+                    ),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
@@ -616,10 +678,17 @@ class _AddDataPageState extends State<AddDataPage> {
                         _volume = parsedVal;
                         _isUpdating = true;
                         _volumeController.text = _volume.toStringAsFixed(2);
-                        final double? rate = double.tryParse(_rateController.text);
-                        if (rate != null && rate > 0) {
-                          _paidAmountController.text =
-                              (_volume * rate).toStringAsFixed(2);
+                        if (_lockTarget == CalculationLockTarget.rate) {
+                          final double? paid = double.tryParse(_paidAmountController.text);
+                          if (paid != null && paid > 0 && _volume > 0) {
+                            _rateController.text = (paid / _volume).toStringAsFixed(2);
+                          }
+                        } else {
+                          final double? rate = double.tryParse(_rateController.text);
+                          if (rate != null && rate > 0) {
+                            _paidAmountController.text =
+                                (_volume * rate).toStringAsFixed(2);
+                          }
                         }
                         _isUpdating = false;
                       });
@@ -627,8 +696,33 @@ class _AddDataPageState extends State<AddDataPage> {
                   ),
                   TextFormField(
                     controller: _volumeController,
+                    focusNode: _volumeFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_paidAmountFocus),
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.totalVolume),
+                      labelText: AppLocalizations.of(context)!.totalVolume,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _lockTarget == CalculationLockTarget.volume
+                              ? Icons.lock
+                              : Icons.lock_open_outlined,
+                          size: 20,
+                          color: _lockTarget == CalculationLockTarget.volume
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.outline,
+                        ),
+                        tooltip: _lockTarget == CalculationLockTarget.volume
+                            ? 'Auto-calculated'
+                            : 'Click to auto-calculate Volume',
+                        onPressed: () {
+                          setState(() {
+                            _lockTarget = CalculationLockTarget.volume;
+                            _onFormCalculationTriggered();
+                          });
+                        },
+                      ),
+                    ),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
@@ -640,8 +734,31 @@ class _AddDataPageState extends State<AddDataPage> {
                   ),
                   TextFormField(
                     controller: _paidAmountController,
+                    focusNode: _paidAmountFocus,
+                    textInputAction: TextInputAction.done,
                     decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.paidAmount),
+                      labelText: AppLocalizations.of(context)!.paidAmount,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _lockTarget == CalculationLockTarget.paidAmount
+                              ? Icons.lock
+                              : Icons.lock_open_outlined,
+                          size: 20,
+                          color: _lockTarget == CalculationLockTarget.paidAmount
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.outline,
+                        ),
+                        tooltip: _lockTarget == CalculationLockTarget.paidAmount
+                            ? 'Auto-calculated'
+                            : 'Click to auto-calculate Paid Amount',
+                        onPressed: () {
+                          setState(() {
+                            _lockTarget = CalculationLockTarget.paidAmount;
+                            _onFormCalculationTriggered();
+                          });
+                        },
+                      ),
+                    ),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
@@ -775,7 +892,8 @@ class _AddDataPageState extends State<AddDataPage> {
                             longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
                           );
 
-                          await DatabaseHelper.instance
+                          await ref
+                              .read(fuelRecordRepositoryProvider)
                               .updateFuelRecord(updatedRecord);
                           await _rescheduleReminderForVehicle(_selectedVehicleId!);
                           if (!context.mounted) return;
@@ -841,7 +959,9 @@ class _AddDataPageState extends State<AddDataPage> {
                             latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
                             longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
                           );
-                          await DatabaseHelper.instance.insertFuelRecord(record);
+                          await ref
+                              .read(fuelRecordRepositoryProvider)
+                              .insertFuelRecord(record);
                           await _rescheduleReminderForVehicle(_selectedVehicleId!);
                           if (AppSettings.adsEnabled) {
                             _interstitialAdService.showAd();

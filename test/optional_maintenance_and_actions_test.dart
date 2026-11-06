@@ -68,6 +68,9 @@ void main() {
         locationId INTEGER,
         latitude REAL,
         longitude REAL,
+        receiptImagePath TEXT,
+        odometerImagePath TEXT,
+        currencyCode TEXT DEFAULT 'BDT',
         FOREIGN KEY (fuelTypeId) REFERENCES fuel_types (id),
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id)
       )
@@ -101,6 +104,7 @@ void main() {
         latitude REAL,
         longitude REAL,
         notes TEXT,
+        invoiceImagePath TEXT,
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
       )
     ''');

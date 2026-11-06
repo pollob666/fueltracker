@@ -26,8 +26,12 @@ dependencies:
   cupertino_icons: ^2.0.0 # Kept for potential iOS-style icons.
   dynamic_color: ^1.9.0 # For dynamic theming based on user's wallpaper (Android 12+).
 
+  # State Management
+  flutter_riverpod: ^2.6.1
+
   # Data & Storage
   csv: ^8.0.0
+  crypto: ^3.0.6
   file_picker: ^13.3.2
   path: ^1.9.1
   path_provider: ^2.1.6

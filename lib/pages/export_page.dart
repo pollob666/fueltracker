@@ -166,8 +166,10 @@ class _ExportPageState extends State<ExportPage> {
       List<FuelRecord> records = await DatabaseHelper.instance.getFuelRecords();
       final fuelTypes = await _fuelTypeService.getFuelTypes();
       final vehicles = await _vehicleService.getVehicles();
+      final savedLocations = await DatabaseHelper.instance.getSavedLocations();
       final fuelTypeMap = {for (var ft in fuelTypes) ft.id!: ft};
       final vehicleMap = {for (var v in vehicles) v.id!: v};
+      final locationMap = {for (var loc in savedLocations) loc.id!: loc};
 
       List<List<String>> csvData = [
         [
@@ -181,6 +183,11 @@ class _ExportPageState extends State<ExportPage> {
           'Full Tank',
           'Missed Previous',
           'Trip Distance',
+          'Secondary Trip Distance',
+          'Driving Condition',
+          'Location Name',
+          'Latitude',
+          'Longitude',
         ],
         ...records.map((r) => [
               r.date.toIso8601String(),
@@ -193,6 +200,13 @@ class _ExportPageState extends State<ExportPage> {
               r.isFullTank.toString(),
               r.missedPrevious.toString(),
               r.tripDistance?.toStringAsFixed(2) ?? '',
+              r.secondaryTripDistance?.toStringAsFixed(2) ?? '',
+              r.drivingCondition.name,
+              r.locationId != null
+                  ? (locationMap[r.locationId]?.displayName ?? '')
+                  : '',
+              r.latitude?.toString() ?? '',
+              r.longitude?.toString() ?? '',
             ])
       ];
 

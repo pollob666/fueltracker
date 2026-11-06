@@ -24,6 +24,9 @@ class FuelRecord {
   int? locationId;
   double? latitude;
   double? longitude;
+  String? receiptImagePath;
+  String? odometerImagePath;
+  String currencyCode;
 
   FuelRecord({
     this.id,
@@ -42,6 +45,9 @@ class FuelRecord {
     this.locationId,
     this.latitude,
     this.longitude,
+    this.receiptImagePath,
+    this.odometerImagePath,
+    this.currencyCode = 'BDT',
   });
 
   Map<String, dynamic> toMap() {
@@ -61,6 +67,9 @@ class FuelRecord {
       'locationId': locationId,
       'latitude': latitude,
       'longitude': longitude,
+      'receiptImagePath': receiptImagePath,
+      'odometerImagePath': odometerImagePath,
+      'currencyCode': currencyCode,
     };
     if (id != null) map['id'] = id;
     return map;
@@ -83,6 +92,9 @@ class FuelRecord {
       'locationId': locationId,
       'latitude': latitude,
       'longitude': longitude,
+      'receiptImagePath': receiptImagePath,
+      'odometerImagePath': odometerImagePath,
+      'currencyCode': currencyCode,
     };
   }
 
@@ -120,6 +132,9 @@ class FuelRecord {
       locationId: map['locationId'] as int?,
       latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
       longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
+      receiptImagePath: map['receiptImagePath'] as String?,
+      odometerImagePath: map['odometerImagePath'] as String?,
+      currencyCode: (map['currencyCode'] as String?) ?? 'BDT',
     );
   }
 
@@ -156,6 +171,9 @@ class FuelRecord {
       locationId: json['locationId'] as int?,
       latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
       longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
+      receiptImagePath: json['receiptImagePath'] as String?,
+      odometerImagePath: json['odometerImagePath'] as String?,
+      currencyCode: (json['currencyCode'] as String?) ?? 'BDT',
     );
   }
 
@@ -176,6 +194,9 @@ class FuelRecord {
     int? locationId,
     double? latitude,
     double? longitude,
+    String? receiptImagePath,
+    String? odometerImagePath,
+    String? currencyCode,
   }) {
     return FuelRecord(
       id: id ?? this.id,
@@ -194,6 +215,9 @@ class FuelRecord {
       locationId: locationId ?? this.locationId,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      receiptImagePath: receiptImagePath ?? this.receiptImagePath,
+      odometerImagePath: odometerImagePath ?? this.odometerImagePath,
+      currencyCode: currencyCode ?? this.currencyCode,
     );
   }
 }
