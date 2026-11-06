@@ -52,6 +52,7 @@ android {
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
             // Sign debug builds with release key when key.properties exists
@@ -88,7 +89,7 @@ android.applicationVariants.configureEach { variant ->
     variant.assembleProvider.configure { assembleTask ->
         assembleTask.doLast {
             def timestamp = getBuildTimestamp()
-            def customBaseName = "fueltracker-v${flutter.versionName}-${flutter.versionCode}-${timestamp}"
+            def customBaseName = "fueltracker-v${flutter.versionName}-${flutter.versionCode}-${timestamp}-${variantName}"
             def customApkName = "${customBaseName}.apk"
 
             def apkDir = variant.packageApplicationProvider.get().outputDirectory.get().asFile
@@ -115,7 +116,7 @@ android.applicationVariants.configureEach { variant ->
     tasks.matching { it.name == "bundle${capVariantName}" }.configureEach { bundleTask ->
         bundleTask.doLast {
             def timestamp = getBuildTimestamp()
-            def customBaseName = "fueltracker-v${flutter.versionName}-${flutter.versionCode}-${timestamp}"
+            def customBaseName = "fueltracker-v${flutter.versionName}-${flutter.versionCode}-${timestamp}-${variantName}"
             def customAabName = "${customBaseName}.aab"
 
             def bundleDir = project.layout.buildDirectory.dir("outputs/bundle/${variantName}").get().asFile

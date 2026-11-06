@@ -91,9 +91,9 @@ The project uses a unified GitHub Actions workflow to automate the build and rel
 
 1.  **Verification & Version Bump**: The workflow checks that the push event is not an automated bump commit (`ci: Bump version`) and verifies via GitHub API that the commit is cryptographically signed (`verification.verified == true`, `verification.reason == 'valid'`) and that the author or committer email is `pollob666@gmail.com`. It then calculates the new version number based on conventional commit messages (`feat:`, `feat(*):`, `refactor:`, `majorUpdate`, `BREAKING CHANGE`), and sets step outputs.
 
-2.  **Build Android**: Decodes the release keystore from GitHub secrets, generates `key.properties`, and builds the signed release APK using Flutter.
+2.  **Build Android**: Decodes the release keystore from GitHub secrets, generates `key.properties`, and builds both signed release and debug APKs using Flutter (`fueltracker-v<version>-<build>-<timestamp>-release.apk` and `fueltracker-v<version>-<build>-<timestamp>-debug.apk`).
 
-3.  **Create Release**: Downloads the generated APK artifact and creates a GitHub Release containing the signed APK file tagged with the new version.
+3.  **Create Release**: Downloads the generated APK artifacts and creates a GitHub Release containing both signed release and debug APK files tagged with the new version.
 
 4.  **Commit and Push Version Bump**: Updates `pubspec.yaml` with the new version, commits with message `ci: Bump version to <version>`, and rebase-pushes back to `master`.
 
@@ -136,8 +136,10 @@ The following is a roadmap of planned features to be implemented in the future. 
 ### Toolchain & Environment
 *   **Flutter Binary:** The Flutter SDK executable is located at `/home/andalib/software/flutter/bin/flutter`. Because this path is outside the workspace sandbox, commands invoking Flutter must run with `BypassSandbox: true`.
 *   **Build Toolchain:** Flutter 3.47.9 / Dart 3.13.7, Gradle 9.4.1 wrapper, Android Gradle Plugin (AGP) 9.2.1, Kotlin 2.4.0, and Foojay Resolver Convention 1.0.0.
+*   **Java 17 Compilation Target:** `android/build.gradle` enforces `sourceCompatibility` and `targetCompatibility = JavaVersion.VERSION_17` across all `subprojects` via deferred `tasks.withType(JavaCompile).configureEach`, eliminating obsolete Java 8 source/target warnings emitted when compiling Flutter plugin subprojects under JDK 21.
 *   **Dual Build Signing:** `android/app/build.gradle` is configured so that both `release` and `debug` build types use `signingConfigs.release` when `android/app/key.properties` is present. If `key.properties` is absent, `debug` builds gracefully fall back to default debug keystore signing, ensuring external checkouts build without errors while local and CI environments produce debug APKs matching the release signature.
-*   **Artifact Naming Convention:** Android release APK and App Bundle artifacts are generated with custom naming format `fueltracker-v<versionName>-<versionCode>-<yyyyMMdd-HHmm>.apk` / `.aab` alongside default Gradle/Flutter names (`app-release.apk` / `app-release.aab`) to ensure both custom artifact archiving and standard Flutter CLI detection work concurrently.
+*   **R8 / ProGuard Configuration:** Release builds configure `proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'` with `android.enableR8.fullMode=false` in `gradle.properties` to retain reflective instantiations for `androidx.work` (`WorkDatabase`), `androidx.room`, `androidx.startup`, `google_mobile_ads`, `flutter_local_notifications`, and `Gson`.
+*   **Artifact Naming Convention:** Android release and debug APK and App Bundle artifacts are generated with custom naming format `fueltracker-v<versionName>-<versionCode>-<yyyyMMdd-HHmm>-<variant>.apk` / `.aab` alongside default Gradle/Flutter names (`app-release.apk` / `app-debug.apk` / `app-release.aab`) to ensure both custom artifact archiving and standard Flutter CLI detection work concurrently.
 *   **Package Name:** The package is named `fuel_tracker` (with an underscore). Always use `package:fuel_tracker/...` for internal package imports, never `package:fueltracker/...`.
 *   **Self-Compilation Allowed:** The agent is explicitly authorized to execute Flutter and Gradle build and compilation commands directly (`flutter build apk`, `flutter build appbundle`, `./gradlew`, etc.) inside the workspace to verify builds and diagnose build issues.
 *   **Automatic Workspace File Reading:** The agent is explicitly authorized to automatically read, inspect, search, and analyze any files inside the workspace as needed without prompting for interactive permission.

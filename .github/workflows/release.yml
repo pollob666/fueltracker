@@ -138,24 +138,42 @@ jobs:
             --build-name ${{ needs.calculate-version.outputs.new_version_name }} \
             --build-number ${{ needs.calculate-version.outputs.new_build_number }}
 
-      - name: Locate Release APK
-        id: rename_apk
+      - name: Build signed debug APK
         run: |
-          CUSTOM_APK=$(find build/app/outputs/flutter-apk -name "fueltracker-v*.apk" | head -n 1)
-          if [ -n "$CUSTOM_APK" ]; then
-            echo "artifact_path=$CUSTOM_APK" >> $GITHUB_OUTPUT
-          else
-            TIMESTAMP=$(date +%Y%m%d-%H%M)
-            NEW_NAME="fueltracker-v${{ needs.calculate-version.outputs.new_version_name }}-${{ needs.calculate-version.outputs.new_build_number }}-${TIMESTAMP}.apk"
-            mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$NEW_NAME"
-            echo "artifact_path=build/app/outputs/flutter-apk/$NEW_NAME" >> $GITHUB_OUTPUT
+          flutter build apk --debug \
+            --build-name ${{ needs.calculate-version.outputs.new_version_name }} \
+            --build-number ${{ needs.calculate-version.outputs.new_build_number }}
+
+      - name: Locate and stage APK artifacts
+        id: stage_apks
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M)
+          mkdir -p staged-apks
+
+          # Locate Release APK
+          RELEASE_APK=$(find build/app/outputs/flutter-apk -name "fueltracker-v*-release.apk" | head -n 1)
+          if [ -n "$RELEASE_APK" ]; then
+            cp "$RELEASE_APK" staged-apks/
+          elif [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk "staged-apks/fueltracker-v${{ needs.calculate-version.outputs.new_version_name }}-${{ needs.calculate-version.outputs.new_build_number }}-${TIMESTAMP}-release.apk"
           fi
 
-      - name: Upload Artifact
+          # Locate Debug APK
+          DEBUG_APK=$(find build/app/outputs/flutter-apk -name "fueltracker-v*-debug.apk" | head -n 1)
+          if [ -n "$DEBUG_APK" ]; then
+            cp "$DEBUG_APK" staged-apks/
+          elif [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
+            cp build/app/outputs/flutter-apk/app-debug.apk "staged-apks/fueltracker-v${{ needs.calculate-version.outputs.new_version_name }}-${{ needs.calculate-version.outputs.new_build_number }}-${TIMESTAMP}-debug.apk"
+          fi
+
+          echo "Staged APKs:"
+          ls -la staged-apks/
+
+      - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: apk-artifact
-          path: ${{ steps.rename_apk.outputs.artifact_path }}
+          name: apk-artifacts
+          path: staged-apks/*.apk
 
   create-release:
     needs: [build, calculate-version]
@@ -163,10 +181,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download APK artifact
+      - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
-          name: apk-artifact
+          name: apk-artifacts
           path: artifacts/apk
 
       - name: Create Release and Upload Artifacts
@@ -176,7 +194,8 @@ jobs:
           name: "Release ${{ needs.calculate-version.outputs.new_version_name }}"
           body: |
             Automated release for version ${{ needs.calculate-version.outputs.new_version_name }}.
-            - Release APK (signed)
+            - Release APK (signed with release key)
+            - Debug APK (signed with release key)
           files: |
             artifacts/apk/*.apk
         env:
