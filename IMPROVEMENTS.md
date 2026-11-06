@@ -96,25 +96,33 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 - **Solution:**
   - Either remove the misleading cloud dropdown options and rely on native file export/sharing, or integrate standard OAuth backup clients (e.g., Google Drive REST API / App Data folder).
 
-### 3.4 Comprehensive Vehicle Maintenance & Periodic Service Reminders `[PENDING]`
-- **Concept:** Track recurring distance- and time-based periodic maintenance (e.g., General Servicing, Spark Plug, Oil Filter, Fuel Filter, Chain & Sprocket, Air Filter) with customizable intervals, bundled notifications, and multi-task service visit logging.
+### 3.4 Comprehensive Vehicle Maintenance, Periodic Service Reminders & Optional Detailed Service Logs `[COMPLETED]`
+- **Status:** Fully implemented in `DatabaseHelper` (Schema v7), `MaintenanceCalculator`, `MaintenancePage`, `DashboardPage`, `NotificationService`, `ExportPage`, `ImportPage`, and localization resources (`app_en.arb`, `app_bn.arb`).
+- **Concept:** Track recurring distance- and time-based periodic maintenance (e.g., General Servicing, Spark Plug, Oil Filter, Fuel Filter, Chain & Sprocket, Air Filter) with customizable intervals, bundled notifications, and dual-mode service completion: quick one-tap reset ("Mark Done Only") OR full refuel-style detailed maintenance history logging (with Edit/Delete, CSV/JSON import/export, item-level part/engine oil ("Mobil") brand details, and saved workshop/parts shop locations).
 - **Architecture & Implementation Details:**
   - **Extensible Maintenance Catalog & Storage:**
     - SQLite table `maintenance_tasks` with foreign key cascade to `vehicles(id)`:
       - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `vehicleId INTEGER NOT NULL`, `taskKey TEXT`, `title TEXT NOT NULL`, `intervalKm REAL NOT NULL`, `intervalMonths INTEGER`, `lastServiceOdo REAL NOT NULL`, `lastServiceDate TEXT NOT NULL`, `reminderBufferKm REAL DEFAULT 100`, `isEnabled INTEGER DEFAULT 1`.
     - **Default Pre-Populated Tasks per Vehicle:**
-      - **General Servicing:** Every 4,000 km / 6 months.
-      - **Engine Oil Change:** Every 2,000–3,000 km / 3 months.
-      - **Engine Oil Filter Change:** Every 4,000 km / 6 months.
+      - **General Servicing:** Every 5,000 km / 6 months.
+      - **Engine Oil Change:** Every 3,000 km / 3 months.
+      - **Engine Oil Filter Change:** Every 6,000 km / 6 months.
       - **Air Filter Clean/Replacement:** Every 4,000 km / 6 months.
-      - **Spark Plug Replacement:** Every 4,000–8,000 km / 12 months.
-      - **Fuel Filter Replacement:** Every 4,000–8,000 km / 12 months.
-      - **Chain & Sprocket Kit Inspection/Replacement:** Every 4,000–12,000 km.
-      - *Custom Items:* Users can create custom maintenance tasks with user-defined names, km intervals, and optional month ceilings.
+      - *Additional / Custom Items:* Spark Plug, Fuel Filter, Chain & Sprocket, or user-defined tasks with custom names, km intervals, and optional month ceilings.
     - SQLite table `service_sessions` (Unified Service Visit / Receipt):
-      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `vehicleId INTEGER NOT NULL`, `odometer REAL NOT NULL`, `serviceDate TEXT NOT NULL`, `totalCost REAL`, `workshopName TEXT`, `notes TEXT`.
-    - SQLite table `service_session_items` (Tasks completed in session):
-      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `sessionId INTEGER NOT NULL`, `taskId INTEGER NOT NULL`, `cost REAL`, `notes TEXT`, linking completed tasks to the session.
+      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `vehicleId INTEGER NOT NULL`, `odometer REAL NOT NULL`, `serviceDate TEXT NOT NULL`, `totalCost REAL`, `workshopName TEXT`, `locationId INTEGER` (optional FK to `saved_locations(id)` `ON DELETE SET NULL`), `notes TEXT`.
+    - SQLite table `service_session_items` (Tasks, Engine Oil / "Mobil", & Parts completed in session):
+      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `sessionId INTEGER NOT NULL`, `taskId INTEGER NOT NULL`, `brandOrSpec TEXT` (e.g., `"Mobil 1 10W-40"`, `"NGK Spark Plug"`), `cost REAL`, `locationId INTEGER` (optional override FK to `saved_locations(id)` `ON DELETE SET NULL` if part/oil was bought at a different shop than the servicing workshop), `notes TEXT`.
+  - **Dual-Mode Service Completion (Optional Detailed Logging vs. Quick Done):**
+    - **Mode A — Quick Done ("Mark as Done Only"):** Zero-friction one-tap confirmation updating `lastServiceOdo` and `lastServiceDate` directly when the user chooses not to record receipt/part details.
+    - **Mode B — Detailed Service & Parts Log (Refuel-Record Parity):**
+      - Multi-task visit logger where user records Date, Odometer, main Workshop/Service Location (select from existing saved locations or save new name), Total Cost, and Notes.
+      - Per-item details for each selected task (Engine Oil / "Mobil" change, parts replacement, servicing): optional Brand/Part Specification, Item Cost, Item Notes, and optional separate Parts/Oil Purchase Shop location (defaults to the session's main workshop if not overridden).
+      - Atomically inserts the `service_sessions` + `service_session_items` records and resets `lastServiceOdo` and `lastServiceDate` for all checked tasks in a single transaction.
+    - **Full History CRUD & Export Parity (Like Refuel Records):**
+      - **Maintenance History View:** Tabular/card history log of all recorded `service_sessions` per vehicle displaying Date, Odometer, Workshop/Location (with suspect warning badge if flagged), Tasks/Parts Summary, Brand/Spec, and Cost.
+      - **Edit & Delete Support:** Row selection modal bottom sheet allowing users to Edit or Delete past maintenance records (with safe confirmation dialog).
+      - **CSV & JSON Import/Export:** Extend `ExportPage` and `SettingsPage` import/export pipelines to include maintenance sessions, item-level part/oil brands, costs, and location references alongside refuel records.
   - **Hybrid Prediction & Trigger Algorithm:**
     - Target Odometer: $O_{\text{due}} = O_{\text{last\_service}} + \text{Interval Km}$.
     - Calendar Limit Date (Optional): $D_{\text{time\_limit}} = D_{\text{last\_service}} + \text{Interval Months}$.
@@ -128,9 +136,7 @@ This document outlines strategic, architectural, domain, and UX improvements ide
     - **Bundled Android Notifications:** Co-occurring due tasks are aggregated into a single non-spamming system notification (e.g., *"3 maintenance items due: General Servicing, Oil Filter, Air Filter"*) scheduled via `flutter_local_notifications`.
     - **Dashboard Summary Card:** High-visibility dashboard card showing total pending items and the nearest upcoming service with remaining km / days.
     - **Multi-Task Logging UI (`MaintenancePage`):**
-      - Navigation Drawer entry point to `MaintenancePage`.
-      - Visual health cards with progress indicators ($\frac{O_{\text{current}} - O_{\text{last}}}{\text{Interval Km}}$).
-      - Single-visit checklist modal: User enters current odometer, date, workshop name, total cost, and selects multiple completed tasks via checkboxes (e.g., [x] Servicing, [x] Oil Filter, [x] Air Filter), atomically resetting all selected task intervals in a single database transaction.
+      - Navigation Drawer entry point to `MaintenancePage` with tabs/sections for **Active Tasks** (health progress cards) and **Service History** (detailed logs).
 
 ### 3.5 Predictive Refuel Reminder & Tank Range Forecasting `[COMPLETED]`
 - **Concept:** Proactively alert users before fuel reaches critical reserve levels based on vehicle tank capacity, running fuel efficiency, daily driving habits, and bi-fuel tank configuration.
@@ -187,22 +193,49 @@ This document outlines strategic, architectural, domain, and UX improvements ide
   - **TODO 1: Dashboard Cluster Odometer OCR:** On-device text recognition (`google_mlkit_text_recognition`) to extract digital or analog odometer reading directly from user-snapped dashboard photo, auto-populating the odometer field with confidence score.
   - **TODO 2: Dispenser Unit LCD Reader:** On-device computer vision parser to extract fuel volume (liters/gallons) and total monetary payment amount directly from the fuel station dispenser display image, bypassing manual typing.
 
-### 5.2 Fuel Station Geofencing & Poor Fuel Quality Anomaly Flagging `[PENDING]`
-- **Concept:** Capture fueling station GPS location with a proximity radius, detect return visits, and automatically flag suspect stations if vehicle mileage experiences a sudden drop.
+### 5.2 Unified Location Management (Fuel Stations & Service/Parts Shops) & Mileage-Drop Quality Anomaly Flagging `[PENDING]`
+- **Concept:** Provide a unified location management system for refueling stations, servicing workshops, and engine oil ("Mobil") / spare parts shops. Support hybrid GPS geofencing (auto-detecting return visits within radius) alongside manual selection from saved locations or one-tap saving of new location names. Automatically detect sudden post-refuel or post-service mileage drops and empower the user to flag suspect fuel stations, workshops, or parts/oil shops.
 - **Architecture & Implementation Details:**
-  - **Data Model & Geofencing:**
-    - SQLite table `fuel_stations`:
-      - Columns: `id INTEGER PRIMARY KEY AUTOINCREMENT`, `name TEXT NOT NULL`, `latitude REAL NOT NULL`, `longitude REAL NOT NULL`, `radiusMeters REAL DEFAULT 80.0`, `isSuspectQuality INTEGER DEFAULT 0`, `rating REAL`, `notes TEXT`.
-    - Link `FuelRecord` to `stationId` (optional foreign key with `SET NULL` on delete).
-    - Capture location on refuel entry via `geolocator`:
-      - If user is within existing station radius (75–100m): Auto-fill station name and show quality indicator.
-      - If new coordinates: Prompt user to save station name with configured radius (default 80m).
-  - **Fuel Quality Anomaly Detection:**
-    - **Timing:** Evaluated on the *subsequent* full-to-full refuel (when actual distance and consumption of tank $N$ are recorded).
-    - **Trigger Condition:** If interval fuel efficiency drops $>15\%$ below the vehicle's rolling average km/L ($E_{\text{interval}} < 0.85 \times E_{\text{running}}$).
-    - **Confirmation Prompt:** Display soft confirmation dialog explaining the mileage drop and asking user if they want to flag the station as "Suspect / Low Quality Fuel" (ruling out external anomalies like heavy traffic or AC usage).
-  - **Proximity Alert on Return:**
-    - When user opens "Add Refuel" while inside the geofence radius of a previously flagged station, display an prominent warning banner: *"⚠️ Warning: Lower fuel efficiency was recorded after fueling at this station."*
+  - **Unified Saved Locations Data Model & Geofencing:**
+    - SQLite table `saved_locations`:
+      - Columns:
+        - `id INTEGER PRIMARY KEY AUTOINCREMENT`
+        - `name TEXT NOT NULL`
+        - `type TEXT NOT NULL DEFAULT 'fuel_station'` (`'fuel_station'`, `'service_shop'`, or `'both'`)
+        - `latitude REAL` (nullable — supports manual named locations saved without GPS)
+        - `longitude REAL` (nullable)
+        - `radiusMeters REAL DEFAULT 80.0`
+        - `isSuspectFuel INTEGER DEFAULT 0` (flagged for poor/adulterated fuel quality)
+        - `isSuspectServiceOrParts INTEGER DEFAULT 0` (flagged for counterfeit/poor engine oil "Mobil", bad replacement parts, or poor servicing)
+        - `suspectReason TEXT` (e.g., *"Mileage dropped 18% after Mobil 10W-40 change / refueling"*)
+        - `rating REAL`
+        - `notes TEXT`
+    - **Relational Links:**
+      - `FuelRecord`: Add optional `locationId INTEGER` (FK to `saved_locations(id)` `ON DELETE SET NULL`).
+      - `ServiceSession`: Add optional `locationId INTEGER` (FK to `saved_locations(id)` `ON DELETE SET NULL`) for the main servicing workshop.
+      - `ServiceSessionItem`: Add optional `locationId INTEGER` (FK to `saved_locations(id)` `ON DELETE SET NULL`) for the specific shop where engine oil ("Mobil") or replacement parts were purchased/changed (defaults to session `locationId` if not overridden).
+  - **Hybrid Location Selection & New Location Saving Workflow:**
+    - Applies across **Refueling (`AddDataPage`)** and **Servicing / Engine Oil ("Mobil") / Parts Change (`MaintenancePage`)**:
+      - **Existing Saved Locations Picker:** Searchable dropdown / autocomplete filtered by context (`fuel_station` + `both` during refueling; `service_shop` + `both` during maintenance/oil/parts logging), displaying suspect warning badges (`⚠️ Suspect Fuel` / `⚠️ Suspect Oil/Parts`) next to previously flagged locations.
+      - **GPS Auto-Detection (When Location Available):** Queries `geolocator` on form open; if within an existing location's `radiusMeters` (default 80m), auto-selects the location and surfaces any active quality warning banner.
+      - **New Location Save Prompt:** If the user types a new location name or visits new GPS coordinates, offers a clean prompt/toggle to save the location name (with optional current GPS coordinates and category `fuel_station` / `service_shop` / `both`) into `saved_locations` for future one-tap selection.
+  - **Mileage-Drop Anomaly Detection & Smart Cause Attribution:**
+    - **Timing:** Evaluated on a full-to-full refuel when interval fuel efficiency $E_{\text{interval}}$ is computed.
+    - **Trigger Condition:** Interval fuel efficiency drops $>15\%$ below the vehicle's rolling weighted average km/L ($E_{\text{interval}} < 0.85 \times E_{\text{running}}$).
+    - **Candidate Lookup:**
+      1. **Recent Fuel Station:** The `saved_locations` entry attached to the refuel(s) that supplied the fuel consumed during this low-mileage interval.
+      2. **Recent Service / Engine Oil ("Mobil") / Parts Location:** Any `service_sessions` (and their item-level `service_session_items` for Engine Oil, Filters, Spark Plugs, General Servicing, etc.) logged within the last 1–2 refuel intervals or within the last $500\text{ km}$ prior to the mileage drop.
+    - **Smart Cause Picker Dialog:**
+      - Displays a non-blocking diagnostic dialog showing the exact mileage drop percentage ($E_{\text{interval}}$ vs. $E_{\text{running}}$) and presents the candidate causes so the user can rule out traffic/weather or flag the culprit:
+        - `[ ] Flag Fuel Station: <Station Name> (Suspect Fuel Quality)`
+        - `[ ] Flag Workshop / Parts Shop: <Workshop / Shop Name> — <Task / Brand, e.g., Mobil 10W-40 / Air Filter> (Suspect Engine Oil / Bad Parts / Servicing)`
+      - User can select either, both, or dismiss ("Normal Traffic / Dismiss").
+      - Confirming updates `isSuspectFuel = 1` and/or `isSuspectServiceOrParts = 1` along with `suspectReason` on the respective `saved_locations` records.
+  - **Proactive Proximity & Selection Alerts on Return:**
+    - When the user selects a flagged location from the dropdown or enters its GPS geofence radius in `AddDataPage` or `MaintenancePage`, display a high-visibility warning banner:
+      - *Fuel Station Warning:* `"⚠️ Warning: Mileage dropped significantly after refueling at this station."*
+      - *Service / Parts / Oil Warning:* `"⚠️ Warning: Mileage dropped after engine oil / parts change or servicing at this location (<suspectReason>)."*
+    - Users can also manage, review, or clear suspect flags anytime from a dedicated **Saved Locations** management view.
 
 ### 5.3 Total Cost of Ownership (TCO) & Multi-Category Expenses `[PENDING]`
 - **Concept:** Fuel is only one component of vehicle expenses.
@@ -272,6 +305,6 @@ This document outlines strategic, architectural, domain, and UX improvements ide
 | **1** | **Dashboard Last Refuel Recency Counter** (Section 3.6) | **Very Low** (1/5) | **COMPLETED** | **Pure UI Enhancement:** Calculates `DateTime.now().difference(date).inDays` and displays `"Today"`, `"Yesterday"`, or `"X days ago"` with cadence-exceeded warning indicator. |
 | **2** | **Advanced Trip Meter Support** (Section 2.5) | **Low** (2/5) | **COMPLETED** | **Form Intelligence & Fallback:** Vehicle setting (`None`/`Single`/`Dual`), hides fields when `None`, auto-fills odometer from trip, cross-checks typos ($|\Delta O - \text{Trip}|$), and gracefully defaults to total odometer if left blank or forgotten. |
 | **3** | **Predictive Refuel Reminder** (Section 3.5) | **Low-Medium** (2.5/5) | **COMPLETED** | **Dual Independent Reminders & Range Forecasting:** Configurable Volume-based (primary tank) and Distance-based (combined DTE) reminders, unified Material 3 dashboard card, active threshold chips in vehicle management, and user-configurable daily Android notification time via `flutter_local_notifications`. |
-| **4** | **Periodic Maintenance & Service Reminders** (Section 3.4) | **Medium** (3/5) | **IMPLEMENT NEXT** (Phase 2) | **Relational Schema + Multi-Task UI:** SQLite schema migration v7 (`maintenance_tasks`, `service_sessions`), new `MaintenancePage` with multi-select visit checklist, hybrid km/month triggers, and bundled notifications. |
-| **5** | **Fuel Station Geofencing & Quality Anomaly Flagging** (Section 5.2) | **Medium-High** (4/5) | **IMPLEMENT LATER** (Phase 3) | **Location Services + Analytics:** Requires `geolocator` plugin, runtime location permissions, radius matching math, `fuel_stations` table, and subsequent-refuel anomaly verification (>15% drop). |
+| **4** | **Periodic Maintenance, Service Reminders & Optional Detailed Service Logs** (Section 3.4) | **Medium** (3.5/5) | **COMPLETED** | **Relational Schema + Dual-Mode Logging, Optional Reminders & History CRUD:** SQLite schema (`maintenance_tasks`, `service_sessions`, `service_session_items` with item-level oil/"Mobil"/part brand & shop location), per-task optional toggles in vehicle configuration, auto-hiding drawer menu, `MaintenancePage` with unified Tasks & Reminders (fuel countdown + maintenance cards with `[Do It Now]` and `[Mark Quick Done]`), dashboard alert cards with `[Do It]` and `[Mark Done]`, estimated service cost, and CSV/JSON export parity. |
+| **5** | **Unified Location Management & Mileage Anomaly / Boost Flagging (Fuel, Oil & Parts)** (Section 5.2) | **Medium-High** (4/5) | **COMPLETED** | **Always-On GPS Geofencing + Smart Anomaly & Boost Badging:** Unified `saved_locations` schema v8 (`fuel_station`, `service_shop`, `both`), 80m proximity auto-clustering, "Save & Name Location" toggle, multi-station proximity disambiguation bottom sheet, Mileage-Drop Anomaly Detection ($>15\%$ drop) attributing culprit to step $N-1$ refuel location or recent service (Amber warning badge ⚠️ on return), Mileage-Boost Detection ($>15\%$ gain) marking location Green (`🟢 High Efficiency`), and Saved Locations management screen with "Show Unnamed Locations" toggle and CSV export/import parity. |
 | **6** | **On-Device OCR Vision Pipeline (Odo & Dispenser LCD)** (Section 5.1) | **High** (5/5) | **IMPLEMENT LATER** (Future Roadmap) | **Machine Learning & Image Parsing:** Integrates `google_mlkit_text_recognition`, camera capture, image pre-processing, and regex parsers for 7-segment / odometer dial digits. |
