@@ -4,6 +4,9 @@
 import 'dart:io';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
+import 'package:fuel_tracker/models/maintenance_task.dart';
+import 'package:fuel_tracker/models/saved_location.dart';
+import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -33,7 +36,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, "fuel_tracker.db");
     return await openDatabase(
       path,
-      version: 6,
+      version: 8,
       onConfigure: _onConfigure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
@@ -76,9 +79,131 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE vehicles ADD COLUMN distanceReminderEnabled INTEGER NOT NULL DEFAULT 0');
       await db.execute('ALTER TABLE vehicles ADD COLUMN distanceReminderValue REAL NOT NULL DEFAULT 50.0');
     }
+
+    if (oldVersion < 7) {
+      await db.execute('''
+        CREATE TABLE maintenance_tasks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          vehicleId INTEGER NOT NULL,
+          taskKey TEXT,
+          title TEXT NOT NULL,
+          intervalKm REAL NOT NULL,
+          intervalMonths INTEGER,
+          lastServiceOdo REAL NOT NULL,
+          lastServiceDate TEXT NOT NULL,
+          reminderBufferKm REAL DEFAULT 100.0,
+          isEnabled INTEGER DEFAULT 1,
+          FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE service_sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          vehicleId INTEGER NOT NULL,
+          odometer REAL NOT NULL,
+          serviceDate TEXT NOT NULL,
+          totalCost REAL,
+          workshopName TEXT,
+          locationId INTEGER,
+          notes TEXT,
+          FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE service_session_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sessionId INTEGER NOT NULL,
+          taskId INTEGER NOT NULL,
+          brandOrSpec TEXT,
+          cost REAL,
+          locationId INTEGER,
+          notes TEXT,
+          FOREIGN KEY (sessionId) REFERENCES service_sessions (id) ON DELETE CASCADE,
+          FOREIGN KEY (taskId) REFERENCES maintenance_tasks (id) ON DELETE CASCADE
+        )
+      ''');
+
+      final vehicles = await db.query('vehicles');
+      for (final v in vehicles) {
+        final vehicleId = v['id'] as int;
+        final lastRecord = await db.query(
+          'fuel_records',
+          where: 'vehicleId = ?',
+          whereArgs: [vehicleId],
+          orderBy: 'odometer DESC',
+          limit: 1,
+        );
+        final double lastOdo = lastRecord.isNotEmpty
+            ? (lastRecord.first['odometer'] as num).toDouble()
+            : 0.0;
+        final String lastDate = lastRecord.isNotEmpty
+            ? (lastRecord.first['date'] as String)
+            : DateTime.now().toIso8601String();
+
+        await _seedDefaultTasksForVehicle(
+          db,
+          vehicleId,
+          lastOdo,
+          DateTime.parse(lastDate),
+        );
+      }
+    }
+
+    if (oldVersion < 8) {
+      await db.execute('''
+        CREATE TABLE saved_locations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          isNamed INTEGER NOT NULL DEFAULT 0,
+          type TEXT NOT NULL DEFAULT 'fuel_station',
+          latitude REAL,
+          longitude REAL,
+          radiusMeters REAL NOT NULL DEFAULT 80.0,
+          isSuspectFuel INTEGER NOT NULL DEFAULT 0,
+          isSuspectServiceOrParts INTEGER NOT NULL DEFAULT 0,
+          suspectReason TEXT,
+          isRecommendedFuel INTEGER NOT NULL DEFAULT 0,
+          isRecommendedServiceOrParts INTEGER NOT NULL DEFAULT 0,
+          performanceReason TEXT,
+          rating REAL,
+          notes TEXT,
+          createdAt TEXT NOT NULL
+        )
+      ''');
+
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN locationId INTEGER REFERENCES saved_locations (id) ON DELETE SET NULL');
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN latitude REAL');
+      await db.execute('ALTER TABLE fuel_records ADD COLUMN longitude REAL');
+
+      await db.execute('ALTER TABLE service_sessions ADD COLUMN latitude REAL');
+      await db.execute('ALTER TABLE service_sessions ADD COLUMN longitude REAL');
+    }
   }
 
   Future<void> _createTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE saved_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        isNamed INTEGER NOT NULL DEFAULT 0,
+        type TEXT NOT NULL DEFAULT 'fuel_station',
+        latitude REAL,
+        longitude REAL,
+        radiusMeters REAL NOT NULL DEFAULT 80.0,
+        isSuspectFuel INTEGER NOT NULL DEFAULT 0,
+        isSuspectServiceOrParts INTEGER NOT NULL DEFAULT 0,
+        suspectReason TEXT,
+        isRecommendedFuel INTEGER NOT NULL DEFAULT 0,
+        isRecommendedServiceOrParts INTEGER NOT NULL DEFAULT 0,
+        performanceReason TEXT,
+        rating REAL,
+        notes TEXT,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
     await db.execute('''
       CREATE TABLE fuel_types (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,10 +247,120 @@ class DatabaseHelper {
         tripDistance REAL,
         secondaryTripDistance REAL,
         drivingCondition TEXT NOT NULL DEFAULT 'mixed',
+        locationId INTEGER,
+        latitude REAL,
+        longitude REAL,
         FOREIGN KEY (fuelTypeId) REFERENCES fuel_types (id),
-        FOREIGN KEY (vehicleId) REFERENCES vehicles (id)
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id),
+        FOREIGN KEY (locationId) REFERENCES saved_locations (id) ON DELETE SET NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE maintenance_tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicleId INTEGER NOT NULL,
+        taskKey TEXT,
+        title TEXT NOT NULL,
+        intervalKm REAL NOT NULL,
+        intervalMonths INTEGER,
+        lastServiceOdo REAL NOT NULL,
+        lastServiceDate TEXT NOT NULL,
+        reminderBufferKm REAL DEFAULT 100.0,
+        isEnabled INTEGER DEFAULT 0,
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE service_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicleId INTEGER NOT NULL,
+        odometer REAL NOT NULL,
+        serviceDate TEXT NOT NULL,
+        totalCost REAL,
+        workshopName TEXT,
+        locationId INTEGER,
+        latitude REAL,
+        longitude REAL,
+        notes TEXT,
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE,
+        FOREIGN KEY (locationId) REFERENCES saved_locations (id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE service_session_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sessionId INTEGER NOT NULL,
+        taskId INTEGER NOT NULL,
+        brandOrSpec TEXT,
+        cost REAL,
+        locationId INTEGER,
+        notes TEXT,
+        FOREIGN KEY (sessionId) REFERENCES service_sessions (id) ON DELETE CASCADE,
+        FOREIGN KEY (taskId) REFERENCES maintenance_tasks (id) ON DELETE CASCADE,
+        FOREIGN KEY (locationId) REFERENCES saved_locations (id) ON DELETE SET NULL
+      )
+    ''');
+  }
+
+  static Future<void> _seedDefaultTasksForVehicle(
+    DatabaseExecutor db,
+    int vehicleId,
+    double initialOdo,
+    DateTime initialDate,
+  ) async {
+    final defaultTasks = [
+      {
+        'vehicleId': vehicleId,
+        'taskKey': 'engine_oil',
+        'title': 'Engine Oil Change',
+        'intervalKm': 3000.0,
+        'intervalMonths': 3,
+        'lastServiceOdo': initialOdo,
+        'lastServiceDate': initialDate.toIso8601String(),
+        'reminderBufferKm': 100.0,
+        'isEnabled': 0,
+      },
+      {
+        'vehicleId': vehicleId,
+        'taskKey': 'oil_filter',
+        'title': 'Engine Oil Filter',
+        'intervalKm': 6000.0,
+        'intervalMonths': 6,
+        'lastServiceOdo': initialOdo,
+        'lastServiceDate': initialDate.toIso8601String(),
+        'reminderBufferKm': 100.0,
+        'isEnabled': 0,
+      },
+      {
+        'vehicleId': vehicleId,
+        'taskKey': 'air_filter',
+        'title': 'Air Filter Clean / Replace',
+        'intervalKm': 4000.0,
+        'intervalMonths': 6,
+        'lastServiceOdo': initialOdo,
+        'lastServiceDate': initialDate.toIso8601String(),
+        'reminderBufferKm': 100.0,
+        'isEnabled': 0,
+      },
+      {
+        'vehicleId': vehicleId,
+        'taskKey': 'general_servicing',
+        'title': 'General Servicing',
+        'intervalKm': 5000.0,
+        'intervalMonths': 6,
+        'lastServiceOdo': initialOdo,
+        'lastServiceDate': initialDate.toIso8601String(),
+        'reminderBufferKm': 150.0,
+        'isEnabled': 0,
+      },
+    ];
+
+    for (final task in defaultTasks) {
+      await db.insert('maintenance_tasks', task);
+    }
   }
 
   Future<int> insertFuelRecord(FuelRecord record) async {
@@ -179,7 +414,9 @@ class DatabaseHelper {
   // Vehicle CRUD methods
   Future<int> insertVehicle(Vehicle vehicle) async {
     Database db = await instance.database;
-    return await db.insert('vehicles', vehicle.toMap());
+    final id = await db.insert('vehicles', vehicle.toMap());
+    await _seedDefaultTasksForVehicle(db, id, 0.0, DateTime.now());
+    return id;
   }
 
   Future<List<Vehicle>> getVehicles() async {
@@ -223,5 +460,334 @@ class DatabaseHelper {
         whereArgs: [vehicleId],
       );
     });
+  }
+
+  // Maintenance Tasks CRUD methods
+  Future<List<MaintenanceTask>> getMaintenanceTasks(int vehicleId) async {
+    Database db = await instance.database;
+    final results = await db.query(
+      'maintenance_tasks',
+      where: 'vehicleId = ?',
+      whereArgs: [vehicleId],
+      orderBy: 'id ASC',
+    );
+    return results.map((m) => MaintenanceTask.fromMap(m)).toList();
+  }
+
+  Future<int> insertMaintenanceTask(MaintenanceTask task) async {
+    Database db = await instance.database;
+    return await db.insert('maintenance_tasks', task.toMap());
+  }
+
+  Future<int> updateMaintenanceTask(MaintenanceTask task) async {
+    Database db = await instance.database;
+    return await db.update(
+      'maintenance_tasks',
+      task.toMap(),
+      where: 'id = ?',
+      whereArgs: [task.id],
+    );
+  }
+
+  Future<int> deleteMaintenanceTask(int id) async {
+    Database db = await instance.database;
+    return await db.delete(
+      'maintenance_tasks',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> quickResetMaintenanceTask(int taskId, double odo, DateTime date) async {
+    Database db = await instance.database;
+    return await db.update(
+      'maintenance_tasks',
+      {
+        'lastServiceOdo': odo,
+        'lastServiceDate': date.toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [taskId],
+    );
+  }
+
+  // Service Sessions CRUD methods
+  Future<List<ServiceSession>> getServiceSessions(int vehicleId) async {
+    Database db = await instance.database;
+    final sessionRows = await db.query(
+      'service_sessions',
+      where: 'vehicleId = ?',
+      whereArgs: [vehicleId],
+      orderBy: 'odometer DESC, serviceDate DESC',
+    );
+
+    final List<ServiceSession> sessions = [];
+    for (final sRow in sessionRows) {
+      final sessionId = sRow['id'] as int;
+      final itemRows = await db.rawQuery('''
+        SELECT ssi.*, mt.title as taskTitle
+        FROM service_session_items ssi
+        LEFT JOIN maintenance_tasks mt ON ssi.taskId = mt.id
+        WHERE ssi.sessionId = ?
+      ''', [sessionId]);
+
+      final items = itemRows.map((i) => ServiceSessionItem.fromMap(i)).toList();
+      sessions.add(ServiceSession.fromMap(sRow, items: items));
+    }
+    return sessions;
+  }
+
+  Future<int> insertServiceSession(ServiceSession session) async {
+    Database db = await instance.database;
+    return await db.transaction((txn) async {
+      final sessionId = await txn.insert('service_sessions', session.toMap());
+      for (final item in session.items) {
+        final itemMap = Map<String, dynamic>.from(item.toMap());
+        itemMap['sessionId'] = sessionId;
+        await txn.insert('service_session_items', itemMap);
+
+        // Atomically update last service odo & date for each completed task
+        await txn.update(
+          'maintenance_tasks',
+          {
+            'lastServiceOdo': session.odometer,
+            'lastServiceDate': session.serviceDate.toIso8601String(),
+          },
+          where: 'id = ?',
+          whereArgs: [item.taskId],
+        );
+      }
+      return sessionId;
+    });
+  }
+
+  Future<int> updateServiceSession(ServiceSession session) async {
+    Database db = await instance.database;
+    return await db.transaction((txn) async {
+      final sessionId = session.id!;
+      await txn.update(
+        'service_sessions',
+        session.toMap(),
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+
+      await txn.delete(
+        'service_session_items',
+        where: 'sessionId = ?',
+        whereArgs: [sessionId],
+      );
+
+      for (final item in session.items) {
+        final itemMap = Map<String, dynamic>.from(item.toMap());
+        itemMap['sessionId'] = sessionId;
+        await txn.insert('service_session_items', itemMap);
+
+        await txn.update(
+          'maintenance_tasks',
+          {
+            'lastServiceOdo': session.odometer,
+            'lastServiceDate': session.serviceDate.toIso8601String(),
+          },
+          where: 'id = ?',
+          whereArgs: [item.taskId],
+        );
+      }
+      return sessionId;
+    });
+  }
+
+  Future<int> deleteServiceSession(int sessionId) async {
+    Database db = await instance.database;
+    return await db.transaction((txn) async {
+      await txn.delete(
+        'service_session_items',
+        where: 'sessionId = ?',
+        whereArgs: [sessionId],
+      );
+      return await txn.delete(
+        'service_sessions',
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+    });
+  }
+
+  Future<bool> hasAnyEnabledRoutine() async {
+    Database db = await instance.database;
+    final vehicleCheck = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM vehicles 
+      WHERE volumeReminderEnabled = 1 OR distanceReminderEnabled = 1
+    ''');
+    final vCount = Sqflite.firstIntValue(vehicleCheck) ?? 0;
+    if (vCount > 0) return true;
+
+    final taskCheck = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM maintenance_tasks
+      WHERE isEnabled = 1
+    ''');
+    final tCount = Sqflite.firstIntValue(taskCheck) ?? 0;
+    return tCount > 0;
+  }
+
+  Future<double?> getEstimatedServiceCost(int vehicleId) async {
+    Database db = await instance.database;
+    final results = await db.rawQuery('''
+      SELECT totalCost FROM service_sessions 
+      WHERE vehicleId = ? AND totalCost IS NOT NULL AND totalCost > 0
+      ORDER BY odometer DESC, serviceDate DESC
+      LIMIT 1
+    ''', [vehicleId]);
+    if (results.isNotEmpty) {
+      final val = results.first['totalCost'];
+      if (val is num) return val.toDouble();
+    }
+    return null;
+  }
+
+  // SavedLocation CRUD methods
+  Future<int> insertSavedLocation(SavedLocation location) async {
+    Database db = await instance.database;
+    return await db.insert('saved_locations', location.toMap());
+  }
+
+  Future<int> updateSavedLocation(SavedLocation location) async {
+    Database db = await instance.database;
+    return await db.update(
+      'saved_locations',
+      location.toMap(),
+      where: 'id = ?',
+      whereArgs: [location.id],
+    );
+  }
+
+  Future<int> deleteSavedLocation(int id) async {
+    Database db = await instance.database;
+    return await db.transaction((txn) async {
+      await txn.rawUpdate('UPDATE fuel_records SET locationId = NULL WHERE locationId = ?', [id]);
+      await txn.rawUpdate('UPDATE service_sessions SET locationId = NULL WHERE locationId = ?', [id]);
+      await txn.rawUpdate('UPDATE service_session_items SET locationId = NULL WHERE locationId = ?', [id]);
+      return await txn.delete('saved_locations', where: 'id = ?', whereArgs: [id]);
+    });
+  }
+
+  Future<List<SavedLocation>> getSavedLocations({
+    String? type,
+    bool? onlyNamed,
+    bool? onlySuspect,
+    bool? onlyRecommended,
+  }) async {
+    Database db = await instance.database;
+    List<String> whereClauses = [];
+    List<dynamic> whereArgs = [];
+
+    if (type != null && type.isNotEmpty && type != 'all') {
+      whereClauses.add('(type = ? OR type = ?)');
+      whereArgs.add(type);
+      whereArgs.add('both');
+    }
+
+    if (onlyNamed == true) {
+      whereClauses.add('isNamed = 1');
+    }
+
+    if (onlySuspect == true) {
+      whereClauses.add('(isSuspectFuel = 1 OR isSuspectServiceOrParts = 1)');
+    }
+
+    if (onlyRecommended == true) {
+      whereClauses.add('(isRecommendedFuel = 1 OR isRecommendedServiceOrParts = 1)');
+    }
+
+    String? where = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
+
+    final results = await db.query(
+      'saved_locations',
+      where: where,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: 'isNamed DESC, name ASC',
+    );
+
+    return results.map((e) => SavedLocation.fromMap(e)).toList();
+  }
+
+  Future<SavedLocation?> getSavedLocationById(int id) async {
+    Database db = await instance.database;
+    final results = await db.query(
+      'saved_locations',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (results.isNotEmpty) {
+      return SavedLocation.fromMap(results.first);
+    }
+    return null;
+  }
+
+  Future<int> markLocationSuspect(
+    int id, {
+    String? reason,
+    bool forFuel = false,
+    bool forService = false,
+  }) async {
+    Database db = await instance.database;
+    Map<String, dynamic> updates = {};
+    if (forFuel) updates['isSuspectFuel'] = 1;
+    if (forService) updates['isSuspectServiceOrParts'] = 1;
+    if (reason != null && reason.isNotEmpty) updates['suspectReason'] = reason;
+    return await db.update(
+      'saved_locations',
+      updates,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> markLocationRecommended(
+    int id, {
+    String? reason,
+    bool forFuel = false,
+    bool forService = false,
+  }) async {
+    Database db = await instance.database;
+    Map<String, dynamic> updates = {};
+    if (forFuel) updates['isRecommendedFuel'] = 1;
+    if (forService) updates['isRecommendedServiceOrParts'] = 1;
+    if (reason != null && reason.isNotEmpty) updates['performanceReason'] = reason;
+    return await db.update(
+      'saved_locations',
+      updates,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> clearLocationSuspectFlag(int id) async {
+    Database db = await instance.database;
+    return await db.update(
+      'saved_locations',
+      {
+        'isSuspectFuel': 0,
+        'isSuspectServiceOrParts': 0,
+        'suspectReason': null,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> clearLocationRecommendedFlag(int id) async {
+    Database db = await instance.database;
+    return await db.update(
+      'saved_locations',
+      {
+        'isRecommendedFuel': 0,
+        'isRecommendedServiceOrParts': 0,
+        'performanceReason': null,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 }

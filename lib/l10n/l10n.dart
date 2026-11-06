@@ -1045,6 +1045,414 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Daily time to check and schedule refuel reminders'**
   String get notificationTimeSubtitle;
+
+  /// No description provided for @maintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get maintenance;
+
+  /// No description provided for @maintenanceTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance Tasks'**
+  String get maintenanceTasks;
+
+  /// No description provided for @serviceHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Service History'**
+  String get serviceHistory;
+
+  /// No description provided for @logServiceVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Service Visit'**
+  String get logServiceVisit;
+
+  /// No description provided for @addTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Task'**
+  String get addTask;
+
+  /// No description provided for @editTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Task'**
+  String get editTask;
+
+  /// No description provided for @deleteTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Task'**
+  String get deleteTask;
+
+  /// No description provided for @taskTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Title'**
+  String get taskTitle;
+
+  /// No description provided for @intervalDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval Distance (km)'**
+  String get intervalDistance;
+
+  /// No description provided for @intervalMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval (months)'**
+  String get intervalMonths;
+
+  /// No description provided for @reminderBuffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder Buffer (km)'**
+  String get reminderBuffer;
+
+  /// No description provided for @lastServiceOdometer.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Service Odometer'**
+  String get lastServiceOdometer;
+
+  /// No description provided for @lastServiceDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Service Date'**
+  String get lastServiceDate;
+
+  /// No description provided for @quickDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Done'**
+  String get quickDone;
+
+  /// No description provided for @confirmQuickDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Task Completion'**
+  String get confirmQuickDone;
+
+  /// No description provided for @confirmQuickDoneMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset last service odometer and date for {task}?'**
+  String confirmQuickDoneMsg(String task);
+
+  /// No description provided for @statusHealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Healthy'**
+  String get statusHealthy;
+
+  /// No description provided for @statusDueSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Due Soon'**
+  String get statusDueSoon;
+
+  /// No description provided for @statusOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get statusOverdue;
+
+  /// No description provided for @daysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days left'**
+  String daysRemaining(int days);
+
+  /// No description provided for @daysOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days overdue'**
+  String daysOverdue(int days);
+
+  /// No description provided for @kmRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{km} km left'**
+  String kmRemaining(String km);
+
+  /// No description provided for @kmOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue by {km} km'**
+  String kmOverdue(String km);
+
+  /// No description provided for @lastDoneOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Last: {odo} km on {date}'**
+  String lastDoneOn(String odo, String date);
+
+  /// No description provided for @targetAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Target: {odo} km'**
+  String targetAt(String odo);
+
+  /// No description provided for @noMaintenanceTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No maintenance tasks configured for this vehicle.'**
+  String get noMaintenanceTasks;
+
+  /// No description provided for @noServiceHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No service visits recorded yet.'**
+  String get noServiceHistory;
+
+  /// No description provided for @confirmDeleteTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this maintenance task?'**
+  String get confirmDeleteTask;
+
+  /// No description provided for @confirmDeleteTaskMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently remove this maintenance task.'**
+  String get confirmDeleteTaskMsg;
+
+  /// No description provided for @engineOilChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine Oil Change'**
+  String get engineOilChange;
+
+  /// No description provided for @oilFilterReplacement.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine Oil Filter'**
+  String get oilFilterReplacement;
+
+  /// No description provided for @airFilterClean.
+  ///
+  /// In en, this message translates to:
+  /// **'Air Filter Clean / Replace'**
+  String get airFilterClean;
+
+  /// No description provided for @generalServicing.
+  ///
+  /// In en, this message translates to:
+  /// **'General Servicing'**
+  String get generalServicing;
+
+  /// No description provided for @workshop.
+  ///
+  /// In en, this message translates to:
+  /// **'Workshop / Mechanic'**
+  String get workshop;
+
+  /// No description provided for @serviceCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Service Cost'**
+  String get serviceCost;
+
+  /// No description provided for @tasksCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks Completed in this Visit'**
+  String get tasksCompleted;
+
+  /// No description provided for @selectAtLeastOneTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one task.'**
+  String get selectAtLeastOneTask;
+
+  /// No description provided for @saveServiceVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Service Visit'**
+  String get saveServiceVisit;
+
+  /// No description provided for @serviceVisitLogged.
+  ///
+  /// In en, this message translates to:
+  /// **'Service visit recorded successfully.'**
+  String get serviceVisitLogged;
+
+  /// No description provided for @maintenanceWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance Required'**
+  String get maintenanceWarningTitle;
+
+  /// No description provided for @viewMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'View Maintenance'**
+  String get viewMaintenance;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// No description provided for @itemsDueOrOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 maintenance item needs attention} other{{count} maintenance items need attention}}'**
+  String itemsDueOrOverdue(int count);
+
+  /// No description provided for @brandOrSpec.
+  ///
+  /// In en, this message translates to:
+  /// **'Part / Oil Brand or Spec'**
+  String get brandOrSpec;
+
+  /// No description provided for @brandOrSpecHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Mobil 1 10W-40, OEM Denso'**
+  String get brandOrSpecHint;
+
+  /// No description provided for @itemCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Item Cost'**
+  String get itemCost;
+
+  /// No description provided for @editServiceVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Service Visit'**
+  String get editServiceVisit;
+
+  /// No description provided for @deleteServiceVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Service Visit'**
+  String get deleteServiceVisit;
+
+  /// No description provided for @confirmDeleteServiceVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Service Visit?'**
+  String get confirmDeleteServiceVisit;
+
+  /// No description provided for @confirmDeleteServiceVisitMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently remove this service visit record.'**
+  String get confirmDeleteServiceVisitMsg;
+
+  /// No description provided for @serviceVisitDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Service visit deleted successfully.'**
+  String get serviceVisitDeleted;
+
+  /// No description provided for @serviceVisitUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Service visit updated successfully.'**
+  String get serviceVisitUpdated;
+
+  /// No description provided for @serviceVisitDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Service Visit Details'**
+  String get serviceVisitDetails;
+
+  /// No description provided for @exportServiceHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Maintenance & Service History'**
+  String get exportServiceHistory;
+
+  /// No description provided for @maintenanceReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance Reminders'**
+  String get maintenanceReminders;
+
+  /// No description provided for @enableMaintenanceReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance Reminders'**
+  String get enableMaintenanceReminders;
+
+  /// No description provided for @enableMaintenanceRemindersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track intervals and get notified when service is due'**
+  String get enableMaintenanceRemindersSubtitle;
+
+  /// No description provided for @doIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Do It'**
+  String get doIt;
+
+  /// No description provided for @markDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Done'**
+  String get markDone;
+
+  /// No description provided for @doItNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Do It Now'**
+  String get doItNow;
+
+  /// No description provided for @markQuickDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Quick Done'**
+  String get markQuickDone;
+
+  /// No description provided for @tasksAndReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks & Reminders'**
+  String get tasksAndReminders;
+
+  /// No description provided for @configureReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure Reminders'**
+  String get configureReminders;
+
+  /// No description provided for @noActiveReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'No active reminders or maintenance routines enabled for this vehicle.'**
+  String get noActiveReminders;
+
+  /// No description provided for @estimatedCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. Cost: {cost}'**
+  String estimatedCost(String cost);
+
+  /// No description provided for @refuelRemainingCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'~{volume} L left (~{km} km)'**
+  String refuelRemainingCountdown(String volume, String km);
+
+  /// No description provided for @addCustomTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Custom Task'**
+  String get addCustomTask;
+
+  /// No description provided for @intervalKm.
+  ///
+  /// In en, this message translates to:
+  /// **'Interval (km)'**
+  String get intervalKm;
 }
 
 class _AppLocalizationsDelegate

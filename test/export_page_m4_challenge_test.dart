@@ -413,12 +413,14 @@ void main() {
       await tester.pumpAndSettle();
 
       final checkboxes = find.byType(CheckboxListTile);
-      expect(checkboxes, findsNWidgets(3));
+      expect(checkboxes, findsNWidgets(5));
 
-      // Defaults: refueling = true, settings = false, vehicles = false
+      // Defaults: refueling = true, service = true, savedLocations = false, settings = false, vehicles = false
       expect(tester.widget<CheckboxListTile>(checkboxes.at(0)).value, isTrue);
-      expect(tester.widget<CheckboxListTile>(checkboxes.at(1)).value, isFalse);
+      expect(tester.widget<CheckboxListTile>(checkboxes.at(1)).value, isTrue);
       expect(tester.widget<CheckboxListTile>(checkboxes.at(2)).value, isFalse);
+      expect(tester.widget<CheckboxListTile>(checkboxes.at(3)).value, isFalse);
+      expect(tester.widget<CheckboxListTile>(checkboxes.at(4)).value, isFalse);
 
       // Toggle interaction
       await tester.tap(checkboxes.at(0));
@@ -427,10 +429,16 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(checkboxes.at(2));
       await tester.pumpAndSettle();
+      await tester.tap(checkboxes.at(3));
+      await tester.pumpAndSettle();
+      await tester.tap(checkboxes.at(4));
+      await tester.pumpAndSettle();
 
       expect(tester.widget<CheckboxListTile>(checkboxes.at(0)).value, isFalse);
-      expect(tester.widget<CheckboxListTile>(checkboxes.at(1)).value, isTrue);
+      expect(tester.widget<CheckboxListTile>(checkboxes.at(1)).value, isFalse);
       expect(tester.widget<CheckboxListTile>(checkboxes.at(2)).value, isTrue);
+      expect(tester.widget<CheckboxListTile>(checkboxes.at(3)).value, isTrue);
+      expect(tester.widget<CheckboxListTile>(checkboxes.at(4)).value, isTrue);
 
       // Verify sequence increment
       final prefs = await SharedPreferences.getInstance();

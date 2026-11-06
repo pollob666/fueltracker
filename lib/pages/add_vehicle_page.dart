@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
+import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
@@ -39,6 +40,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   double _distanceReminderValue = 50.0;
 
   List<FuelType> _fuelTypes = [];
+  List<MaintenanceTask> _tasks = [];
 
   @override
   void initState() {
@@ -56,8 +58,179 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       _volumeReminderValue = widget.vehicle!.volumeReminderValue;
       _distanceReminderEnabled = widget.vehicle!.distanceReminderEnabled;
       _distanceReminderValue = widget.vehicle!.distanceReminderValue;
+      _loadTasks(widget.vehicle!.id!);
+    } else {
+      _initDefaultTasks();
     }
     _loadFuelTypes();
+  }
+
+  void _initDefaultTasks() {
+    _tasks = [
+      MaintenanceTask(
+        vehicleId: 0,
+        taskKey: 'engine_oil',
+        title: 'Engine Oil Change',
+        intervalKm: 3000.0,
+        intervalMonths: 3,
+        lastServiceOdo: 0.0,
+        lastServiceDate: DateTime.now(),
+        reminderBufferKm: 100.0,
+        isEnabled: false,
+      ),
+      MaintenanceTask(
+        vehicleId: 0,
+        taskKey: 'oil_filter',
+        title: 'Engine Oil Filter',
+        intervalKm: 6000.0,
+        intervalMonths: 6,
+        lastServiceOdo: 0.0,
+        lastServiceDate: DateTime.now(),
+        reminderBufferKm: 100.0,
+        isEnabled: false,
+      ),
+      MaintenanceTask(
+        vehicleId: 0,
+        taskKey: 'air_filter',
+        title: 'Air Filter Clean / Replace',
+        intervalKm: 4000.0,
+        intervalMonths: 6,
+        lastServiceOdo: 0.0,
+        lastServiceDate: DateTime.now(),
+        reminderBufferKm: 100.0,
+        isEnabled: false,
+      ),
+      MaintenanceTask(
+        vehicleId: 0,
+        taskKey: 'general_servicing',
+        title: 'General Servicing',
+        intervalKm: 5000.0,
+        intervalMonths: 6,
+        lastServiceOdo: 0.0,
+        lastServiceDate: DateTime.now(),
+        reminderBufferKm: 150.0,
+        isEnabled: false,
+      ),
+    ];
+  }
+
+  Future<void> _loadTasks(int vehicleId) async {
+    final tasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicleId);
+    if (mounted) {
+      setState(() {
+        if (tasks.isNotEmpty) {
+          _tasks = tasks;
+        } else {
+          _initDefaultTasks();
+        }
+      });
+    }
+  }
+
+  String _getTaskLocalizedTitle(BuildContext context, MaintenanceTask task) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return task.title;
+    switch (task.taskKey) {
+      case 'engine_oil':
+        return l10n.engineOilChange;
+      case 'oil_filter':
+        return l10n.oilFilterReplacement;
+      case 'air_filter':
+        return l10n.airFilterClean;
+      case 'general_servicing':
+        return l10n.generalServicing;
+      default:
+        return task.title;
+    }
+  }
+
+  Future<void> _openAddCustomTaskDialog() async {
+    final localizations = AppLocalizations.of(context)!;
+    final titleController = TextEditingController();
+    final kmController = TextEditingController(text: '5000');
+    final monthsController = TextEditingController(text: '6');
+    final bufferController = TextEditingController(text: '100');
+
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(localizations.addCustomTask),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: localizations.taskTitle,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: kmController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: localizations.intervalKm,
+                  suffixText: 'km',
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: monthsController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: localizations.intervalMonths,
+                  suffixText: 'months',
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: bufferController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: localizations.reminderBuffer,
+                  suffixText: 'km',
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(localizations.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (titleController.text.trim().isNotEmpty &&
+                  double.tryParse(kmController.text) != null) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            child: Text(localizations.save),
+          ),
+        ],
+      ),
+    );
+
+    if (added == true && mounted) {
+      setState(() {
+        _tasks.add(MaintenanceTask(
+          vehicleId: widget.vehicle?.id ?? 0,
+          title: titleController.text.trim(),
+          intervalKm: double.tryParse(kmController.text) ?? 5000.0,
+          intervalMonths: int.tryParse(monthsController.text),
+          lastServiceOdo: 0.0,
+          lastServiceDate: DateTime.now(),
+          reminderBufferKm: double.tryParse(bufferController.text) ?? 100.0,
+          isEnabled: true,
+        ));
+      });
+    }
   }
 
   Future<void> _loadFuelTypes() async {
@@ -428,6 +601,173 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                Card(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                localizations.maintenanceReminders,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              icon: const Icon(Icons.add, size: 18),
+                              label: Text(localizations.addCustomTask),
+                              onPressed: _openAddCustomTaskDialog,
+                            ),
+                          ],
+                        ),
+                        Text(
+                          localizations.enableMaintenanceRemindersSubtitle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ..._tasks.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final task = entry.value;
+                          return Card(
+                            elevation: 0,
+                            color: theme.colorScheme.surface,
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: task.isEnabled
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                                    : theme.colorScheme.outlineVariant,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: SwitchListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                            _getTaskLocalizedTitle(context, task),
+                                            style: theme.textTheme.titleSmall?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          subtitle: Text(
+                                            '${task.intervalKm.toStringAsFixed(0)} km${task.intervalMonths != null ? " • ${task.intervalMonths} mos" : ""}',
+                                            style: theme.textTheme.bodySmall?.copyWith(
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          value: task.isEnabled,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              task.isEnabled = val;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      if (task.taskKey == null)
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, size: 20),
+                                          color: theme.colorScheme.error,
+                                          onPressed: () {
+                                            setState(() {
+                                              _tasks.removeAt(index);
+                                            });
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                  if (task.isEnabled) ...[
+                                    const Divider(height: 12),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          flex: 4,
+                                          child: TextFormField(
+                                            initialValue: task.intervalKm.toStringAsFixed(0),
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            decoration: InputDecoration(
+                                              labelText: localizations.intervalKm,
+                                              suffixText: 'km',
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                              border: const OutlineInputBorder(),
+                                            ),
+                                            onChanged: (val) {
+                                              final d = double.tryParse(val);
+                                              if (d != null && d > 0) {
+                                                task.intervalKm = d;
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 3,
+                                          child: TextFormField(
+                                            initialValue: task.intervalMonths?.toString() ?? '',
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(
+                                              labelText: localizations.intervalMonths,
+                                              suffixText: 'm',
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                              border: const OutlineInputBorder(),
+                                            ),
+                                            onChanged: (val) {
+                                              task.intervalMonths = int.tryParse(val);
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          flex: 3,
+                                          child: TextFormField(
+                                            initialValue: task.reminderBufferKm.toStringAsFixed(0),
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            decoration: InputDecoration(
+                                              labelText: localizations.reminderBuffer,
+                                              suffixText: 'km',
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                              border: const OutlineInputBorder(),
+                                            ),
+                                            onChanged: (val) {
+                                              final d = double.tryParse(val);
+                                              if (d != null && d >= 0) {
+                                                task.reminderBufferKm = d;
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () async {
@@ -451,8 +791,28 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                       if (widget.vehicle == null) {
                         final id = await DatabaseHelper.instance.insertVehicle(vehicle);
                         vehicle.id = id;
+                        final seededTasks = await DatabaseHelper.instance.getMaintenanceTasks(id);
+                        for (final userTask in _tasks) {
+                          if (userTask.taskKey != null) {
+                            final match = seededTasks.firstWhere((t) => t.taskKey == userTask.taskKey, orElse: () => userTask);
+                            if (match.id != null) {
+                              await DatabaseHelper.instance.updateMaintenanceTask(
+                                userTask.copyWith(id: match.id, vehicleId: id),
+                              );
+                            }
+                          } else {
+                            await DatabaseHelper.instance.insertMaintenanceTask(userTask.copyWith(vehicleId: id));
+                          }
+                        }
                       } else {
                         await DatabaseHelper.instance.updateVehicle(vehicle);
+                        for (final userTask in _tasks) {
+                          if (userTask.id != null) {
+                            await DatabaseHelper.instance.updateMaintenanceTask(userTask);
+                          } else {
+                            await DatabaseHelper.instance.insertMaintenanceTask(userTask.copyWith(vehicleId: vehicle.id!));
+                          }
+                        }
                       }
 
                       final allRecords = await DatabaseHelper.instance.getFuelRecords();
@@ -465,6 +825,20 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                       await NotificationService.instance.scheduleRefuelReminder(
                         vehicle: vehicle,
                         prediction: prediction,
+                      );
+
+                      double maxOdo = 0.0;
+                      if (vehicleRecords.isNotEmpty) {
+                        maxOdo = vehicleRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
+                      }
+                      final dailyAvg = MileageCalculator.calculateDailyAverageRun(vehicleRecords);
+                      final double rate = (dailyAvg > 0) ? dailyAvg : 20.0;
+                      final updatedTasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicle.id!);
+                      await NotificationService.instance.scheduleMaintenanceReminders(
+                        vehicle: vehicle,
+                        tasks: updatedTasks,
+                        currentOdo: maxOdo,
+                        dailyKmRate: rate,
                       );
 
                       if (mounted) {

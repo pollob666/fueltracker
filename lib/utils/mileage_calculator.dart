@@ -442,6 +442,66 @@ class MileageCalculator {
       distanceThreshold: distThresh,
     );
   }
+
+  /// Evaluates the most recent eligible full-tank interval against rolling efficiency.
+  /// Detects drops (>15% below rolling average) or boosts (>15% above rolling average).
+  static MileageAnomalyResult? checkMileageAnomaly(List<FuelRecord> records) {
+    if (records.length < 2) return null;
+
+    final sorted = sortChronological(records);
+    final intervals = calculateIntervalResults(sorted);
+
+    IntervalResult? latestFullTank;
+    int latestIntervalIdx = -1;
+    for (int i = intervals.length - 1; i >= 0; i--) {
+      if (intervals[i].isValidFullTank && intervals[i].mileage != null && intervals[i].mileage! > 0) {
+        latestFullTank = intervals[i];
+        latestIntervalIdx = i;
+        break;
+      }
+    }
+
+    if (latestFullTank == null || latestIntervalIdx < 0) return null;
+
+    // Find the baseline record for this interval
+    FuelRecord? baselineRecord;
+    for (int i = latestIntervalIdx - 1; i >= 0; i--) {
+      if (sorted[i].isFullTank && !sorted[i].missedPrevious) {
+        baselineRecord = sorted[i];
+        break;
+      }
+    }
+
+    // Historical records strictly prior to this cycle to establish baseline rolling average
+    final priorRecords = sorted.take(latestIntervalIdx).toList();
+    double runningAverage = 0.0;
+    if (priorRecords.length >= 2) {
+      runningAverage = calculateWeightedRunningAverage(priorRecords);
+    }
+
+    if (runningAverage <= 0.0) {
+      // Fallback: entire dataset
+      runningAverage = calculateWeightedRunningAverage(sorted);
+    }
+
+    if (runningAverage <= 0.0) return null;
+
+    final double intervalMileage = latestFullTank.mileage!;
+    final double percentageChange = ((intervalMileage - runningAverage) / runningAverage) * 100.0;
+
+    final bool isDrop = percentageChange <= -15.0;
+    final bool isBoost = percentageChange >= 15.0;
+
+    return MileageAnomalyResult(
+      isDrop: isDrop,
+      isBoost: isBoost,
+      intervalMileage: intervalMileage,
+      runningAverage: runningAverage,
+      percentageChange: percentageChange,
+      baselineRecord: baselineRecord,
+      currentRecord: latestFullTank.record,
+    );
+  }
 }
 
 /// Represents the calculated forecast and warning states for a vehicle's refuel status.
@@ -487,4 +547,27 @@ class RefuelPredictionResult {
       (isDistanceEnabled && isDistanceTriggered);
 
   bool get hasAnyReminderEnabled => isVolumeEnabled || isDistanceEnabled;
+}
+
+/// Represents the evaluation of interval efficiency against running average for anomalies or boosts.
+class MileageAnomalyResult {
+  final bool isDrop;
+  final bool isBoost;
+  final double intervalMileage;
+  final double runningAverage;
+  final double percentageChange;
+  final FuelRecord? baselineRecord;
+  final FuelRecord currentRecord;
+
+  const MileageAnomalyResult({
+    required this.isDrop,
+    required this.isBoost,
+    required this.intervalMileage,
+    required this.runningAverage,
+    required this.percentageChange,
+    this.baselineRecord,
+    required this.currentRecord,
+  });
+
+  bool get hasAnomaly => isDrop || isBoost;
 }

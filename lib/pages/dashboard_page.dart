@@ -7,15 +7,19 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
+import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
+import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
+import 'package:fuel_tracker/utils/maintenance_calculator.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/services/version_service.dart';
+import 'package:fuel_tracker/widgets/anomaly_diagnostic_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'add_data_page.dart';
@@ -39,6 +43,9 @@ class _DashboardPageState extends State<DashboardPage> {
   Map<int, Vehicle> _vehicleMap = {};
   List<Vehicle> _vehicles = [];
   int? _selectedVehicleId;
+  List<MapEntry<MaintenanceTask, TaskPredictionResult>> _dueMaintenanceTasks = [];
+  double? _estimatedServiceCost;
+  bool _isAnomalyDismissed = false;
 
   @override
   void initState() {
@@ -143,15 +150,138 @@ class _DashboardPageState extends State<DashboardPage> {
     });
 
     final vehicle = _vehicleMap[_selectedVehicleId];
-    if (vehicle != null && (vehicle.volumeReminderEnabled || vehicle.distanceReminderEnabled)) {
-      final prediction = MileageCalculator.calculateRefuelPrediction(
-        vehicle: vehicle,
-        records: _filteredRecords,
+    if (vehicle != null) {
+      if (vehicle.volumeReminderEnabled || vehicle.distanceReminderEnabled) {
+        final prediction = MileageCalculator.calculateRefuelPrediction(
+          vehicle: vehicle,
+          records: _filteredRecords,
+        );
+        NotificationService.instance.scheduleRefuelReminder(
+          vehicle: vehicle,
+          prediction: prediction,
+        );
+      }
+      _checkMaintenanceStatus(vehicle);
+    }
+  }
+
+  Future<void> _checkMaintenanceStatus(Vehicle vehicle) async {
+    if (vehicle.id == null) return;
+    final tasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicle.id!);
+    final estCost = await DatabaseHelper.instance.getEstimatedServiceCost(vehicle.id!);
+    double maxOdo = 0.0;
+    if (_filteredRecords.isNotEmpty) {
+      maxOdo = _filteredRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
+    }
+    final dailyAvg = MileageCalculator.calculateDailyAverageRun(_filteredRecords);
+    final rate = dailyAvg > 0 ? dailyAvg : 20.0;
+
+    final List<MapEntry<MaintenanceTask, TaskPredictionResult>> dueItems = [];
+    final now = DateTime.now();
+
+    for (final task in tasks) {
+      if (!task.isEnabled) continue;
+      final pred = MaintenanceCalculator.calculateTaskStatus(
+        task: task,
+        currentOdo: maxOdo,
+        currentDate: now,
+        dailyKmRate: rate,
       );
-      NotificationService.instance.scheduleRefuelReminder(
-        vehicle: vehicle,
-        prediction: prediction,
+      if (pred.status != MaintenanceStatus.healthy) {
+        dueItems.add(MapEntry(task, pred));
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _dueMaintenanceTasks = dueItems;
+        _estimatedServiceCost = estCost;
+      });
+    }
+  }
+
+  Future<void> _quickDoneRefuel(Vehicle vehicle) async {
+    final localizations = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(localizations.markDone),
+        content: const Text('Mark tank as filled to reset reminder countdown?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(localizations.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(localizations.ok),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      double maxOdo = 0.0;
+      if (_filteredRecords.isNotEmpty) {
+        maxOdo = _filteredRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
+      }
+      final record = FuelRecord(
+        odometer: maxOdo,
+        date: DateTime.now(),
+        rate: 0.0,
+        volume: vehicle.primaryFuelCapacity ?? 10.0,
+        paidAmount: 0.0,
+        fuelTypeId: vehicle.primaryFuelTypeId,
+        vehicleId: vehicle.id!,
+        isFullTank: true,
+        missedPrevious: false,
+        drivingCondition: DrivingCondition.mixed,
       );
+      await DatabaseHelper.instance.insertFuelRecord(record);
+      _loadInitialData();
+    }
+  }
+
+  Future<void> _quickDoneMaintenance(MaintenanceTask task, Vehicle vehicle) async {
+    final localizations = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(localizations.markDone),
+        content: Text('Mark "${task.title}" as completed? Next reminder cycle will be scheduled.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(localizations.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(localizations.ok),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      double maxOdo = 0.0;
+      if (_filteredRecords.isNotEmpty) {
+        maxOdo = _filteredRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
+      }
+      await DatabaseHelper.instance.quickResetMaintenanceTask(
+        task.id!,
+        maxOdo,
+        DateTime.now(),
+      );
+      final tasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicle.id!);
+      final dailyAvg = MileageCalculator.calculateDailyAverageRun(_filteredRecords);
+      final rate = dailyAvg > 0 ? dailyAvg : 20.0;
+      await NotificationService.instance.scheduleMaintenanceReminders(
+        vehicle: vehicle,
+        tasks: tasks,
+        currentOdo: maxOdo,
+        dailyKmRate: rate,
+      );
+      _checkMaintenanceStatus(vehicle);
     }
   }
 
@@ -479,26 +609,164 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             if (isAlert) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: colorScheme.error,
-                    foregroundColor: colorScheme.onError,
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.error,
+                        foregroundColor: colorScheme.onError,
+                      ),
+                      icon: const Icon(Icons.local_gas_station, size: 18),
+                      label: Text(localizations.doIt),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const AddDataPage()),
+                        );
+                        _loadInitialData();
+                      },
+                    ),
                   ),
-                  icon: const Icon(Icons.local_gas_station),
-                  label: Text(localizations.refuelNow),
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const AddDataPage()),
-                    );
-                    _loadInitialData();
-                  },
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.onErrorContainer,
+                        side: BorderSide(color: colorScheme.error),
+                      ),
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: Text(localizations.markDone),
+                      onPressed: () => _quickDoneRefuel(vehicle),
+                    ),
+                  ),
+                ],
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMileageAnomalyCard(
+    BuildContext context,
+    Vehicle vehicle,
+    MileageAnomalyResult anomaly,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDrop = anomaly.isDrop;
+    final cardBgColor = isDrop
+        ? colorScheme.errorContainer.withValues(alpha: 0.7)
+        : Colors.green.shade50;
+    final cardBorderColor = isDrop ? colorScheme.error : Colors.green.shade600;
+    final accentColor = isDrop ? colorScheme.error : Colors.green.shade700;
+    final onCardColor = isDrop ? colorScheme.onErrorContainer : Colors.green.shade900;
+    final title = isDrop
+        ? 'Mileage Drop Anomaly Detected'
+        : 'Mileage Boost Detected';
+    final pctStr =
+        '${anomaly.percentageChange >= 0 ? '+' : ''}${anomaly.percentageChange.toStringAsFixed(1)}%';
+
+    return Card(
+      elevation: 2.0,
+      color: cardBgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: cardBorderColor,
+          width: 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isDrop ? Icons.warning_amber_rounded : Icons.eco,
+                      color: accentColor,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: onCardColor,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    pctStr,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Latest interval yielded ${anomaly.intervalMileage.toStringAsFixed(1)} km/L vs ${anomaly.runningAverage.toStringAsFixed(1)} km/L rolling avg ($pctStr).',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: onCardColor.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isAnomalyDismissed = true;
+                    });
+                  },
+                  child: Text(
+                    'Dismiss',
+                    style: TextStyle(color: onCardColor),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: Icon(isDrop ? Icons.search : Icons.star, size: 16),
+                  label: Text(isDrop ? 'Diagnose & Attribute' : 'Mark Location Green'),
+                  onPressed: () {
+                    AnomalyDiagnosticDialog.show(
+                      context: context,
+                      vehicleId: vehicle.id!,
+                      anomaly: anomaly,
+                      onResolved: () {
+                        setState(() {
+                          _isAnomalyDismissed = true;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -592,6 +860,7 @@ class _DashboardPageState extends State<DashboardPage> {
         records: _filteredRecords,
       );
     }
+    final anomaly = MileageCalculator.checkMileageAnomaly(_filteredRecords);
 
     if (selectedVehicle != null) {
       final primaryFuelType = _fuelTypeMap[selectedVehicle.primaryFuelTypeId];
@@ -946,8 +1215,16 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                if (prediction != null && selectedVehicle != null) ...[
+                if (anomaly != null && anomaly.hasAnomaly && !_isAnomalyDismissed && selectedVehicle != null) ...[
+                  _buildMileageAnomalyCard(context, selectedVehicle, anomaly),
+                  const SizedBox(height: 24),
+                ],
+                if (prediction != null && selectedVehicle != null && prediction.isAlertActive) ...[
                   _buildRefuelReminderCard(context, selectedVehicle, prediction),
+                  const SizedBox(height: 24),
+                ],
+                if (_dueMaintenanceTasks.isNotEmpty && selectedVehicle != null) ...[
+                  _buildMaintenanceWarningBanner(context, selectedVehicle),
                   const SizedBox(height: 24),
                 ],
                 Card(
@@ -1121,6 +1398,195 @@ class _DashboardPageState extends State<DashboardPage> {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMaintenanceWarningBanner(BuildContext context, Vehicle vehicle) {
+    final localizations = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final hasOverdue = _dueMaintenanceTasks.any(
+        (e) => e.value.status == MaintenanceStatus.overdue);
+
+    final bgColor = hasOverdue
+        ? theme.colorScheme.errorContainer
+        : Colors.amber.shade100;
+    final fgColor = hasOverdue
+        ? theme.colorScheme.onErrorContainer
+        : Colors.amber.shade900;
+    final borderColor = hasOverdue
+        ? theme.colorScheme.error.withValues(alpha: 0.5)
+        : Colors.amber.shade600;
+
+    return Card(
+      elevation: 0,
+      color: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0),
+        side: BorderSide(color: borderColor, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  hasOverdue ? Icons.error_outline : Icons.warning_amber_rounded,
+                  color: fgColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    localizations.maintenanceWarningTitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: fgColor,
+                    ),
+                  ),
+                ),
+                FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: theme.colorScheme.surface,
+                    foregroundColor: fgColor,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MaintenancePage(
+                          initialVehicleId: vehicle.id,
+                        ),
+                      ),
+                    ).then((_) => _filterRecords());
+                  },
+                  child: Text(localizations.viewMaintenance),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  localizations.itemsDueOrOverdue(_dueMaintenanceTasks.length),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: fgColor,
+                  ),
+                ),
+                if (_estimatedServiceCost != null && _estimatedServiceCost! > 0)
+                  Text(
+                    localizations.estimatedCost('~${_estimatedServiceCost!.toStringAsFixed(0)} BDT'),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: fgColor,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ..._dueMaintenanceTasks.take(3).map((entry) {
+              final task = entry.key;
+              final pred = entry.value;
+              final isOverdue = pred.status == MaintenanceStatus.overdue;
+              final detailText = isOverdue
+                  ? (pred.kmRemaining <= 0
+                      ? localizations.kmOverdue((-pred.kmRemaining).toStringAsFixed(0))
+                      : 'time limit passed')
+                  : localizations.kmRemaining(pred.kmRemaining.toStringAsFixed(0));
+
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 4.0),
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(
+                    color: borderColor.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          isOverdue ? Icons.error_outline : Icons.warning_amber_rounded,
+                          size: 16,
+                          color: fgColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            task.title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: fgColor,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          detailText,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: fgColor,
+                            fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8.0,
+                        runSpacing: 4.0,
+                        children: [
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              foregroundColor: fgColor,
+                              side: BorderSide(color: borderColor),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            ),
+                            icon: const Icon(Icons.check, size: 14),
+                            label: Text(localizations.markDone, style: const TextStyle(fontSize: 12)),
+                            onPressed: () => _quickDoneMaintenance(task, vehicle),
+                          ),
+                          FilledButton.tonalIcon(
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              backgroundColor: theme.colorScheme.surface,
+                              foregroundColor: fgColor,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            ),
+                            icon: const Icon(Icons.build_outlined, size: 14),
+                            label: Text(localizations.doIt, style: const TextStyle(fontSize: 12)),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MaintenancePage(
+                                    initialVehicleId: vehicle.id,
+                                    openLogForTaskId: task.id,
+                                  ),
+                                ),
+                              ).then((_) => _filterRecords());
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

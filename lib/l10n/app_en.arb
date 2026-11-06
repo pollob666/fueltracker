@@ -225,5 +225,152 @@
     }
   },
   "notificationTime": "Reminder Notification Time",
-  "notificationTimeSubtitle": "Daily time to check and schedule refuel reminders"
+  "notificationTimeSubtitle": "Daily time to check and schedule refuel reminders",
+  "maintenance": "Maintenance",
+  "maintenanceTasks": "Maintenance Tasks",
+  "serviceHistory": "Service History",
+  "logServiceVisit": "Log Service Visit",
+  "addTask": "Add Task",
+  "editTask": "Edit Task",
+  "deleteTask": "Delete Task",
+  "taskTitle": "Task Title",
+  "intervalDistance": "Interval Distance (km)",
+  "intervalMonths": "Interval Months (optional)",
+  "reminderBuffer": "Reminder Buffer (km)",
+  "lastServiceOdometer": "Last Service Odometer",
+  "lastServiceDate": "Last Service Date",
+  "quickDone": "Quick Done",
+  "confirmQuickDone": "Confirm Task Completion",
+  "confirmQuickDoneMsg": "Reset last service odometer and date for {task}?",
+  "@confirmQuickDoneMsg": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "statusHealthy": "Healthy",
+  "statusDueSoon": "Due Soon",
+  "statusOverdue": "Overdue",
+  "daysRemaining": "{days} days left",
+  "@daysRemaining": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "daysOverdue": "{days} days overdue",
+  "@daysOverdue": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "kmRemaining": "{km} km left",
+  "@kmRemaining": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "kmOverdue": "Overdue by {km} km",
+  "@kmOverdue": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "lastDoneOn": "Last: {odo} km on {date}",
+  "@lastDoneOn": {
+    "placeholders": {
+      "odo": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "targetAt": "Target: {odo} km",
+  "@targetAt": {
+    "placeholders": {
+      "odo": {
+        "type": "String"
+      }
+    }
+  },
+  "noMaintenanceTasks": "No maintenance tasks configured for this vehicle.",
+  "noServiceHistory": "No service visits recorded yet.",
+  "confirmDeleteTask": "Delete this maintenance task?",
+  "confirmDeleteTaskMsg": "This will permanently remove this maintenance task.",
+  "engineOilChange": "Engine Oil Change",
+  "oilFilterReplacement": "Engine Oil Filter",
+  "airFilterClean": "Air Filter Clean / Replace",
+  "generalServicing": "General Servicing",
+  "workshop": "Workshop / Mechanic",
+  "serviceCost": "Service Cost",
+  "tasksCompleted": "Tasks Completed in this Visit",
+  "selectAtLeastOneTask": "Please select at least one task.",
+  "saveServiceVisit": "Save Service Visit",
+  "serviceVisitLogged": "Service visit recorded successfully.",
+  "maintenanceWarningTitle": "Maintenance Required",
+  "viewMaintenance": "View Maintenance",
+  "notes": "Notes",
+  "itemsDueOrOverdue": "{count, plural, =1{1 maintenance item needs attention} other{{count} maintenance items need attention}}",
+  "@itemsDueOrOverdue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "brandOrSpec": "Part / Oil Brand or Spec",
+  "brandOrSpecHint": "e.g. Mobil 1 10W-40, OEM Denso",
+  "itemCost": "Item Cost",
+  "editServiceVisit": "Edit Service Visit",
+  "deleteServiceVisit": "Delete Service Visit",
+  "confirmDeleteServiceVisit": "Delete Service Visit?",
+  "confirmDeleteServiceVisitMsg": "This will permanently remove this service visit record.",
+  "serviceVisitDeleted": "Service visit deleted successfully.",
+  "serviceVisitUpdated": "Service visit updated successfully.",
+  "serviceVisitDetails": "Service Visit Details",
+  "exportServiceHistory": "Export Maintenance & Service History",
+  "maintenanceReminders": "Maintenance Reminders",
+  "enableMaintenanceReminders": "Maintenance Reminders",
+  "enableMaintenanceRemindersSubtitle": "Track intervals and get notified when service is due",
+  "doIt": "Do It",
+  "markDone": "Mark Done",
+  "doItNow": "Do It Now",
+  "markQuickDone": "Mark Quick Done",
+  "tasksAndReminders": "Tasks & Reminders",
+  "configureReminders": "Configure Reminders",
+  "noActiveReminders": "No active reminders or maintenance routines enabled for this vehicle.",
+  "estimatedCost": "Est. Cost: {cost}",
+  "@estimatedCost": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "refuelRemainingCountdown": "~{volume} L left (~{km} km)",
+  "@refuelRemainingCountdown": {
+    "placeholders": {
+      "volume": {
+        "type": "String"
+      },
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "addCustomTask": "Add Custom Task",
+  "taskTitle": "Task Title",
+  "intervalKm": "Interval (km)",
+  "intervalMonths": "Interval (months)",
+  "reminderBuffer": "Reminder Buffer (km)"
 }

@@ -515,4 +515,239 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notificationTimeSubtitle =>
       'Daily time to check and schedule refuel reminders';
+
+  @override
+  String get maintenance => 'Maintenance';
+
+  @override
+  String get maintenanceTasks => 'Maintenance Tasks';
+
+  @override
+  String get serviceHistory => 'Service History';
+
+  @override
+  String get logServiceVisit => 'Log Service Visit';
+
+  @override
+  String get addTask => 'Add Task';
+
+  @override
+  String get editTask => 'Edit Task';
+
+  @override
+  String get deleteTask => 'Delete Task';
+
+  @override
+  String get taskTitle => 'Task Title';
+
+  @override
+  String get intervalDistance => 'Interval Distance (km)';
+
+  @override
+  String get intervalMonths => 'Interval (months)';
+
+  @override
+  String get reminderBuffer => 'Reminder Buffer (km)';
+
+  @override
+  String get lastServiceOdometer => 'Last Service Odometer';
+
+  @override
+  String get lastServiceDate => 'Last Service Date';
+
+  @override
+  String get quickDone => 'Quick Done';
+
+  @override
+  String get confirmQuickDone => 'Confirm Task Completion';
+
+  @override
+  String confirmQuickDoneMsg(String task) {
+    return 'Reset last service odometer and date for $task?';
+  }
+
+  @override
+  String get statusHealthy => 'Healthy';
+
+  @override
+  String get statusDueSoon => 'Due Soon';
+
+  @override
+  String get statusOverdue => 'Overdue';
+
+  @override
+  String daysRemaining(int days) {
+    return '$days days left';
+  }
+
+  @override
+  String daysOverdue(int days) {
+    return '$days days overdue';
+  }
+
+  @override
+  String kmRemaining(String km) {
+    return '$km km left';
+  }
+
+  @override
+  String kmOverdue(String km) {
+    return 'Overdue by $km km';
+  }
+
+  @override
+  String lastDoneOn(String odo, String date) {
+    return 'Last: $odo km on $date';
+  }
+
+  @override
+  String targetAt(String odo) {
+    return 'Target: $odo km';
+  }
+
+  @override
+  String get noMaintenanceTasks =>
+      'No maintenance tasks configured for this vehicle.';
+
+  @override
+  String get noServiceHistory => 'No service visits recorded yet.';
+
+  @override
+  String get confirmDeleteTask => 'Delete this maintenance task?';
+
+  @override
+  String get confirmDeleteTaskMsg =>
+      'This will permanently remove this maintenance task.';
+
+  @override
+  String get engineOilChange => 'Engine Oil Change';
+
+  @override
+  String get oilFilterReplacement => 'Engine Oil Filter';
+
+  @override
+  String get airFilterClean => 'Air Filter Clean / Replace';
+
+  @override
+  String get generalServicing => 'General Servicing';
+
+  @override
+  String get workshop => 'Workshop / Mechanic';
+
+  @override
+  String get serviceCost => 'Service Cost';
+
+  @override
+  String get tasksCompleted => 'Tasks Completed in this Visit';
+
+  @override
+  String get selectAtLeastOneTask => 'Please select at least one task.';
+
+  @override
+  String get saveServiceVisit => 'Save Service Visit';
+
+  @override
+  String get serviceVisitLogged => 'Service visit recorded successfully.';
+
+  @override
+  String get maintenanceWarningTitle => 'Maintenance Required';
+
+  @override
+  String get viewMaintenance => 'View Maintenance';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String itemsDueOrOverdue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count maintenance items need attention',
+      one: '1 maintenance item needs attention',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get brandOrSpec => 'Part / Oil Brand or Spec';
+
+  @override
+  String get brandOrSpecHint => 'e.g. Mobil 1 10W-40, OEM Denso';
+
+  @override
+  String get itemCost => 'Item Cost';
+
+  @override
+  String get editServiceVisit => 'Edit Service Visit';
+
+  @override
+  String get deleteServiceVisit => 'Delete Service Visit';
+
+  @override
+  String get confirmDeleteServiceVisit => 'Delete Service Visit?';
+
+  @override
+  String get confirmDeleteServiceVisitMsg =>
+      'This will permanently remove this service visit record.';
+
+  @override
+  String get serviceVisitDeleted => 'Service visit deleted successfully.';
+
+  @override
+  String get serviceVisitUpdated => 'Service visit updated successfully.';
+
+  @override
+  String get serviceVisitDetails => 'Service Visit Details';
+
+  @override
+  String get exportServiceHistory => 'Export Maintenance & Service History';
+
+  @override
+  String get maintenanceReminders => 'Maintenance Reminders';
+
+  @override
+  String get enableMaintenanceReminders => 'Maintenance Reminders';
+
+  @override
+  String get enableMaintenanceRemindersSubtitle =>
+      'Track intervals and get notified when service is due';
+
+  @override
+  String get doIt => 'Do It';
+
+  @override
+  String get markDone => 'Mark Done';
+
+  @override
+  String get doItNow => 'Do It Now';
+
+  @override
+  String get markQuickDone => 'Mark Quick Done';
+
+  @override
+  String get tasksAndReminders => 'Tasks & Reminders';
+
+  @override
+  String get configureReminders => 'Configure Reminders';
+
+  @override
+  String get noActiveReminders =>
+      'No active reminders or maintenance routines enabled for this vehicle.';
+
+  @override
+  String estimatedCost(String cost) {
+    return 'Est. Cost: $cost';
+  }
+
+  @override
+  String refuelRemainingCountdown(String volume, String km) {
+    return '~$volume L left (~$km km)';
+  }
+
+  @override
+  String get addCustomTask => 'Add Custom Task';
+
+  @override
+  String get intervalKm => 'Interval (km)';
 }

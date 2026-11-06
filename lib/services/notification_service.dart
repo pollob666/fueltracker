@@ -3,8 +3,10 @@
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
+import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/utils/maintenance_calculator.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -125,13 +127,144 @@ class NotificationService {
               ? tz.TZDateTime.now(tz.local).add(const Duration(minutes: 5))
               : scheduledDateTime;
 
-      await _notificationsPlugin.zonedSchedule(
+      await _scheduleZonedNotification(
         id: notifId,
         title: title,
         body: body,
         scheduledDate: effectiveSchedule,
         notificationDetails: details,
+      );
+    }
+  }
+
+  /// Generates a non-colliding notification ID for vehicle maintenance tasks.
+  static int getMaintenanceNotifId(int vehicleId, int taskId) =>
+      100000 + (vehicleId * 1000) + (taskId % 1000);
+
+  /// Cancels any scheduled maintenance reminder for a task.
+  Future<void> cancelMaintenanceReminder(int vehicleId, int taskId) async {
+    await _notificationsPlugin.cancel(id: getMaintenanceNotifId(vehicleId, taskId));
+  }
+
+  /// Evaluates and schedules individual notifications for upcoming or overdue maintenance tasks.
+  Future<void> scheduleMaintenanceReminders({
+    required Vehicle vehicle,
+    required List<MaintenanceTask> tasks,
+    required double currentOdo,
+    required double dailyKmRate,
+  }) async {
+    if (vehicle.id == null) return;
+    final int vehicleId = vehicle.id!;
+
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'maintenance_reminders',
+      'Maintenance Reminders',
+      channelDescription: 'Alerts for upcoming and overdue vehicle maintenance tasks',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/launcher_icon',
+    );
+
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    final now = DateTime.now();
+
+    for (final task in tasks) {
+      if (task.id == null || !task.isEnabled) continue;
+      final notifId = getMaintenanceNotifId(vehicleId, task.id!);
+
+      // Cancel prior notification for this task
+      await _notificationsPlugin.cancel(id: notifId);
+
+      final prediction = MaintenanceCalculator.calculateTaskStatus(
+        task: task,
+        currentOdo: currentOdo,
+        currentDate: now,
+        dailyKmRate: dailyKmRate,
+      );
+
+      // 1. If currently overdue, trigger immediate alert
+      if (prediction.status == MaintenanceStatus.overdue) {
+        final overdueText = prediction.kmRemaining <= 0
+            ? '${(-prediction.kmRemaining).toStringAsFixed(0)} km'
+            : 'calendar limit exceeded';
+        await _notificationsPlugin.show(
+          id: notifId,
+          title: 'Maintenance Overdue: ${task.title}',
+          body: '${vehicle.name} is overdue for ${task.title} ($overdueText). Please service soon!',
+          notificationDetails: details,
+        );
+        continue;
+      }
+
+      // 2. If due soon, trigger immediate warning
+      if (prediction.status == MaintenanceStatus.dueSoon) {
+        await _notificationsPlugin.show(
+          id: notifId,
+          title: 'Maintenance Due Soon: ${task.title}',
+          body: '${vehicle.name} is due for ${task.title} in ~${prediction.kmRemaining.toStringAsFixed(0)} km.',
+          notificationDetails: details,
+        );
+        continue;
+      }
+
+      // 3. Otherwise schedule notification at configured time on projected due date
+      if (prediction.daysRemaining != null && prediction.daysRemaining! > 0) {
+        final targetDate = now.add(Duration(days: prediction.daysRemaining!));
+        final scheduledDateTime = tz.TZDateTime(
+          tz.local,
+          targetDate.year,
+          targetDate.month,
+          targetDate.day,
+          AppSettings.reminderHour,
+          AppSettings.reminderMinute,
+        );
+
+        final tz.TZDateTime effectiveSchedule =
+            scheduledDateTime.isBefore(tz.TZDateTime.now(tz.local))
+                ? tz.TZDateTime.now(tz.local).add(const Duration(minutes: 5))
+                : scheduledDateTime;
+
+        await _scheduleZonedNotification(
+          id: notifId,
+          title: 'Maintenance Reminder: ${task.title}',
+          body: '${vehicle.name} is projected to need ${task.title} today.',
+          scheduledDate: effectiveSchedule,
+          notificationDetails: details,
+        );
+      }
+    }
+  }
+
+  /// Schedules a zoned alarm, falling back to inexact alarm if exact alarms are not permitted on Android 12+.
+  Future<void> _scheduleZonedNotification({
+    required int id,
+    required String title,
+    required String body,
+    required tz.TZDateTime scheduledDate,
+    required NotificationDetails notificationDetails,
+  }) async {
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: scheduledDate,
+        notificationDetails: notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (_) {
+      // Fallback to inexact mode if exact alarms not permitted on Android 12+ (API 31+)
+      await _notificationsPlugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: scheduledDate,
+        notificationDetails: notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
     }
   }
@@ -144,18 +277,34 @@ class NotificationService {
 
     for (final vehicle in vehicles) {
       if (vehicle.id == null) continue;
-      if (!vehicle.volumeReminderEnabled && !vehicle.distanceReminderEnabled) {
-        await cancelVehicleReminder(vehicle.id!);
-        continue;
-      }
       final vehicleRecords =
           allRecords.where((r) => r.vehicleId == vehicle.id).toList();
-      final prediction =
-          MileageCalculator.calculateRefuelPrediction(
+
+      // Reschedule refuel reminders
+      if (vehicle.volumeReminderEnabled || vehicle.distanceReminderEnabled) {
+        final prediction = MileageCalculator.calculateRefuelPrediction(
+          vehicle: vehicle,
+          records: vehicleRecords,
+        );
+        await scheduleRefuelReminder(vehicle: vehicle, prediction: prediction);
+      } else {
+        await cancelVehicleReminder(vehicle.id!);
+      }
+
+      // Reschedule maintenance reminders
+      final tasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicle.id!);
+      double maxOdo = 0.0;
+      if (vehicleRecords.isNotEmpty) {
+        maxOdo = vehicleRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
+      }
+      final dailyAvg = MileageCalculator.calculateDailyAverageRun(vehicleRecords);
+      final rate = dailyAvg > 0 ? dailyAvg : 20.0;
+      await scheduleMaintenanceReminders(
         vehicle: vehicle,
-        records: vehicleRecords,
+        tasks: tasks,
+        currentOdo: maxOdo,
+        dailyKmRate: rate,
       );
-      await scheduleRefuelReminder(vehicle: vehicle, prediction: prediction);
     }
   }
 }

@@ -14,6 +14,9 @@ import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
+import 'package:fuel_tracker/widgets/location_picker_field.dart';
+import 'package:fuel_tracker/models/saved_location.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddDataPage extends StatefulWidget {
@@ -52,6 +55,8 @@ class _AddDataPageState extends State<AddDataPage> {
   bool _isUpdating = false;
   bool _isFullTank = true;
   bool _missedPrevious = false;
+  SavedLocation? _selectedLocation;
+  Position? _capturedPosition;
 
   Vehicle? get _selectedVehicle {
     if (_selectedVehicleId == null || _vehicles.isEmpty) return null;
@@ -96,6 +101,11 @@ class _AddDataPageState extends State<AddDataPage> {
       _missedPrevious = rec.missedPrevious;
       _selectedVehicleId = rec.vehicleId;
       _selectedFuelTypeId = rec.fuelTypeId;
+      if (rec.locationId != null) {
+        DatabaseHelper.instance.getSavedLocationById(rec.locationId!).then((loc) {
+          if (mounted) setState(() => _selectedLocation = loc);
+        });
+      }
     } else {
       _loadLastValues();
       _volumeController.text = _volume.toStringAsFixed(2);
@@ -295,6 +305,20 @@ class _AddDataPageState extends State<AddDataPage> {
         vehicle: vehicle,
         prediction: prediction,
       );
+
+      final tasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicleId);
+      double maxOdo = 0.0;
+      if (vehicleRecords.isNotEmpty) {
+        maxOdo = vehicleRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
+      }
+      final dailyAvg = MileageCalculator.calculateDailyAverageRun(vehicleRecords);
+      final rate = dailyAvg > 0 ? dailyAvg : 20.0;
+      await NotificationService.instance.scheduleMaintenanceReminders(
+        vehicle: vehicle,
+        tasks: tasks,
+        currentOdo: maxOdo,
+        dailyKmRate: rate,
+      );
     }
   }
 
@@ -416,6 +440,18 @@ class _AddDataPageState extends State<AddDataPage> {
                     decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.fuelType),
                   ),
+                  const SizedBox(height: 12),
+                  LocationPickerField(
+                    type: 'fuel_station',
+                    initialLocation: _selectedLocation,
+                    onLocationChanged: (loc) {
+                      _selectedLocation = loc;
+                    },
+                    onGpsPositionChanged: (pos) {
+                      _capturedPosition = pos;
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _odometerController,
                     decoration: InputDecoration(
@@ -734,6 +770,9 @@ class _AddDataPageState extends State<AddDataPage> {
                             tripDistance: tripDist,
                             secondaryTripDistance: secTripDist,
                             drivingCondition: _drivingCondition,
+                            locationId: _selectedLocation?.id,
+                            latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
+                            longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
                           );
 
                           await DatabaseHelper.instance
@@ -798,6 +837,9 @@ class _AddDataPageState extends State<AddDataPage> {
                             tripDistance: tripDist,
                             secondaryTripDistance: secTripDist,
                             drivingCondition: _drivingCondition,
+                            locationId: _selectedLocation?.id,
+                            latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
+                            longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
                           );
                           await DatabaseHelper.instance.insertFuelRecord(record);
                           await _rescheduleReminderForVehicle(_selectedVehicleId!);

@@ -30,6 +30,8 @@ class _ExportPageState extends State<ExportPage> {
   bool _exporting = false;
   String _message = "";
   bool _exportRefuelingData = true;
+  bool _exportServiceHistory = true;
+  bool _exportSavedLocations = false;
   bool _exportAppSettings = false;
   bool _exportVehicleInformation = false;
   int _sequence = 1;
@@ -73,7 +75,11 @@ class _ExportPageState extends State<ExportPage> {
       _message = "";
     });
 
-    if (!_exportRefuelingData && !_exportAppSettings && !_exportVehicleInformation) {
+    if (!_exportRefuelingData &&
+        !_exportServiceHistory &&
+        !_exportSavedLocations &&
+        !_exportAppSettings &&
+        !_exportVehicleInformation) {
       if (!mounted) return;
       setState(() {
         _exporting = false;
@@ -96,6 +102,14 @@ class _ExportPageState extends State<ExportPage> {
 
     if (_exportRefuelingData) {
       final file = await _exportRefuelingDataAsCsv(exportFolder);
+      if (file != null) createdFiles.add(file);
+    }
+    if (_exportServiceHistory) {
+      final file = await _exportServiceHistoryAsCsv(exportFolder);
+      if (file != null) createdFiles.add(file);
+    }
+    if (_exportSavedLocations) {
+      final file = await _exportSavedLocationsAsCsv(exportFolder);
       if (file != null) createdFiles.add(file);
     }
     if (_exportAppSettings) {
@@ -261,6 +275,131 @@ class _ExportPageState extends State<ExportPage> {
     }
   }
 
+  Future<File?> _exportServiceHistoryAsCsv(String folderPath) async {
+    try {
+      final vehicles = await _vehicleService.getVehicles();
+      final vehicleMap = {for (var v in vehicles) v.id!: v};
+
+      final List<List<String>> csvData = [
+        [
+          'Date',
+          'Odometer',
+          'Vehicle',
+          'Workshop',
+          'Total Cost',
+          'Task',
+          'Brand / Spec',
+          'Item Cost',
+          'Notes',
+        ],
+      ];
+
+      for (final v in vehicles) {
+        if (v.id == null) continue;
+        final sessions = await DatabaseHelper.instance.getServiceSessions(v.id!);
+        for (final session in sessions) {
+          final dateStr = session.serviceDate.toIso8601String();
+          final odoStr = session.odometer.toStringAsFixed(2);
+          final vehicleName = vehicleMap[session.vehicleId]?.name ?? 'N/A';
+          final workshop = session.workshopName ?? '';
+          final totalCost = session.totalCost != null
+              ? session.totalCost!.toStringAsFixed(2)
+              : '';
+          final notes = session.notes ?? '';
+
+          if (session.items.isNotEmpty) {
+            for (final item in session.items) {
+              final taskTitle = item.taskTitle ?? 'Task #${item.taskId}';
+              final brand = item.brandOrSpec ?? '';
+              final itemCost = item.cost != null ? item.cost!.toStringAsFixed(2) : '';
+              csvData.add([
+                dateStr,
+                odoStr,
+                vehicleName,
+                workshop,
+                totalCost,
+                taskTitle,
+                brand,
+                itemCost,
+                notes,
+              ]);
+            }
+          } else {
+            csvData.add([
+              dateStr,
+              odoStr,
+              vehicleName,
+              workshop,
+              totalCost,
+              '',
+              '',
+              '',
+              notes,
+            ]);
+          }
+        }
+      }
+
+      String csv = Csv().encode(csvData);
+      String fileName = "${_getFormattedFileName('service_records')}.csv";
+      File file = File("$folderPath/$fileName");
+
+      await file.writeAsString(csv);
+      return file;
+    } catch (e) {
+      debugPrint("Failed to export service history: $e");
+      return null;
+    }
+  }
+
+  Future<File?> _exportSavedLocationsAsCsv(String folderPath) async {
+    try {
+      final locations = await DatabaseHelper.instance.getSavedLocations();
+      List<List<String>> csvData = [
+        [
+          'ID',
+          'Name',
+          'IsNamed',
+          'Type',
+          'Latitude',
+          'Longitude',
+          'RadiusMeters',
+          'IsSuspectFuel',
+          'IsSuspectServiceOrParts',
+          'SuspectReason',
+          'IsRecommendedFuel',
+          'IsRecommendedServiceOrParts',
+          'PerformanceReason',
+        ],
+        ...locations.map((l) => [
+              l.id?.toString() ?? '',
+              l.name,
+              l.isNamed.toString(),
+              l.type,
+              l.latitude?.toString() ?? '',
+              l.longitude?.toString() ?? '',
+              l.radiusMeters.toString(),
+              l.isSuspectFuel.toString(),
+              l.isSuspectServiceOrParts.toString(),
+              l.suspectReason ?? '',
+              l.isRecommendedFuel.toString(),
+              l.isRecommendedServiceOrParts.toString(),
+              l.performanceReason ?? '',
+            ])
+      ];
+
+      String csv = Csv().encode(csvData);
+      String fileName = "${_getFormattedFileName('saved_locations')}.csv";
+      File file = File("$folderPath/$fileName");
+
+      await file.writeAsString(csv);
+      return file;
+    } catch (e) {
+      debugPrint("Failed to export saved locations: $e");
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -288,6 +427,24 @@ class _ExportPageState extends State<ExportPage> {
                 onChanged: (value) {
                   setState(() {
                     _exportRefuelingData = value!;
+                  });
+                },
+              ),
+              CheckboxListTile(
+                title: Text(localizations.exportServiceHistory),
+                value: _exportServiceHistory,
+                onChanged: (value) {
+                  setState(() {
+                    _exportServiceHistory = value!;
+                  });
+                },
+              ),
+              CheckboxListTile(
+                title: const Text('Export Saved Locations'),
+                value: _exportSavedLocations,
+                onChanged: (value) {
+                  setState(() {
+                    _exportSavedLocations = value!;
                   });
                 },
               ),

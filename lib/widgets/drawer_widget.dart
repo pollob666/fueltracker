@@ -3,13 +3,16 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/pages/add_data_page.dart';
 import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/pages/all_data_page.dart';
 import 'package:fuel_tracker/pages/import_page.dart';
 import 'package:fuel_tracker/pages/export_page.dart';
+import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/pages/manage_vehicles_page.dart';
+import 'package:fuel_tracker/pages/saved_locations_page.dart';
 import 'package:fuel_tracker/pages/settings_page.dart';
 
 class MyDrawer extends StatefulWidget {
@@ -21,6 +24,22 @@ class MyDrawer extends StatefulWidget {
 
 class _MyDrawerState extends State<MyDrawer> {
   int _selectedIndex = 0;
+  bool _hasAnyRoutine = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkEnabledRoutines();
+  }
+
+  Future<void> _checkEnabledRoutines() async {
+    final hasRoutine = await DatabaseHelper.instance.hasAnyEnabledRoutine();
+    if (mounted) {
+      setState(() {
+        _hasAnyRoutine = hasRoutine;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +128,37 @@ class _MyDrawerState extends State<MyDrawer> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => const ManageVehiclesPage()));
+            },
+          ),
+          if (_hasAnyRoutine)
+            ListTile(
+              leading: const Icon(Icons.build_outlined),
+              title: Text(AppLocalizations.of(context)!.maintenance),
+              selected: _selectedIndex == 7,
+              selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
+              selectedColor: colorScheme.primary,
+              onTap: () {
+                _onItemTapped(7);
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MaintenancePage()));
+              },
+            ),
+          ListTile(
+            leading: const Icon(Icons.place_outlined),
+            title: const Text('Saved Locations'),
+            selected: _selectedIndex == 8,
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
+            selectedColor: colorScheme.primary,
+            onTap: () {
+              _onItemTapped(8);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SavedLocationsPage(),
+                ),
+              );
             },
           ),
           const Divider(),

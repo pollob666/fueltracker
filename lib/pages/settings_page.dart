@@ -12,6 +12,7 @@ import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/l10n/l10n_utils.dart';
 import 'package:fuel_tracker/main.dart';
+import 'package:fuel_tracker/pages/saved_locations_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -320,6 +321,19 @@ class _SettingsPageState extends State<SettingsPage> {
                         }
                       },
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: const Icon(Icons.place_outlined),
+                    title: const Text('Saved Locations', style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Manage fuel stations, workshops & quality flags'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SavedLocationsPage()),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   Text(AppLocalizations.of(context)!.defaultFuelPrices,

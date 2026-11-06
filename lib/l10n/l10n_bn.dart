@@ -516,4 +516,235 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String get notificationTimeSubtitle =>
       'দৈনিক রিফুয়েল সতর্কতা বিজ্ঞপ্তি নির্ধারণের সময়';
+
+  @override
+  String get maintenance => 'রক্ষণাবেক্ষণ';
+
+  @override
+  String get maintenanceTasks => 'রক্ষণাবেক্ষণ কাজসমূহ';
+
+  @override
+  String get serviceHistory => 'সার্ভিসিং ইতিহাস';
+
+  @override
+  String get logServiceVisit => 'সার্ভিসিং এন্ট্রি করুন';
+
+  @override
+  String get addTask => 'নতুন কাজ যোগ করুন';
+
+  @override
+  String get editTask => 'কাজ সম্পাদনা করুন';
+
+  @override
+  String get deleteTask => 'কাজ মুছুন';
+
+  @override
+  String get taskTitle => 'কাজের শিরোনাম';
+
+  @override
+  String get intervalDistance => 'দূরত্ব ব্যবধান (কিমি)';
+
+  @override
+  String get intervalMonths => 'ব্যবধান (মাস)';
+
+  @override
+  String get reminderBuffer => 'রিমাইন্ডার বাফার (কিমি)';
+
+  @override
+  String get lastServiceOdometer => 'সর্বশেষ সার্ভিসিং ওডোমিটার';
+
+  @override
+  String get lastServiceDate => 'সর্বশেষ সার্ভিসিং তারিখ';
+
+  @override
+  String get quickDone => 'সম্পন্ন হয়েছে';
+
+  @override
+  String get confirmQuickDone => 'কাজ সম্পন্ন নিশ্চিত করুন';
+
+  @override
+  String confirmQuickDoneMsg(String task) {
+    return '$task-এর সর্বশেষ সার্ভিসিং ওডোমিটার ও তারিখ বর্তমান মান দিয়ে আপডেট করবেন?';
+  }
+
+  @override
+  String get statusHealthy => 'ঠিক আছে';
+
+  @override
+  String get statusDueSoon => 'শীঘ্রই প্রয়োজন';
+
+  @override
+  String get statusOverdue => 'বিলম্বিত';
+
+  @override
+  String daysRemaining(int days) {
+    return '$days দিন বাকি';
+  }
+
+  @override
+  String daysOverdue(int days) {
+    return '$days দিন বিলম্বিত';
+  }
+
+  @override
+  String kmRemaining(String km) {
+    return '$km কিমি বাকি';
+  }
+
+  @override
+  String kmOverdue(String km) {
+    return '$km কিমি বিলম্বিত';
+  }
+
+  @override
+  String lastDoneOn(String odo, String date) {
+    return 'সর্বশেষ: $odo কিমি ($date)';
+  }
+
+  @override
+  String targetAt(String odo) {
+    return 'পরবর্তী লক্ষ্য: $odo কিমি';
+  }
+
+  @override
+  String get noMaintenanceTasks =>
+      'এই গাড়ির জন্য কোনো রক্ষণাবেক্ষণ কাজ যোগ করা নেই।';
+
+  @override
+  String get noServiceHistory => 'এখনও কোনো সার্ভিসিং রেকর্ড নেই।';
+
+  @override
+  String get confirmDeleteTask => 'এই রক্ষণাবেক্ষণ কাজটি মুছে ফেলবেন?';
+
+  @override
+  String get confirmDeleteTaskMsg => 'এটি স্থায়ীভাবে এই কাজটি মুছে ফেলবে।';
+
+  @override
+  String get engineOilChange => 'ইঞ্জিন অয়েল পরিবর্তন';
+
+  @override
+  String get oilFilterReplacement => 'ইঞ্জিন অয়েল ফিল্টার';
+
+  @override
+  String get airFilterClean => 'এয়ার ফিল্টার পরিষ্কার / পরিবর্তন';
+
+  @override
+  String get generalServicing => 'সাধারণ সার্ভিসিং';
+
+  @override
+  String get workshop => 'ওয়ার্কশপ / মেকানিক';
+
+  @override
+  String get serviceCost => 'সার্ভিসিং খরচ';
+
+  @override
+  String get tasksCompleted => 'এই ভিজিটে সম্পন্ন কাজসমূহ';
+
+  @override
+  String get selectAtLeastOneTask =>
+      'অনুগ্রহ করে অন্তত একটি কাজ নির্বাচন করুন।';
+
+  @override
+  String get saveServiceVisit => 'সার্ভিসিং সংরক্ষণ করুন';
+
+  @override
+  String get serviceVisitLogged => 'সার্ভিসিং ভিজিট সফলভাবে সংরক্ষিত হয়েছে।';
+
+  @override
+  String get maintenanceWarningTitle => 'রক্ষণাবেক্ষণ প্রয়োজন';
+
+  @override
+  String get viewMaintenance => 'রক্ষণাবেক্ষণ দেখুন';
+
+  @override
+  String get notes => 'মন্তব্য';
+
+  @override
+  String itemsDueOrOverdue(int count) {
+    return '$countটি রক্ষণাবেক্ষণ কাজে মনোযোগ দেওয়া প্রয়োজন';
+  }
+
+  @override
+  String get brandOrSpec => 'পার্টস / অয়েল ব্র্যান্ড বা স্পেক';
+
+  @override
+  String get brandOrSpecHint => 'যেমন: Mobil 1 10W-40, OEM Denso';
+
+  @override
+  String get itemCost => 'আইটেমের খরচ';
+
+  @override
+  String get editServiceVisit => 'সার্ভিসিং তথ্য সম্পাদন করুন';
+
+  @override
+  String get deleteServiceVisit => 'সার্ভিসিং রেকর্ড মুছে ফেলুন';
+
+  @override
+  String get confirmDeleteServiceVisit => 'সার্ভিসিং রেকর্ড মুছে ফেলবেন?';
+
+  @override
+  String get confirmDeleteServiceVisitMsg =>
+      'এটি স্থায়ীভাবে এই সার্ভিসিং রেকর্ডটি মুছে ফেলবে।';
+
+  @override
+  String get serviceVisitDeleted =>
+      'সার্ভিসিং রেকর্ড সফলভাবে মুছে ফেলা হয়েছে।';
+
+  @override
+  String get serviceVisitUpdated => 'সার্ভিসিং তথ্য সফলভাবে আপডেট করা হয়েছে।';
+
+  @override
+  String get serviceVisitDetails => 'সার্ভিসিং রেকর্ডের বিবরণ';
+
+  @override
+  String get exportServiceHistory =>
+      'রক্ষণাবেক্ষণ ও সার্ভিসিং হিস্ট্রি এক্সপোর্ট করুন';
+
+  @override
+  String get maintenanceReminders => 'রক্ষণাবেক্ষণ রিমাইন্ডার';
+
+  @override
+  String get enableMaintenanceReminders => 'রক্ষণাবেক্ষণ রিমাইন্ডার';
+
+  @override
+  String get enableMaintenanceRemindersSubtitle =>
+      'সার্ভিসিংয়ের সময় হলে নোটিফিকেশন পান';
+
+  @override
+  String get doIt => 'এখন করুন';
+
+  @override
+  String get markDone => 'সম্পন্ন চিহ্নিত করুন';
+
+  @override
+  String get doItNow => 'এখনই করুন';
+
+  @override
+  String get markQuickDone => 'দ্রুত সম্পন্ন করুন';
+
+  @override
+  String get tasksAndReminders => 'কাজ ও রিমাইন্ডার';
+
+  @override
+  String get configureReminders => 'রিমাইন্ডার কনফিগার করুন';
+
+  @override
+  String get noActiveReminders =>
+      'এই গাড়ির জন্য কোনো রিমাইন্ডার বা রক্ষণাবেক্ষণ সক্রিয় নেই।';
+
+  @override
+  String estimatedCost(String cost) {
+    return 'আনুমানিক খরচ: $cost';
+  }
+
+  @override
+  String refuelRemainingCountdown(String volume, String km) {
+    return '~$volume লিটার বাকি (~$km কিমি)';
+  }
+
+  @override
+  String get addCustomTask => 'কাস্টম কাজ যোগ করুন';
+
+  @override
+  String get intervalKm => 'ব্যবধান (কিমি)';
 }

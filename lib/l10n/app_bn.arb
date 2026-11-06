@@ -225,5 +225,152 @@
     }
   },
   "notificationTime": "সতর্কতা বিজ্ঞপ্তির সময়",
-  "notificationTimeSubtitle": "দৈনিক রিফুয়েল সতর্কতা বিজ্ঞপ্তি নির্ধারণের সময়"
+  "notificationTimeSubtitle": "দৈনিক রিফুয়েল সতর্কতা বিজ্ঞপ্তি নির্ধারণের সময়",
+  "maintenance": "রক্ষণাবেক্ষণ",
+  "maintenanceTasks": "রক্ষণাবেক্ষণ কাজসমূহ",
+  "serviceHistory": "সার্ভিসিং ইতিহাস",
+  "logServiceVisit": "সার্ভিসিং এন্ট্রি করুন",
+  "addTask": "নতুন কাজ যোগ করুন",
+  "editTask": "কাজ সম্পাদনা করুন",
+  "deleteTask": "কাজ মুছুন",
+  "taskTitle": "কাজের নাম",
+  "intervalDistance": "দূরত্ব ব্যবধান (কিমি)",
+  "intervalMonths": "মাস ব্যবধান (ঐচ্ছিক)",
+  "reminderBuffer": "আগাম সতর্কতা সীমা (কিমি)",
+  "lastServiceOdometer": "সর্বশেষ সার্ভিসিং ওডোমিটার",
+  "lastServiceDate": "সর্বশেষ সার্ভিসিং তারিখ",
+  "quickDone": "সম্পন্ন হয়েছে",
+  "confirmQuickDone": "কাজ সম্পন্ন নিশ্চিত করুন",
+  "confirmQuickDoneMsg": "{task}-এর সর্বশেষ সার্ভিসিং ওডোমিটার ও তারিখ বর্তমান মান দিয়ে আপডেট করবেন?",
+  "@confirmQuickDoneMsg": {
+    "placeholders": {
+      "task": {
+        "type": "String"
+      }
+    }
+  },
+  "statusHealthy": "ঠিক আছে",
+  "statusDueSoon": "শীঘ্রই প্রয়োজন",
+  "statusOverdue": "বিলম্বিত",
+  "daysRemaining": "{days} দিন বাকি",
+  "@daysRemaining": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "daysOverdue": "{days} দিন বিলম্বিত",
+  "@daysOverdue": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "kmRemaining": "{km} কিমি বাকি",
+  "@kmRemaining": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "kmOverdue": "{km} কিমি বিলম্বিত",
+  "@kmOverdue": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "lastDoneOn": "সর্বশেষ: {odo} কিমি ({date})",
+  "@lastDoneOn": {
+    "placeholders": {
+      "odo": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "targetAt": "পরবর্তী লক্ষ্য: {odo} কিমি",
+  "@targetAt": {
+    "placeholders": {
+      "odo": {
+        "type": "String"
+      }
+    }
+  },
+  "noMaintenanceTasks": "এই গাড়ির জন্য কোনো রক্ষণাবেক্ষণ কাজ যোগ করা নেই।",
+  "noServiceHistory": "এখনও কোনো সার্ভিসিং রেকর্ড নেই।",
+  "confirmDeleteTask": "এই রক্ষণাবেক্ষণ কাজটি মুছে ফেলবেন?",
+  "confirmDeleteTaskMsg": "এটি স্থায়ীভাবে এই কাজটি মুছে ফেলবে।",
+  "engineOilChange": "ইঞ্জিন অয়েল পরিবর্তন",
+  "oilFilterReplacement": "ইঞ্জিন অয়েল ফিল্টার",
+  "airFilterClean": "এয়ার ফিল্টার পরিষ্কার / পরিবর্তন",
+  "generalServicing": "সাধারণ সার্ভিসিং",
+  "workshop": "ওয়ার্কশপ / মেকানিক",
+  "serviceCost": "সার্ভিসিং খরচ",
+  "tasksCompleted": "এই ভিজিটে সম্পন্ন কাজসমূহ",
+  "selectAtLeastOneTask": "অনুগ্রহ করে অন্তত একটি কাজ নির্বাচন করুন।",
+  "saveServiceVisit": "সার্ভিসিং সংরক্ষণ করুন",
+  "serviceVisitLogged": "সার্ভিসিং ভিজিট সফলভাবে সংরক্ষিত হয়েছে।",
+  "maintenanceWarningTitle": "রক্ষণাবেক্ষণ প্রয়োজন",
+  "viewMaintenance": "রক্ষণাবেক্ষণ দেখুন",
+  "notes": "মন্তব্য",
+  "itemsDueOrOverdue": "{count}টি রক্ষণাবেক্ষণ কাজে মনোযোগ দেওয়া প্রয়োজন",
+  "@itemsDueOrOverdue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "brandOrSpec": "পার্টস / অয়েল ব্র্যান্ড বা স্পেক",
+  "brandOrSpecHint": "যেমন: Mobil 1 10W-40, OEM Denso",
+  "itemCost": "আইটেমের খরচ",
+  "editServiceVisit": "সার্ভিসিং তথ্য সম্পাদন করুন",
+  "deleteServiceVisit": "সার্ভিসিং রেকর্ড মুছে ফেলুন",
+  "confirmDeleteServiceVisit": "সার্ভিসিং রেকর্ড মুছে ফেলবেন?",
+  "confirmDeleteServiceVisitMsg": "এটি স্থায়ীভাবে এই সার্ভিসিং রেকর্ডটি মুছে ফেলবে।",
+  "serviceVisitDeleted": "সার্ভিসিং রেকর্ড সফলভাবে মুছে ফেলা হয়েছে।",
+  "serviceVisitUpdated": "সার্ভিসিং তথ্য সফলভাবে আপডেট করা হয়েছে।",
+  "serviceVisitDetails": "সার্ভিসিং রেকর্ডের বিবরণ",
+  "exportServiceHistory": "রক্ষণাবেক্ষণ ও সার্ভিসিং হিস্ট্রি এক্সপোর্ট করুন",
+  "maintenanceReminders": "রক্ষণাবেক্ষণ রিমাইন্ডার",
+  "enableMaintenanceReminders": "রক্ষণাবেক্ষণ রিমাইন্ডার",
+  "enableMaintenanceRemindersSubtitle": "সার্ভিসিংয়ের সময় হলে নোটিফিকেশন পান",
+  "doIt": "এখন করুন",
+  "markDone": "সম্পন্ন চিহ্নিত করুন",
+  "doItNow": "এখনই করুন",
+  "markQuickDone": "দ্রুত সম্পন্ন করুন",
+  "tasksAndReminders": "কাজ ও রিমাইন্ডার",
+  "configureReminders": "রিমাইন্ডার কনফিগার করুন",
+  "noActiveReminders": "এই গাড়ির জন্য কোনো রিমাইন্ডার বা রক্ষণাবেক্ষণ সক্রিয় নেই।",
+  "estimatedCost": "আনুমানিক খরচ: {cost}",
+  "@estimatedCost": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "refuelRemainingCountdown": "~{volume} লিটার বাকি (~{km} কিমি)",
+  "@refuelRemainingCountdown": {
+    "placeholders": {
+      "volume": {
+        "type": "String"
+      },
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "addCustomTask": "কাস্টম কাজ যোগ করুন",
+  "taskTitle": "কাজের শিরোনাম",
+  "intervalKm": "ব্যবধান (কিমি)",
+  "intervalMonths": "ব্যবধান (মাস)",
+  "reminderBuffer": "রিমাইন্ডার বাফার (কিমি)"
 }

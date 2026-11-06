@@ -21,6 +21,9 @@ class FuelRecord {
   double? tripDistance;
   double? secondaryTripDistance;
   DrivingCondition drivingCondition;
+  int? locationId;
+  double? latitude;
+  double? longitude;
 
   FuelRecord({
     this.id,
@@ -36,6 +39,9 @@ class FuelRecord {
     this.tripDistance,
     this.secondaryTripDistance,
     this.drivingCondition = DrivingCondition.mixed,
+    this.locationId,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toMap() {
@@ -52,6 +58,9 @@ class FuelRecord {
       'tripDistance': tripDistance,
       'secondaryTripDistance': secondaryTripDistance,
       'drivingCondition': drivingCondition.name,
+      'locationId': locationId,
+      'latitude': latitude,
+      'longitude': longitude,
     };
     if (id != null) map['id'] = id;
     return map;
@@ -71,6 +80,9 @@ class FuelRecord {
       'tripDistance': tripDistance,
       'secondaryTripDistance': secondaryTripDistance,
       'drivingCondition': drivingCondition.name,
+      'locationId': locationId,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -105,6 +117,9 @@ class FuelRecord {
           ? (map['secondaryTripDistance'] as num).toDouble()
           : null,
       drivingCondition: condition,
+      locationId: map['locationId'] as int?,
+      latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
+      longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
     );
   }
 
@@ -138,6 +153,9 @@ class FuelRecord {
           ? (json['secondaryTripDistance'] as num).toDouble()
           : null,
       drivingCondition: condition,
+      locationId: json['locationId'] as int?,
+      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
+      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
     );
   }
 
@@ -155,6 +173,9 @@ class FuelRecord {
     double? tripDistance,
     double? secondaryTripDistance,
     DrivingCondition? drivingCondition,
+    int? locationId,
+    double? latitude,
+    double? longitude,
   }) {
     return FuelRecord(
       id: id ?? this.id,
@@ -170,6 +191,9 @@ class FuelRecord {
       tripDistance: tripDistance ?? this.tripDistance,
       secondaryTripDistance: secondaryTripDistance ?? this.secondaryTripDistance,
       drivingCondition: drivingCondition ?? this.drivingCondition,
+      locationId: locationId ?? this.locationId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 }
