@@ -68,6 +68,7 @@ fueltracker/
 *   **`lib/providers/`**: Riverpod 2.x providers (`vehiclesProvider`, `activeVehicleProvider`, `fuelRecordsProvider`, `nonFuelExpensesProvider`, `tcoOverviewProvider`) delivering reactive asynchronous state updates across widgets.
 *   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v10 with `non_fuel_expenses` table, composite performance indexes, forward-compatible attachment/currency columns, foreign key enforcement, `saved_locations` table, and additive migrations), migrations, and record operations.
 *   **`lib/services/analytics_service.dart`**: Time-window filtering, 30-day price trend moving averages, interval station efficiency variance with N-1 attribution, and segregated driving condition telemetry.
+*   **`lib/services/pdf_report_generator.dart`**: High-resolution multi-page printable PDF generation for tax write-offs, audit logs, and fleet reports with executive KPI grids, itemized refuels, service history, auxiliary expenses, and verification signature blocks.
 *   **`lib/pages/analytics_page.dart`**: Hardware-accelerated visual analytics dashboard rendering `fl_chart` price trend lines, station variance scatter bands, driving condition comparison bars, and carbon footprint metrics.
 *   **`lib/services/location_service.dart`**: Geolocation capture, 80m proximity clustering, multi-station disambiguation, and attribution candidate lookup.
 *   **`lib/pages/all_data_page.dart`**: Redesigned history view with dual-mode timeline cards and classic table view, real-time search, and date/road condition filter chips.
@@ -91,6 +92,7 @@ The project is built with Flutter and relies on several key packages to provide 
 *   **`dynamic_color`**: Enables the app to use the system's dynamic color on Android, providing a more integrated UI.
 *   **`intl`**: A package for internationalization and localization, allowing the app to support multiple languages.
 *   **`file_picker` & `csv`**: Used for the data import and export functionality, allowing users to manage their data in CSV format.
+*   **`pdf` & `printing`**: Used for compiling audit-ready A4 fleet and tax expense reports with print spooling and native sharing.
 *   **`google_mobile_ads`**: Used for displaying Google AdMob ads for monetization.
 
 ## 5. CI/CD and Release Process
