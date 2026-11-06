@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/providers/fuel_record_providers.dart';
+import 'package:fuel_tracker/services/attachment_service.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/interstitial_ad_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
@@ -16,7 +18,9 @@ import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
+import 'package:fuel_tracker/widgets/image_lightbox_dialog.dart';
 import 'package:fuel_tracker/widgets/location_picker_field.dart';
+import 'package:fuel_tracker/widgets/receipt_camera_modal.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -73,6 +77,8 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
   bool _missedPrevious = false;
   SavedLocation? _selectedLocation;
   Position? _capturedPosition;
+  String? _receiptImagePath;
+  String? _odometerImagePath;
 
   Vehicle? get _selectedVehicle {
     if (_selectedVehicleId == null || _vehicles.isEmpty) return null;
@@ -117,6 +123,8 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
       _missedPrevious = rec.missedPrevious;
       _selectedVehicleId = rec.vehicleId;
       _selectedFuelTypeId = rec.fuelTypeId;
+      _receiptImagePath = rec.receiptImagePath;
+      _odometerImagePath = rec.odometerImagePath;
       if (rec.locationId != null) {
         DatabaseHelper.instance.getSavedLocationById(rec.locationId!).then((loc) {
           if (mounted) setState(() => _selectedLocation = loc);
@@ -176,6 +184,193 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
 
   void _onOdoOrTripChanged() {
     setState(() {});
+  }
+
+  Widget _buildAttachmentCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      elevation: 0.5,
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.camera_enhance_outlined, size: 18, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Attachments & OCR Vision',
+                  style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                // Receipt / Pump LCD
+                Expanded(
+                  child: _buildAttachmentSlot(
+                    context: context,
+                    title: 'Receipt / Pump',
+                    icon: Icons.receipt_long,
+                    imagePath: _receiptImagePath,
+                    onCapture: () async {
+                      final res = await ReceiptCameraModal.show(
+                        context,
+                        title: 'Scan Receipt or Dispenser',
+                        prefix: 'receipt',
+                      );
+                      if (res != null) {
+                        setState(() {
+                          _receiptImagePath = res.imagePath;
+                          if (res.ocrResult.volume != null) {
+                            _volume = res.ocrResult.volume!;
+                            _volumeController.text = _volume.toStringAsFixed(2);
+                          }
+                          if (res.ocrResult.rate != null) {
+                            _rateController.text = res.ocrResult.rate!.toStringAsFixed(2);
+                          }
+                          if (res.ocrResult.paidAmount != null) {
+                            _paidAmountController.text = res.ocrResult.paidAmount!.toStringAsFixed(2);
+                          }
+                          if (res.ocrResult.odometer != null && _odometerController.text.isEmpty) {
+                            _odometerController.text = res.ocrResult.odometer!.toStringAsFixed(0);
+                          }
+                        });
+                        if (mounted && res.ocrResult.hasAnyMetric) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('OCR vision applied values to form!')),
+                          );
+                        }
+                      }
+                    },
+                    onDelete: () async {
+                      await AttachmentService.deleteAttachment(_receiptImagePath);
+                      setState(() => _receiptImagePath = null);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Odometer Meter
+                Expanded(
+                  child: _buildAttachmentSlot(
+                    context: context,
+                    title: 'Odometer Gauge',
+                    icon: Icons.speed,
+                    imagePath: _odometerImagePath,
+                    onCapture: () async {
+                      final res = await ReceiptCameraModal.show(
+                        context,
+                        title: 'Scan Odometer Gauge',
+                        prefix: 'odometer',
+                      );
+                      if (res != null) {
+                        setState(() {
+                          _odometerImagePath = res.imagePath;
+                          if (res.ocrResult.odometer != null) {
+                            _odometerController.text = res.ocrResult.odometer!.toStringAsFixed(0);
+                          }
+                        });
+                        if (mounted && res.ocrResult.odometer != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Odometer updated to ${res.ocrResult.odometer!.toStringAsFixed(0)} km')),
+                          );
+                        }
+                      }
+                    },
+                    onDelete: () async {
+                      await AttachmentService.deleteAttachment(_odometerImagePath);
+                      setState(() => _odometerImagePath = null);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentSlot({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required String? imagePath,
+    required VoidCallback onCapture,
+    required VoidCallback onDelete,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bool hasImage = imagePath != null && File(imagePath).existsSync();
+
+    if (hasImage) {
+      return InkWell(
+        onTap: () => ImageLightboxDialog.show(
+          context: context,
+          imagePath: imagePath!,
+          title: title,
+          onDelete: onDelete,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 70,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            border: Border.all(color: colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  File(imagePath!),
+                  width: 48,
+                  height: 58,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1),
+                    const Text('Tap to view', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 16),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: onDelete,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return OutlinedButton.icon(
+      onPressed: onCapture,
+      icon: Icon(icon, size: 16),
+      label: Text(title, style: const TextStyle(fontSize: 11)),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   Future<void> _updatePreviousOdometer() async {
@@ -793,6 +988,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                       });
                     },
                   ),
+                  _buildAttachmentCard(context),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () async {
@@ -890,6 +1086,8 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                             locationId: _selectedLocation?.id,
                             latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
                             longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
+                            receiptImagePath: _receiptImagePath,
+                            odometerImagePath: _odometerImagePath,
                           );
 
                           await ref
@@ -958,6 +1156,8 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                             locationId: _selectedLocation?.id,
                             latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
                             longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
+                            receiptImagePath: _receiptImagePath,
+                            odometerImagePath: _odometerImagePath,
                           );
                           await ref
                               .read(fuelRecordRepositoryProvider)

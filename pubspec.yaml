@@ -59,6 +59,10 @@ dependencies:
   pdf: ^3.11.1
   printing: ^5.13.2
 
+  # Camera, Attachments & OCR Vision
+  image_picker: ^1.1.2
+  google_mlkit_text_recognition: ^1.0.0
+
 
 # Development-only dependencies
 dev_dependencies:
