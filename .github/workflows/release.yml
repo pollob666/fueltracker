@@ -17,7 +17,7 @@ on:
 jobs:
   calculate-version:
     if: "!contains(github.event.head_commit.message, 'ci: Bump version') && (github.event.head_commit.author.email == 'pollob666@gmail.com' || github.event.head_commit.committer.email == 'pollob666@gmail.com')"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -26,7 +26,7 @@ jobs:
       new_build_number: ${{ steps.version-increment.outputs.new_build_number }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Fetches all history for version bumping.
 
@@ -95,10 +95,10 @@ jobs:
 
   build:
     needs: calculate-version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Update pubspec.yaml for build
         run: |
@@ -177,7 +177,7 @@ jobs:
 
   create-release:
     needs: [build, calculate-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -203,12 +203,12 @@ jobs:
 
   commit-and-push-version-bump:
     needs: [calculate-version, create-release]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
