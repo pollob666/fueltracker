@@ -5,13 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/providers/analytics_providers.dart';
 import 'package:fuel_tracker/providers/fuel_record_providers.dart';
+import 'package:fuel_tracker/providers/non_fuel_expense_providers.dart';
 import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/analytics_service.dart';
+import 'package:fuel_tracker/widgets/add_expense_bottom_sheet.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/charts/carbon_footprint_card.dart';
 import 'package:fuel_tracker/widgets/charts/condition_impact_bar.dart';
 import 'package:fuel_tracker/widgets/charts/price_trend_chart.dart';
 import 'package:fuel_tracker/widgets/charts/station_efficiency_scatter.dart';
+import 'package:fuel_tracker/widgets/charts/tco_stacked_bar_chart.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 
 class AnalyticsPage extends ConsumerStatefulWidget {
@@ -100,6 +103,20 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                   children: [
                     // Time Window Filter Chips
                     _buildTimeWindowSelector(context, selectedWindow),
+                    const SizedBox(height: 16),
+
+                    // Total Cost of Ownership (TCO) Stacked Bar Chart
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final summary = ref.watch(tcoOverviewProvider(vehicleId));
+                        return TcoStackedBarWidget(
+                          summary: summary,
+                          onLogExpense: () {
+                            AddExpenseBottomSheet.show(context, vehicleId: vehicleId);
+                          },
+                        );
+                      },
+                    ),
                     const SizedBox(height: 16),
 
                     // Price Trend Chart

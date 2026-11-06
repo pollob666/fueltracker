@@ -25,7 +25,7 @@ class MockVehiclesNotifier extends VehiclesNotifier {
 void main() {
   testWidgets('AnalyticsPage renders with vehicles, time chips, and charts',
       (WidgetTester tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    await tester.binding.setSurfaceSize(const Size(800, 2400));
 
     final testVehicles = [
       Vehicle(
@@ -112,6 +112,7 @@ void main() {
     expect(find.text('Fuel Price Trends'), findsOneWidget);
     expect(find.text('Station Efficiency Variance'), findsOneWidget);
     expect(find.text('Driving Condition Impact'), findsOneWidget);
+    expect(find.text('Total Cost of Ownership (TCO)'), findsOneWidget);
     expect(find.text('Carbon Footprint'), findsOneWidget);
 
     // Tap on 1 Month Chip

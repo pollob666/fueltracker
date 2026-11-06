@@ -65,8 +65,8 @@ fueltracker/
 *   **`lib/pages/`**: Contains all the UI screens of the application, such as the dashboard, settings, and data entry pages.
 *   **`lib/models/`**: Defines the data models for the application, such as `Vehicle`, `FuelRecord`, and `FuelType`.
 *   **`lib/repositories/`**: Repository layer abstracting SQLite persistence (`VehicleRepository`, `FuelRecordRepository`) with reactive broadcast stream support.
-*   **`lib/providers/`**: Riverpod 2.x providers (`vehiclesProvider`, `activeVehicleProvider`, `fuelRecordsProvider`) delivering reactive asynchronous state updates across widgets.
-*   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v9 with composite performance indexes, forward-compatible attachment/currency columns, foreign key enforcement, `saved_locations` table, and additive migrations), migrations, and record operations.
+*   **`lib/providers/`**: Riverpod 2.x providers (`vehiclesProvider`, `activeVehicleProvider`, `fuelRecordsProvider`, `nonFuelExpensesProvider`, `tcoOverviewProvider`) delivering reactive asynchronous state updates across widgets.
+*   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v10 with `non_fuel_expenses` table, composite performance indexes, forward-compatible attachment/currency columns, foreign key enforcement, `saved_locations` table, and additive migrations), migrations, and record operations.
 *   **`lib/services/analytics_service.dart`**: Time-window filtering, 30-day price trend moving averages, interval station efficiency variance with N-1 attribution, and segregated driving condition telemetry.
 *   **`lib/pages/analytics_page.dart`**: Hardware-accelerated visual analytics dashboard rendering `fl_chart` price trend lines, station variance scatter bands, driving condition comparison bars, and carbon footprint metrics.
 *   **`lib/services/location_service.dart`**: Geolocation capture, 80m proximity clustering, multi-station disambiguation, and attribution candidate lookup.

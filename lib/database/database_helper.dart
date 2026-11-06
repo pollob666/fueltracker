@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/maintenance_task.dart';
+import 'package:fuel_tracker/models/non_fuel_expense.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
@@ -36,7 +37,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, "fuel_tracker.db");
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onConfigure: _onConfigure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
@@ -193,6 +194,24 @@ class DatabaseHelper {
 
       await db.execute('ALTER TABLE service_sessions ADD COLUMN invoiceImagePath TEXT');
     }
+
+    if (oldVersion < 10) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS non_fuel_expenses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          vehicleId INTEGER NOT NULL,
+          date TEXT NOT NULL,
+          odometer REAL,
+          category TEXT NOT NULL,
+          amount REAL NOT NULL,
+          currencyCode TEXT DEFAULT 'BDT',
+          notes TEXT,
+          receiptImagePath TEXT,
+          FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_non_fuel_expenses_vehicle_date ON non_fuel_expenses(vehicleId, date);');
+    }
   }
 
   Future<void> _createTables(Database db) async {
@@ -325,6 +344,22 @@ class DatabaseHelper {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_fuel_records_odometer ON fuel_records(odometer);');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_service_sessions_vehicle ON service_sessions(vehicleId, serviceDate);');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_saved_locations_coords ON saved_locations(latitude, longitude);');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS non_fuel_expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicleId INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        odometer REAL,
+        category TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currencyCode TEXT DEFAULT 'BDT',
+        notes TEXT,
+        receiptImagePath TEXT,
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_non_fuel_expenses_vehicle_date ON non_fuel_expenses(vehicleId, date);');
   }
 
   static Future<void> _seedDefaultTasksForVehicle(
@@ -811,5 +846,54 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // NonFuelExpense CRUD methods
+  Future<int> insertNonFuelExpense(NonFuelExpense expense) async {
+    Database db = await instance.database;
+    return await db.insert('non_fuel_expenses', expense.toMap());
+  }
+
+  Future<List<NonFuelExpense>> getNonFuelExpenses({int? vehicleId}) async {
+    Database db = await instance.database;
+    final results = await db.query(
+      'non_fuel_expenses',
+      where: vehicleId != null ? 'vehicleId = ?' : null,
+      whereArgs: vehicleId != null ? [vehicleId] : null,
+      orderBy: 'date DESC, id DESC',
+    );
+    return results.map((e) => NonFuelExpense.fromMap(e)).toList();
+  }
+
+  Future<int> updateNonFuelExpense(NonFuelExpense expense) async {
+    Database db = await instance.database;
+    return await db.update(
+      'non_fuel_expenses',
+      expense.toMap(),
+      where: 'id = ?',
+      whereArgs: [expense.id],
+    );
+  }
+
+  Future<int> deleteNonFuelExpense(int id) async {
+    Database db = await instance.database;
+    return await db.delete(
+      'non_fuel_expenses',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<double> getTotalNonFuelExpenses({int? vehicleId}) async {
+    Database db = await instance.database;
+    final results = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM non_fuel_expenses' +
+          (vehicleId != null ? ' WHERE vehicleId = ?' : ''),
+      vehicleId != null ? [vehicleId] : [],
+    );
+    if (results.isNotEmpty && results.first['total'] != null) {
+      return (results.first['total'] as num).toDouble();
+    }
+    return 0.0;
   }
 }

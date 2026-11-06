@@ -14,6 +14,7 @@ import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/pages/analytics_page.dart';
+import 'package:fuel_tracker/widgets/add_expense_bottom_sheet.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
@@ -1167,21 +1168,37 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    onPressed: () async {
-                      await Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => const AddDataPage()));
-                      _loadInitialData();
-                    },
-                    label: Text(localizations.addFuelData),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      textStyle: theme.textTheme.titleMedium,
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        onPressed: () async {
+                          await Navigator.push(context,
+                              MaterialPageRoute(builder: (context) => const AddDataPage()));
+                          _loadInitialData();
+                        },
+                        label: Text(localizations.addFuelData),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          textStyle: theme.textTheme.titleMedium,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (_selectedVehicleId != null) ...[
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                        onPressed: () {
+                          AddExpenseBottomSheet.show(context, vehicleId: _selectedVehicleId!);
+                        },
+                        label: const Text('Expense'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Card(
