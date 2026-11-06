@@ -3,6 +3,7 @@
 
 import 'dart:math' as math;
 import 'package:fuel_tracker/models/fuel_record.dart';
+import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 
 /// Holds the computed efficiency metrics for a specific fuel record interval.
@@ -502,6 +503,95 @@ class MileageCalculator {
       currentRecord: latestFullTank.record,
     );
   }
+
+  /// Computes carbon footprint (kg CO2) using standard emission factors:
+  /// - Gasoline: 2.31 kg/L
+  /// - Diesel: 2.68 kg/L
+  /// - Gas (CNG): 2.75 kg/m3 (or 1.51 kg/L for LPG)
+  static CarbonFootprintResult calculateCarbonFootprint(
+    List<FuelRecord> records, {
+    Map<int, FuelType>? fuelTypeMap,
+  }) {
+    double totalCo2 = 0.0;
+    double totalVolume = 0.0;
+    double totalDistance = 0.0;
+
+    for (final record in records) {
+      final fuelType = fuelTypeMap?[record.fuelTypeId];
+      double factor = 2.31;
+      if (fuelType != null) {
+        switch (fuelType.category) {
+          case FuelCategory.diesel:
+            factor = 2.68;
+            break;
+          case FuelCategory.gas:
+            factor = fuelType.name.toLowerCase().contains('lpg') ? 1.51 : 2.75;
+            break;
+          case FuelCategory.gasoline:
+          default:
+            factor = 2.31;
+            break;
+        }
+      }
+      totalCo2 += record.volume * factor;
+      totalVolume += record.volume;
+    }
+
+    if (records.isNotEmpty) {
+      final sorted = sortChronological(records);
+      final intervals = calculateIntervalResults(sorted);
+      for (final interval in intervals) {
+        totalDistance += interval.distance;
+      }
+    }
+
+    double? gramsPerKm;
+    String ecoRating = 'N/A';
+    if (totalDistance > 0) {
+      gramsPerKm = (totalCo2 * 1000.0) / totalDistance;
+      if (gramsPerKm < 120) {
+        ecoRating = 'A+';
+      } else if (gramsPerKm < 160) {
+        ecoRating = 'A';
+      } else if (gramsPerKm < 200) {
+        ecoRating = 'B';
+      } else if (gramsPerKm < 250) {
+        ecoRating = 'C';
+      } else {
+        ecoRating = 'D';
+      }
+    }
+
+    final treeCount = (totalCo2 / 22.0).ceil();
+
+    return CarbonFootprintResult(
+      totalCo2Kg: totalCo2,
+      totalVolume: totalVolume,
+      totalDistance: totalDistance,
+      gramsCo2PerKm: gramsPerKm,
+      treeOffsetCount: math.max(0, treeCount),
+      ecoRating: ecoRating,
+    );
+  }
+}
+
+/// Holds computed CO2 emissions and environmental metrics.
+class CarbonFootprintResult {
+  final double totalCo2Kg;
+  final double totalVolume;
+  final double totalDistance;
+  final double? gramsCo2PerKm;
+  final int treeOffsetCount;
+  final String ecoRating;
+
+  const CarbonFootprintResult({
+    required this.totalCo2Kg,
+    required this.totalVolume,
+    required this.totalDistance,
+    required this.gramsCo2PerKm,
+    required this.treeOffsetCount,
+    required this.ecoRating,
+  });
 }
 
 /// Represents the calculated forecast and warning states for a vehicle's refuel status.

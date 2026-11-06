@@ -67,6 +67,8 @@ fueltracker/
 *   **`lib/repositories/`**: Repository layer abstracting SQLite persistence (`VehicleRepository`, `FuelRecordRepository`) with reactive broadcast stream support.
 *   **`lib/providers/`**: Riverpod 2.x providers (`vehiclesProvider`, `activeVehicleProvider`, `fuelRecordsProvider`) delivering reactive asynchronous state updates across widgets.
 *   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v9 with composite performance indexes, forward-compatible attachment/currency columns, foreign key enforcement, `saved_locations` table, and additive migrations), migrations, and record operations.
+*   **`lib/services/analytics_service.dart`**: Time-window filtering, 30-day price trend moving averages, interval station efficiency variance with N-1 attribution, and segregated driving condition telemetry.
+*   **`lib/pages/analytics_page.dart`**: Hardware-accelerated visual analytics dashboard rendering `fl_chart` price trend lines, station variance scatter bands, driving condition comparison bars, and carbon footprint metrics.
 *   **`lib/services/location_service.dart`**: Geolocation capture, 80m proximity clustering, multi-station disambiguation, and attribution candidate lookup.
 *   **`lib/pages/saved_locations_page.dart`**: Management interface for saved fuel stations and workshops with category filters, unnamed location toggle, and flag management.
 *   **`lib/services/version_service.dart`**: Manages GitHub release version checks, session dismissal state, and permanent version skipping stored in `SharedPreferences`.

@@ -13,6 +13,7 @@ import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/pages/maintenance_page.dart';
+import 'package:fuel_tracker/pages/analytics_page.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
@@ -1179,6 +1180,56 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       textStyle: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 1.0,
+                  margin: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AnalyticsPage()),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(14.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.insights, color: colorScheme.onPrimaryContainer, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Visual Analytics & Trends',
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'Price trends, station efficiency & carbon footprint',
+                                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+                        ],
+                      ),
                     ),
                   ),
                 ),

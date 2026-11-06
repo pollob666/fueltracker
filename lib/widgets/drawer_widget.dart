@@ -8,6 +8,7 @@ import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/pages/add_data_page.dart';
 import 'package:fuel_tracker/pages/dashboard_page.dart';
 import 'package:fuel_tracker/pages/all_data_page.dart';
+import 'package:fuel_tracker/pages/analytics_page.dart';
 import 'package:fuel_tracker/pages/import_page.dart';
 import 'package:fuel_tracker/pages/export_page.dart';
 import 'package:fuel_tracker/pages/maintenance_page.dart';
@@ -90,6 +91,22 @@ class _MyDrawerState extends State<MyDrawer> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => const DashboardPage()));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.insights),
+            title: const Text('Analytics & Trends'),
+            selected: _selectedIndex == 9,
+            selectedTileColor: colorScheme.primary.withValues(alpha: 0.1),
+            selectedColor: colorScheme.primary,
+            onTap: () {
+              _onItemTapped(9);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AnalyticsPage(),
+                ),
+              );
             },
           ),
           ListTile(
