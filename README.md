@@ -13,6 +13,10 @@ You can download the latest version of the application from the [GitHub Releases
 
 ## Key Features:
 
+*   **Tire Life, Tread Depth & Rotation Tracker:** Dedicated Tires tab in Maintenance, interactive chassis schematic (4-wheel and 2-wheel), remaining life forecasting based on $\text{mm} / 1000\text{ km}$ wear degradation, remaining legal distance projection (1.6mm legal threshold), rotation presets (FWD, RWD, Directional), and automated dashboard rotation reminder banners.
+*   **Multi-Currency & International Unit Engine:** Per-vehicle configuration with global fallback in `AppSettings` for Distance (`km`, `mi`), Fuel Volume (`L`, `gal US`, `gal UK`, `kWh`), Economy Metric (`km/L`, `L/100km`, `MPG US`, `MPG UK`, `km/kWh`), and multi-currency normalization with exchange rate conversions (`exchangeRateToBase`) ensuring consistent Total Cost of Ownership across mixed currencies.
+*   **Alternative Powertrain & EV Charging:** Architectural support for ICE, Hybrid, PHEV, and BEV with native `Electricity` fuel type, refuel form morphing (Start/End SoC %, charging speed kW, charging tiers), and zero tailpipe CO2 emission modeling.
+*   **Adaptive Master-Detail & Tablet Layout ($\ge 720\text{ dp}$):** Material 3 `NavigationRail` with persistent side navigation on wide displays, dual-pane Master-Detail layout (Left: Vehicle selector, telemetry, alerts, running averages; Right: Trends, daily averages, last refuel details, live tire chassis schematic), and responsive width-constrained form layouts.
 *   **Fuel Record Management:** Full CRUD lifecycle support—add, view, edit, and safely delete fuel records directly from the records table with soft anomaly confirmations.
 *   **Multi-Vehicle Support:** Add and manage multiple vehicles, each with specific fuel types and capacities, and set a default vehicle for quick data entry.
 *   **Immersive User Experience:** Graphical and welcoming prompts for first-time users to guide them through adding their first vehicle and getting started with the app.

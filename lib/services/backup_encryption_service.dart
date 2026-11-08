@@ -252,6 +252,8 @@ class BackupEncryptionService {
       'serviceSessions': (db['service_sessions'] as List?)?.length ?? 0,
       'nonFuelExpenses': (db['non_fuel_expenses'] as List?)?.length ?? 0,
       'savedLocations': (db['saved_locations'] as List?)?.length ?? 0,
+      'tires': (db['tires'] as List?)?.length ?? 0,
+      'tireLogs': (db['tire_logs'] as List?)?.length ?? 0,
       'attachments': attachments.length,
     };
   }

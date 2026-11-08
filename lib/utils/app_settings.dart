@@ -25,6 +25,12 @@ class AppSettings {
   static bool autoBackupWifiOnly = true;
   static bool autoBackupWebDavUpload = false;
 
+  // International Units & Default Currency Fallbacks
+  static String defaultDistanceUnit = 'km';
+  static String defaultFuelVolumeUnit = 'litre';
+  static String defaultConsumptionUnit = 'kmPerLitre';
+  static String defaultBaseCurrency = 'BDT';
+
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     maxVolume = prefs.getDouble('maxVolume') ?? 100.0;
@@ -42,6 +48,10 @@ class AppSettings {
     autoBackupFrequencyDays = prefs.getInt('autoBackupFrequencyDays') ?? 3;
     autoBackupWifiOnly = prefs.getBool('autoBackupWifiOnly') ?? true;
     autoBackupWebDavUpload = prefs.getBool('autoBackupWebDavUpload') ?? false;
+    defaultDistanceUnit = prefs.getString('defaultDistanceUnit') ?? 'km';
+    defaultFuelVolumeUnit = prefs.getString('defaultFuelVolumeUnit') ?? 'litre';
+    defaultConsumptionUnit = prefs.getString('defaultConsumptionUnit') ?? 'kmPerLitre';
+    defaultBaseCurrency = prefs.getString('defaultBaseCurrency') ?? 'BDT';
 
     final defaultPricesString = prefs.getString('defaultFuelPrices');
     if (defaultPricesString != null) {
@@ -66,6 +76,10 @@ class AppSettings {
     await prefs.setInt('autoBackupFrequencyDays', autoBackupFrequencyDays);
     await prefs.setBool('autoBackupWifiOnly', autoBackupWifiOnly);
     await prefs.setBool('autoBackupWebDavUpload', autoBackupWebDavUpload);
+    await prefs.setString('defaultDistanceUnit', defaultDistanceUnit);
+    await prefs.setString('defaultFuelVolumeUnit', defaultFuelVolumeUnit);
+    await prefs.setString('defaultConsumptionUnit', defaultConsumptionUnit);
+    await prefs.setString('defaultBaseCurrency', defaultBaseCurrency);
     await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }
 
@@ -85,6 +99,10 @@ class AppSettings {
         'autoBackupFrequencyDays': autoBackupFrequencyDays,
         'autoBackupWifiOnly': autoBackupWifiOnly,
         'autoBackupWebDavUpload': autoBackupWebDavUpload,
+        'defaultDistanceUnit': defaultDistanceUnit,
+        'defaultFuelVolumeUnit': defaultFuelVolumeUnit,
+        'defaultConsumptionUnit': defaultConsumptionUnit,
+        'defaultBaseCurrency': defaultBaseCurrency,
         'defaultFuelPrices': defaultFuelPrices,
       };
 
@@ -104,6 +122,10 @@ class AppSettings {
     if (map['autoBackupFrequencyDays'] != null) autoBackupFrequencyDays = map['autoBackupFrequencyDays'] as int;
     if (map['autoBackupWifiOnly'] != null) autoBackupWifiOnly = map['autoBackupWifiOnly'] as bool;
     if (map['autoBackupWebDavUpload'] != null) autoBackupWebDavUpload = map['autoBackupWebDavUpload'] as bool;
+    if (map['defaultDistanceUnit'] != null) defaultDistanceUnit = map['defaultDistanceUnit'] as String;
+    if (map['defaultFuelVolumeUnit'] != null) defaultFuelVolumeUnit = map['defaultFuelVolumeUnit'] as String;
+    if (map['defaultConsumptionUnit'] != null) defaultConsumptionUnit = map['defaultConsumptionUnit'] as String;
+    if (map['defaultBaseCurrency'] != null) defaultBaseCurrency = map['defaultBaseCurrency'] as String;
     if (map['defaultFuelPrices'] != null) {
       defaultFuelPrices = Map<String, double>.from(
         (map['defaultFuelPrices'] as Map).map(

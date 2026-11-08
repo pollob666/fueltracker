@@ -19,16 +19,23 @@ import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
+import 'package:fuel_tracker/models/tire.dart';
+import 'package:fuel_tracker/models/tire_log.dart';
+import 'package:fuel_tracker/utils/tire_calculator.dart';
+import 'package:fuel_tracker/utils/unit_converter.dart';
 import 'package:fuel_tracker/widgets/location_picker_field.dart';
+import 'package:fuel_tracker/widgets/tire_schematic_widget.dart';
 
 class MaintenancePage extends StatefulWidget {
   final int? initialVehicleId;
   final int? openLogForTaskId;
+  final int initialTabIndex;
 
   const MaintenancePage({
     super.key,
     this.initialVehicleId,
     this.openLogForTaskId,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -45,6 +52,9 @@ class _MaintenancePageState extends State<MaintenancePage>
   int? _selectedVehicleId;
   List<MaintenanceTask> _tasks = [];
   List<ServiceSession> _serviceSessions = [];
+  List<Tire> _tires = [];
+  List<TireLog> _tireLogs = [];
+  String _selectedTirePosition = 'FL';
   RefuelPredictionResult? _refuelPrediction;
   double _currentOdo = 0.0;
   double _dailyKmRate = 20.0;
@@ -53,7 +63,11 @@ class _MaintenancePageState extends State<MaintenancePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
+    );
     _loadInitialData();
   }
 
@@ -106,6 +120,13 @@ class _MaintenancePageState extends State<MaintenancePage>
     final tasks = await _dbHelper.getMaintenanceTasks(vehicleId);
     final sessions = await _dbHelper.getServiceSessions(vehicleId);
 
+    var tires = await _dbHelper.getTiresForVehicle(vehicleId);
+    if (tires.isEmpty) {
+      await _seedDefaultTires(vehicleId, maxOdo);
+      tires = await _dbHelper.getTiresForVehicle(vehicleId);
+    }
+    final tireLogs = await _dbHelper.getLatestTireLogsForVehicle(vehicleId);
+
     RefuelPredictionResult? refuelPred;
     final currentVeh = _vehicles.where((v) => v.id == vehicleId).firstOrNull;
     if (currentVeh != null && (currentVeh.volumeReminderEnabled || currentVeh.distanceReminderEnabled)) {
@@ -116,14 +137,90 @@ class _MaintenancePageState extends State<MaintenancePage>
     }
 
     if (mounted) {
+      final isBike = currentVeh?.type == VehicleType.motorcycle || currentVeh?.type == VehicleType.scooterOrMoped;
+      String nextPos = _selectedTirePosition;
+      if (isBike && (nextPos == 'FL' || nextPos == 'FR' || nextPos == 'RL' || nextPos == 'RR')) {
+        nextPos = 'Front';
+      } else if (!isBike && (nextPos == 'Front' || nextPos == 'Rear')) {
+        nextPos = 'FL';
+      }
+
       setState(() {
         _tasks = tasks;
         _serviceSessions = sessions;
+        _tires = tires;
+        _tireLogs = tireLogs;
+        _selectedTirePosition = nextPos;
         _refuelPrediction = refuelPred;
         _currentOdo = maxOdo;
         _dailyKmRate = rate;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _seedDefaultTires(int vehicleId, double currentOdo) async {
+    final v = _vehicles.where((veh) => veh.id == vehicleId).firstOrNull;
+    final isBike = v?.type == VehicleType.motorcycle || v?.type == VehicleType.scooterOrMoped;
+    if (isBike) {
+      final front = await _dbHelper.insertTire(Tire(
+        vehicleId: vehicleId,
+        brand: 'Standard Bias',
+        model: 'Front Spec',
+        size: '90/90-17',
+        installedOdo: currentOdo,
+        installedDate: DateTime.now(),
+        initialTreadDepthMm: 6.0,
+        currentTreadDepthMm: 5.5,
+      ));
+      final rear = await _dbHelper.insertTire(Tire(
+        vehicleId: vehicleId,
+        brand: 'Standard Bias',
+        model: 'Rear Spec',
+        size: '120/80-17',
+        installedOdo: currentOdo,
+        installedDate: DateTime.now(),
+        initialTreadDepthMm: 7.0,
+        currentTreadDepthMm: 6.2,
+      ));
+      await _dbHelper.insertTireLog(TireLog(
+        tireId: front,
+        date: DateTime.now(),
+        odometer: currentOdo,
+        position: 'Front',
+        treadDepthMm: 5.5,
+        notes: 'Initial Setup',
+      ));
+      await _dbHelper.insertTireLog(TireLog(
+        tireId: rear,
+        date: DateTime.now(),
+        odometer: currentOdo,
+        position: 'Rear',
+        treadDepthMm: 6.2,
+        notes: 'Initial Setup',
+      ));
+    } else {
+      final positions = ['FL', 'FR', 'RL', 'RR'];
+      for (final pos in positions) {
+        final id = await _dbHelper.insertTire(Tire(
+          vehicleId: vehicleId,
+          brand: 'Bridgestone',
+          model: 'Ecopia',
+          size: '205/55 R16',
+          installedOdo: currentOdo,
+          installedDate: DateTime.now(),
+          initialTreadDepthMm: 8.0,
+          currentTreadDepthMm: 6.8,
+        ));
+        await _dbHelper.insertTireLog(TireLog(
+          tireId: id,
+          date: DateTime.now(),
+          odometer: currentOdo,
+          position: pos,
+          treadDepthMm: 6.8,
+          notes: 'Initial Setup',
+        ));
+      }
     }
   }
 
@@ -1259,6 +1356,10 @@ class _MaintenancePageState extends State<MaintenancePage>
               icon: const Icon(Icons.build_outlined, size: 20),
               text: l10n.tasksAndReminders,
             ),
+            const Tab(
+              icon: Icon(Icons.tire_repair, size: 20),
+              text: 'Tires & Wheels',
+            ),
             Tab(
               icon: const Icon(Icons.history, size: 20),
               text: l10n.serviceHistory,
@@ -1573,7 +1674,10 @@ class _MaintenancePageState extends State<MaintenancePage>
                           );
                         }(),
 
-                        // Tab 2: Service History List
+                        // Tab 2: Tires & Wheels
+                        _buildTiresTab(context),
+
+                        // Tab 3: Service History List
                         _serviceSessions.isEmpty
                             ? Center(
                                 child: Padding(
@@ -1755,5 +1859,550 @@ class _MaintenancePageState extends State<MaintenancePage>
             ),
       bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
     );
+  }
+
+  Map<String, Tire> _getPositionMap() {
+    final map = <String, Tire>{};
+    for (final tire in _tires) {
+      final latestLog = _tireLogs.where((l) => l.tireId == tire.id).firstOrNull;
+      if (latestLog != null) {
+        map[latestLog.position] = tire;
+      }
+    }
+    final currentVeh = _vehicles.where((v) => v.id == _selectedVehicleId).firstOrNull;
+    final isBike = currentVeh?.type == VehicleType.motorcycle || currentVeh?.type == VehicleType.scooterOrMoped;
+    final fallbackPositions = isBike ? ['Front', 'Rear'] : ['FL', 'FR', 'RL', 'RR'];
+    for (int i = 0; i < _tires.length && i < fallbackPositions.length; i++) {
+      final pos = fallbackPositions[i];
+      if (!map.containsKey(pos)) {
+        map[pos] = _tires[i];
+      }
+    }
+    return map;
+  }
+
+  Widget _buildTiresTab(BuildContext context) {
+    final theme = Theme.of(context);
+    final posMap = _getPositionMap();
+    final currentVeh = _vehicles.where((v) => v.id == _selectedVehicleId).firstOrNull;
+    if (currentVeh == null) {
+      return const Center(child: Text('No vehicle selected'));
+    }
+
+    final rotationLogs = _tireLogs.where((l) => l.notes != null && l.notes!.toLowerCase().contains('rotat')).toList();
+    final double lastRotationOdo = rotationLogs.isNotEmpty
+        ? rotationLogs.map((l) => l.odometer).reduce((a, b) => a > b ? a : b)
+        : (_tires.isNotEmpty
+            ? _tires.map((t) => t.installedOdo).reduce((a, b) => a < b ? a : b)
+            : 0.0);
+    final double deltaRotation = _currentOdo >= lastRotationOdo ? (_currentOdo - lastRotationOdo) : 0.0;
+    final bool rotationDue = TireCalculator.isRotationDue(
+      currentOdometer: _currentOdo,
+      lastRotationOdometer: lastRotationOdo,
+    );
+
+    final selectedTire = posMap[_selectedTirePosition];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Card(
+            elevation: 0,
+            color: rotationDue
+                ? theme.colorScheme.errorContainer.withValues(alpha: 0.4)
+                : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: rotationDue
+                    ? theme.colorScheme.error.withValues(alpha: 0.5)
+                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Icon(
+                    rotationDue ? Icons.warning_amber_rounded : Icons.sync,
+                    color: rotationDue ? theme.colorScheme.error : theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          rotationDue ? 'Tire Rotation Recommended' : 'Tire Rotation Cadence',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: rotationDue ? theme.colorScheme.error : null,
+                          ),
+                        ),
+                        Text(
+                          rotationDue
+                              ? '${deltaRotation.toStringAsFixed(0)} km since last rotation (Threshold: 10,000 km)'
+                              : '${deltaRotation.toStringAsFixed(0)} km since last rotation (${(10000 - deltaRotation).toStringAsFixed(0)} km remaining)',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.sync, size: 16),
+                    label: const Text('Rotate'),
+                    onPressed: _openRotateTiresDialog,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TireSchematicWidget(
+            vehicle: currentVeh,
+            tires: _tires,
+            positionMap: posMap,
+            selectedPosition: _selectedTirePosition,
+            onPositionSelected: (pos) {
+              setState(() => _selectedTirePosition = pos);
+            },
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.speed, size: 18),
+                label: Text('Log Depth ($_selectedTirePosition)'),
+                onPressed: () => _openLogTireMeasurementSheet(_selectedTirePosition),
+              ),
+              const SizedBox(width: 8),
+              if (selectedTire != null)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Edit Specs'),
+                  onPressed: () => _openEditTireDialog(selectedTire),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (selectedTire != null) ...[
+            _buildTireInspectionCard(context, selectedTire, _selectedTirePosition, currentVeh),
+          ] else ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text('No tire assigned to position $_selectedTirePosition'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTireInspectionCard(
+    BuildContext context,
+    Tire tire,
+    String position,
+    Vehicle vehicle,
+  ) {
+    final theme = Theme.of(context);
+    final status = TireCalculator.evaluateStatus(tire.currentTreadDepthMm);
+    final deltaKm = _currentOdo > tire.installedOdo ? (_currentOdo - tire.installedOdo) : 0.0;
+    final wearRate = TireCalculator.calculateWearRatePer1000Km(
+      initialDepthMm: tire.initialTreadDepthMm,
+      currentDepthMm: tire.currentTreadDepthMm,
+      deltaKm: deltaKm,
+    );
+    final remainingKm = TireCalculator.estimateRemainingDistanceKm(
+      currentDepthMm: tire.currentTreadDepthMm,
+      wearRatePer1000Km: wearRate > 0 ? wearRate : 0.12,
+    );
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$position • ${tire.brand} ${tire.model ?? ''}',
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Size: ${tire.size}${tire.dotCode != null ? ' • DOT: ${tire.dotCode}' : ''}',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: status.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: status.color, width: 1),
+                  ),
+                  child: Text(
+                    status.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: status.color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMetricCol('Current Depth', '${tire.currentTreadDepthMm.toStringAsFixed(1)} mm', theme),
+                _buildMetricCol('Initial Depth', '${tire.initialTreadDepthMm.toStringAsFixed(1)} mm', theme),
+                _buildMetricCol(
+                  'Wear Rate',
+                  wearRate > 0 ? '${wearRate.toStringAsFixed(2)} mm/k' : '0.12 mm/k',
+                  theme,
+                ),
+                _buildMetricCol(
+                  'Remaining Life',
+                  remainingKm != null
+                      ? UnitFormatter.formatDistance(remainingKm, vehicle.distanceUnit, decimals: 0)
+                      : 'N/A',
+                  theme,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Measurement History',
+              style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            () {
+              final logs = _tireLogs.where((l) => l.tireId == tire.id).toList();
+              if (logs.isEmpty) {
+                return Text(
+                  'No historical depth measurements logged yet.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                );
+              }
+              return Column(
+                children: logs.take(3).map((l) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${DateFormat.yMMMd().format(l.date)} (${l.odometer.toStringAsFixed(0)} km)',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Text(
+                          '${l.treadDepthMm.toStringAsFixed(1)} mm${l.notes != null ? ' • ${l.notes}' : ''}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: TireCalculator.evaluateStatus(l.treadDepthMm).color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            }(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCol(String label, String value, ThemeData theme) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openRotateTiresDialog() async {
+    final posMap = _getPositionMap();
+    final currentVeh = _vehicles.where((v) => v.id == _selectedVehicleId).firstOrNull;
+    final isBike = currentVeh?.type == VehicleType.motorcycle || currentVeh?.type == VehicleType.scooterOrMoped;
+
+    if (isBike) {
+      final front = posMap['Front'];
+      final rear = posMap['Rear'];
+      if (front == null || rear == null) return;
+
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Swap Front and Rear Tires'),
+          content: Text('Swap Front (${front.brand}) and Rear (${rear.brand}) tires at ${_currentOdo.toStringAsFixed(0)} km?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Swap Tires')),
+          ],
+        ),
+      );
+      if (confirmed == true) {
+        await _dbHelper.insertTireLog(TireLog(
+          tireId: front.id!,
+          date: DateTime.now(),
+          odometer: _currentOdo,
+          position: 'Rear',
+          treadDepthMm: front.currentTreadDepthMm,
+          notes: 'Rotated Front -> Rear',
+        ));
+        await _dbHelper.insertTireLog(TireLog(
+          tireId: rear.id!,
+          date: DateTime.now(),
+          odometer: _currentOdo,
+          position: 'Front',
+          treadDepthMm: rear.currentTreadDepthMm,
+          notes: 'Rotated Rear -> Front',
+        ));
+        if (mounted && _selectedVehicleId != null) {
+          _loadTasksForVehicle(_selectedVehicleId!);
+        }
+      }
+      return;
+    }
+
+    final selectedPattern = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Tire Rotation Pattern'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Forward Cross (FWD Default)'),
+              subtitle: const Text('Rear tires cross to front (RL->FR, RR->FL), fronts move straight back'),
+              onTap: () => Navigator.pop(ctx, 'forwardCross'),
+            ),
+            const Divider(),
+            ListTile(
+              title: const Text('Rearward Cross (RWD / AWD)'),
+              subtitle: const Text('Front tires cross to rear (FL->RR, FR->RL), rears move straight forward'),
+              onTap: () => Navigator.pop(ctx, 'rearwardCross'),
+            ),
+            const Divider(),
+            ListTile(
+              title: const Text('Front-to-Back (Directional Tires)'),
+              subtitle: const Text('FL <-> RL, FR <-> RR without crossing left and right'),
+              onTap: () => Navigator.pop(ctx, 'frontToBack'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ],
+      ),
+    );
+
+    if (selectedPattern != null) {
+      final fl = posMap['FL'];
+      final fr = posMap['FR'];
+      final rl = posMap['RL'];
+      final rr = posMap['RR'];
+      if (fl == null || fr == null || rl == null || rr == null) return;
+
+      Map<Tire, String> newPositions = {};
+      if (selectedPattern == 'forwardCross') {
+        newPositions[rl] = 'FR';
+        newPositions[rr] = 'FL';
+        newPositions[fl] = 'RL';
+        newPositions[fr] = 'RR';
+      } else if (selectedPattern == 'rearwardCross') {
+        newPositions[fl] = 'RR';
+        newPositions[fr] = 'RL';
+        newPositions[rl] = 'FL';
+        newPositions[rr] = 'FR';
+      } else {
+        newPositions[fl] = 'RL';
+        newPositions[rl] = 'FL';
+        newPositions[fr] = 'RR';
+        newPositions[rr] = 'FR';
+      }
+
+      for (final entry in newPositions.entries) {
+        await _dbHelper.insertTireLog(TireLog(
+          tireId: entry.key.id!,
+          date: DateTime.now(),
+          odometer: _currentOdo,
+          position: entry.value,
+          treadDepthMm: entry.key.currentTreadDepthMm,
+          notes: 'Rotated: $selectedPattern -> ${entry.value}',
+        ));
+      }
+
+      if (mounted && _selectedVehicleId != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tires rotated and position logs recorded')),
+        );
+        _loadTasksForVehicle(_selectedVehicleId!);
+      }
+    }
+  }
+
+  Future<void> _openLogTireMeasurementSheet(String position) async {
+    final posMap = _getPositionMap();
+    final tire = posMap[position];
+    if (tire == null) return;
+
+    double depth = tire.currentTreadDepthMm;
+    final odoController = TextEditingController(text: _currentOdo.toStringAsFixed(0));
+    final notesController = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Log Tread Depth: $position (${tire.brand})',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text('Current Measurement: ${depth.toStringAsFixed(1)} mm'),
+              Slider(
+                value: depth,
+                min: 1.0,
+                max: 10.0,
+                divisions: 90,
+                label: '${depth.toStringAsFixed(1)} mm',
+                onChanged: (val) {
+                  setSheetState(() => depth = val);
+                },
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: odoController,
+                decoration: const InputDecoration(labelText: 'Odometer (km)'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: notesController,
+                decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                onPressed: () async {
+                  final enteredOdo = double.tryParse(odoController.text) ?? _currentOdo;
+                  await _dbHelper.insertTireLog(TireLog(
+                    tireId: tire.id!,
+                    date: DateTime.now(),
+                    odometer: enteredOdo,
+                    position: position,
+                    treadDepthMm: depth,
+                    notes: notesController.text.trim().isNotEmpty ? notesController.text.trim() : null,
+                  ));
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted && _selectedVehicleId != null) {
+                    _loadTasksForVehicle(_selectedVehicleId!);
+                  }
+                },
+                child: const Text('Save Depth Measurement'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openEditTireDialog(Tire tire) async {
+    final brandController = TextEditingController(text: tire.brand);
+    final modelController = TextEditingController(text: tire.model ?? '');
+    final sizeController = TextEditingController(text: tire.size);
+    final dotController = TextEditingController(text: tire.dotCode ?? '');
+    final initDepthController = TextEditingController(text: tire.initialTreadDepthMm.toStringAsFixed(1));
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Tire Specifications'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(controller: brandController, decoration: const InputDecoration(labelText: 'Brand')),
+              const SizedBox(height: 8),
+              TextFormField(controller: modelController, decoration: const InputDecoration(labelText: 'Model')),
+              const SizedBox(height: 8),
+              TextFormField(controller: sizeController, decoration: const InputDecoration(labelText: 'Tire Size')),
+              const SizedBox(height: 8),
+              TextFormField(controller: dotController, decoration: const InputDecoration(labelText: 'DOT Code (optional)')),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: initDepthController,
+                decoration: const InputDecoration(labelText: 'Initial Depth (mm)'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final updated = tire.copyWith(
+        brand: brandController.text.trim(),
+        model: modelController.text.trim().isNotEmpty ? modelController.text.trim() : null,
+        size: sizeController.text.trim(),
+        dotCode: dotController.text.trim().isNotEmpty ? dotController.text.trim() : null,
+        initialTreadDepthMm: double.tryParse(initDepthController.text) ?? tire.initialTreadDepthMm,
+      );
+      await _dbHelper.updateTire(updated);
+      if (mounted && _selectedVehicleId != null) {
+        _loadTasksForVehicle(_selectedVehicleId!);
+      }
+    }
   }
 }

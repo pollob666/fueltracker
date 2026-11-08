@@ -59,15 +59,28 @@ class AppTheme {
     final baseScheme = darkDynamic?.harmonized() ?? _defaultDarkColorScheme;
     final colorScheme = baseScheme.copyWith(
       surface: Colors.black,
+      surfaceContainerLowest: Colors.black,
+      surfaceContainerLow: const Color(0xFF0A0A0A),
+      surfaceContainer: const Color(0xFF121212),
+      surfaceContainerHigh: const Color(0xFF1A1A1A),
+      surfaceContainerHighest: const Color(0xFF222222),
     );
     return ThemeData(
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: Colors.black,
+      canvasColor: Colors.black,
       appBarTheme: AppBarTheme(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
+        backgroundColor: Colors.black,
+        foregroundColor: colorScheme.onSurface,
+        elevation: 0,
       ),
-      cardTheme: const CardThemeData(
-        elevation: 1.5,
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: const Color(0xFF121212),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF2A2A2A), width: 1.0),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

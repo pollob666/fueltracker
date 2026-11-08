@@ -40,6 +40,8 @@ class BackupValidationSummary {
   final int serviceItemCount;
   final int locationCount;
   final int expenseCount;
+  final int tireCount;
+  final int tireLogCount;
   final bool hasAppSettings;
   final int attachmentCount;
   final bool isValid;
@@ -57,6 +59,8 @@ class BackupValidationSummary {
     this.serviceItemCount = 0,
     this.locationCount = 0,
     this.expenseCount = 0,
+    this.tireCount = 0,
+    this.tireLogCount = 0,
     this.hasAppSettings = false,
     this.attachmentCount = 0,
     required this.isValid,
@@ -117,6 +121,8 @@ class UnifiedBackupService {
     final fuelTypes = includeVehicles ? await db.query('fuel_types') : <Map<String, dynamic>>[];
     final vehicles = includeVehicles ? await db.query('vehicles') : <Map<String, dynamic>>[];
     final maintenanceTasks = includeVehicles ? await db.query('maintenance_tasks') : <Map<String, dynamic>>[];
+    final tires = includeVehicles ? await db.query('tires') : <Map<String, dynamic>>[];
+    final tireLogs = includeVehicles ? await db.query('tire_logs') : <Map<String, dynamic>>[];
     final fuelRecords = includeRefuelRecords ? await db.query('fuel_records') : <Map<String, dynamic>>[];
     final serviceSessions = includeServiceRecords ? await db.query('service_sessions') : <Map<String, dynamic>>[];
     final serviceSessionItems = includeServiceRecords ? await db.query('service_session_items') : <Map<String, dynamic>>[];
@@ -148,6 +154,8 @@ class UnifiedBackupService {
       'fuel_types': fuelTypes,
       'vehicles': vehicles,
       'maintenance_tasks': maintenanceTasks,
+      'tires': tires,
+      'tire_logs': tireLogs,
       'fuel_records': fuelRecords,
       'service_sessions': serviceSessions,
       'service_session_items': serviceSessionItems,
@@ -207,6 +215,8 @@ class UnifiedBackupService {
       final serviceItemsList = (decoded['service_session_items'] as List?) ?? [];
       final locationsList = (decoded['saved_locations'] as List?) ?? [];
       final expensesList = (decoded['non_fuel_expenses'] as List?) ?? [];
+      final tiresList = (decoded['tires'] as List?) ?? [];
+      final tireLogsList = (decoded['tire_logs'] as List?) ?? [];
       final appSettingsMap = (decoded['app_settings'] as Map?) ?? {};
       final attachmentsMap = (decoded['attachments'] as Map?) ?? {};
 
@@ -222,6 +232,8 @@ class UnifiedBackupService {
         serviceItemCount: serviceItemsList.length,
         locationCount: locationsList.length,
         expenseCount: expensesList.length,
+        tireCount: tiresList.length,
+        tireLogCount: tireLogsList.length,
         hasAppSettings: appSettingsMap.isNotEmpty,
         attachmentCount: attachmentsMap.length,
         isValid: true,
@@ -324,6 +336,40 @@ class UnifiedBackupService {
               await txn.insert('maintenance_tasks', row);
             } else {
               await txn.insert('maintenance_tasks', row, conflictAlgorithm: algo);
+            }
+          }
+
+          final Map<int, int> tireIdMap = {};
+          final tires = (payload['tires'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          for (final raw in tires) {
+            final row = Map<String, dynamic>.from(raw);
+            if (isCopy) {
+              final oldId = row['id'] as int?;
+              row.remove('id');
+              if (row['vehicleId'] != null && vehicleIdMap.containsKey(row['vehicleId'])) {
+                row['vehicleId'] = vehicleIdMap[row['vehicleId']];
+              }
+              final newId = await txn.insert('tires', row);
+              if (oldId != null) tireIdMap[oldId] = newId;
+            } else {
+              await txn.insert('tires', row, conflictAlgorithm: algo);
+            }
+          }
+
+          final tireLogs = (payload['tire_logs'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          for (final raw in tireLogs) {
+            final row = Map<String, dynamic>.from(raw);
+            if (isCopy) {
+              row.remove('id');
+              if (row['tireId'] != null && tireIdMap.containsKey(row['tireId'])) {
+                row['tireId'] = tireIdMap[row['tireId']];
+              }
+              if (row['locationId'] != null && locationIdMap.containsKey(row['locationId'])) {
+                row['locationId'] = locationIdMap[row['locationId']];
+              }
+              await txn.insert('tire_logs', row);
+            } else {
+              await txn.insert('tire_logs', row, conflictAlgorithm: algo);
             }
           }
         }

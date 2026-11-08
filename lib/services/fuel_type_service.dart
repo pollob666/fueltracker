@@ -23,6 +23,7 @@ class FuelTypeService {
       FuelType(name: 'Diesel', category: FuelCategory.diesel, unit: FuelUnit.litre),
       FuelType(name: 'CNG', category: FuelCategory.gas, unit: FuelUnit.cubicMeter),
       FuelType(name: 'LPG', category: FuelCategory.gas, unit: FuelUnit.litre),
+      FuelType(name: 'Electricity', category: FuelCategory.electricity, unit: FuelUnit.kwh),
     ];
 
     for (var ft in defaults) {

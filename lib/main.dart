@@ -29,10 +29,12 @@ Future<void> main() async {
       );
     }
 
-    // Set preferred orientations to portrait up and down
+    // Support portrait and landscape orientations for foldables and tablets
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
     ]);
 
     // Enable edge-to-edge mode
@@ -160,6 +162,13 @@ class _MyAppState extends State<MyApp> {
               (supportedLocale) =>
                   supportedLocale.languageCode == locale?.languageCode,
               orElse: () => supportedLocales.first,
+            );
+          },
+          builder: (context, child) {
+            return MediaQuery.withClampedTextScaling(
+              minScaleFactor: 0.8,
+              maxScaleFactor: 1.35,
+              child: child ?? const SizedBox.shrink(),
             );
           },
           home: const DashboardPage(),

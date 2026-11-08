@@ -6,6 +6,7 @@ import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/utils/unit_converter.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 
@@ -151,6 +152,25 @@ class _ManageVehiclesPageState extends State<ManageVehiclesPage> {
                               Chip(
                                 label: Text(localizations.defaultVehicle),
                               ),
+                            if (vehicle.powertrainType != PowertrainType.ice)
+                              Chip(
+                                avatar: Icon(
+                                  vehicle.powertrainType == PowertrainType.bev
+                                      ? Icons.electric_car
+                                      : Icons.battery_charging_full,
+                                  size: 16,
+                                ),
+                                label: Text(vehicle.powertrainType.label),
+                                backgroundColor: theme.colorScheme.primaryContainer,
+                              ),
+                            Chip(
+                              avatar: const Icon(Icons.straighten, size: 16),
+                              label: Text('${vehicle.distanceUnit.symbol} • ${vehicle.consumptionUnit.symbol}'),
+                            ),
+                            Chip(
+                              avatar: const Icon(Icons.currency_exchange, size: 16),
+                              label: Text(vehicle.baseCurrency),
+                            ),
                             Chip(
                               avatar: Icon(
                                 vehicle.isDualFuel

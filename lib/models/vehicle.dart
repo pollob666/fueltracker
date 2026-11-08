@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+import 'package:fuel_tracker/utils/unit_converter.dart';
 
 enum VehicleType {
   carOrSedan,
@@ -30,7 +31,19 @@ class Vehicle {
   bool distanceReminderEnabled;
   double distanceReminderValue;
 
+  // Tier 3: International Units, Currency & Alternative Powertrains
+  DistanceUnit distanceUnit;
+  FuelVolumeUnit fuelVolumeUnit;
+  ConsumptionUnit consumptionUnit;
+  String baseCurrency;
+  PowertrainType powertrainType;
+  double? batteryCapacityKwh;
+
   bool get isDualFuel => secondaryFuelTypeId != null;
+  bool get isElectric => powertrainType == PowertrainType.bev;
+  bool get hasElectricMotor => powertrainType == PowertrainType.bev ||
+                              powertrainType == PowertrainType.phev ||
+                              powertrainType == PowertrainType.hybrid;
 
   Vehicle({
     this.id,
@@ -45,6 +58,12 @@ class Vehicle {
     this.volumeReminderValue = 3.0,
     this.distanceReminderEnabled = false,
     this.distanceReminderValue = 50.0,
+    this.distanceUnit = DistanceUnit.km,
+    this.fuelVolumeUnit = FuelVolumeUnit.litre,
+    this.consumptionUnit = ConsumptionUnit.kmPerLitre,
+    this.baseCurrency = 'BDT',
+    this.powertrainType = PowertrainType.ice,
+    this.batteryCapacityKwh,
   });
 
   Map<String, dynamic> toMap() {
@@ -61,6 +80,12 @@ class Vehicle {
       'volumeReminderValue': volumeReminderValue,
       'distanceReminderEnabled': distanceReminderEnabled ? 1 : 0,
       'distanceReminderValue': distanceReminderValue,
+      'distanceUnit': distanceUnit.name,
+      'fuelVolumeUnit': fuelVolumeUnit.name,
+      'consumptionUnit': consumptionUnit.name,
+      'baseCurrency': baseCurrency,
+      'powertrainType': powertrainType.name,
+      'batteryCapacityKwh': batteryCapacityKwh,
     };
   }
 
@@ -89,6 +114,12 @@ class Vehicle {
       volumeReminderValue: (map['volumeReminderValue'] as num?)?.toDouble() ?? 3.0,
       distanceReminderEnabled: map['distanceReminderEnabled'] == 1 || map['distanceReminderEnabled'] == true,
       distanceReminderValue: (map['distanceReminderValue'] as num?)?.toDouble() ?? 50.0,
+      distanceUnit: DistanceUnit.fromString(map['distanceUnit'] as String?),
+      fuelVolumeUnit: FuelVolumeUnit.fromString(map['fuelVolumeUnit'] as String?),
+      consumptionUnit: ConsumptionUnit.fromString(map['consumptionUnit'] as String?),
+      baseCurrency: (map['baseCurrency'] as String?) ?? 'BDT',
+      powertrainType: PowertrainType.fromString(map['powertrainType'] as String?),
+      batteryCapacityKwh: (map['batteryCapacityKwh'] as num?)?.toDouble(),
     );
   }
 
@@ -105,6 +136,12 @@ class Vehicle {
     double? volumeReminderValue,
     bool? distanceReminderEnabled,
     double? distanceReminderValue,
+    DistanceUnit? distanceUnit,
+    FuelVolumeUnit? fuelVolumeUnit,
+    ConsumptionUnit? consumptionUnit,
+    String? baseCurrency,
+    PowertrainType? powertrainType,
+    double? batteryCapacityKwh,
   }) {
     return Vehicle(
       id: id ?? this.id,
@@ -119,6 +156,12 @@ class Vehicle {
       volumeReminderValue: volumeReminderValue ?? this.volumeReminderValue,
       distanceReminderEnabled: distanceReminderEnabled ?? this.distanceReminderEnabled,
       distanceReminderValue: distanceReminderValue ?? this.distanceReminderValue,
+      distanceUnit: distanceUnit ?? this.distanceUnit,
+      fuelVolumeUnit: fuelVolumeUnit ?? this.fuelVolumeUnit,
+      consumptionUnit: consumptionUnit ?? this.consumptionUnit,
+      baseCurrency: baseCurrency ?? this.baseCurrency,
+      powertrainType: powertrainType ?? this.powertrainType,
+      batteryCapacityKwh: batteryCapacityKwh ?? this.batteryCapacityKwh,
     );
   }
 }

@@ -17,6 +17,7 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
+import 'package:fuel_tracker/utils/unit_converter.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/image_lightbox_dialog.dart';
 import 'package:fuel_tracker/widgets/location_picker_field.dart';
@@ -80,6 +81,15 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
   String? _receiptImagePath;
   String? _odometerImagePath;
 
+  // Tier 3: Foreign Currency & EV Telemetry
+  String _currencyCode = 'BDT';
+  final TextEditingController _exchangeRateController = TextEditingController(text: '1.0');
+  bool _isElectricSession = false;
+  final TextEditingController _socStartController = TextEditingController();
+  final TextEditingController _socEndController = TextEditingController();
+  final TextEditingController _chargingPowerController = TextEditingController();
+  String _chargeType = 'acLevel2';
+
   Vehicle? get _selectedVehicle {
     if (_selectedVehicleId == null || _vehicles.isEmpty) return null;
     try {
@@ -89,6 +99,8 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
     }
   }
 
+  bool get _isBev => _selectedVehicle?.powertrainType == PowertrainType.bev;
+  bool get _canChargeElectric => _selectedVehicle?.hasElectricMotor ?? false;
   bool get _isBiFuelVehicle => _selectedVehicle?.secondaryFuelTypeId != null;
   bool get _hasTripMeter =>
       (_selectedVehicle?.tripMeterMode != null &&
@@ -125,6 +137,13 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
       _selectedFuelTypeId = rec.fuelTypeId;
       _receiptImagePath = rec.receiptImagePath;
       _odometerImagePath = rec.odometerImagePath;
+      _currencyCode = rec.currencyCode;
+      _exchangeRateController.text = rec.exchangeRateToBase.toString();
+      _isElectricSession = rec.energyKwh != null || rec.socStart != null;
+      if (rec.socStart != null) _socStartController.text = rec.socStart!.toStringAsFixed(0);
+      if (rec.socEnd != null) _socEndController.text = rec.socEnd!.toStringAsFixed(0);
+      if (rec.chargingPowerKw != null) _chargingPowerController.text = rec.chargingPowerKw!.toStringAsFixed(1);
+      _chargeType = rec.chargeType ?? 'acLevel2';
       if (rec.locationId != null) {
         DatabaseHelper.instance.getSavedLocationById(rec.locationId!).then((loc) {
           if (mounted) setState(() => _selectedLocation = loc);
@@ -183,7 +202,54 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
   }
 
   void _onOdoOrTripChanged() {
+    _saveFormDraft();
     setState(() {});
+  }
+
+  void _onSocChanged() {
+    final start = double.tryParse(_socStartController.text);
+    final end = double.tryParse(_socEndController.text);
+    final cap = _selectedVehicle?.batteryCapacityKwh;
+    if (start != null && end != null && end > start && cap != null && cap > 0) {
+      final added = ((end - start) / 100.0) * cap;
+      _volumeController.text = added.toStringAsFixed(2);
+      _volume = added;
+      _onFormCalculationTriggered();
+    }
+  }
+
+  Future<void> _saveFormDraft() async {
+    if (_isEditing) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('draft_refuel_odo', _odometerController.text);
+    await prefs.setString('draft_refuel_rate', _rateController.text);
+    await prefs.setString('draft_refuel_vol', _volumeController.text);
+    await prefs.setString('draft_refuel_paid', _paidAmountController.text);
+  }
+
+  Future<void> _loadFormDraft() async {
+    if (_isEditing) return;
+    final prefs = await SharedPreferences.getInstance();
+    final draftOdo = prefs.getString('draft_refuel_odo');
+    if (draftOdo != null && draftOdo.isNotEmpty && _odometerController.text.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _odometerController.text = draftOdo;
+          _rateController.text = prefs.getString('draft_refuel_rate') ?? '';
+          _volumeController.text = prefs.getString('draft_refuel_vol') ?? '';
+          _paidAmountController.text = prefs.getString('draft_refuel_paid') ?? '';
+          _volume = double.tryParse(_volumeController.text) ?? 0.0;
+        });
+      }
+    }
+  }
+
+  Future<void> _clearFormDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('draft_refuel_odo');
+    await prefs.remove('draft_refuel_rate');
+    await prefs.remove('draft_refuel_vol');
+    await prefs.remove('draft_refuel_paid');
   }
 
   Widget _buildAttachmentCard(BuildContext context) {
@@ -406,12 +472,17 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
         _allFuelTypes = allFuelTypes;
         if (!_isEditing && _vehicles.isNotEmpty) {
           _selectedVehicleId = _vehicles.first.id;
+          _currencyCode = _vehicles.first.baseCurrency;
+          if (_vehicles.first.powertrainType == PowertrainType.bev) {
+            _isElectricSession = true;
+          }
           _updateAvailableFuelTypes();
         } else if (_isEditing) {
           _updateAvailableFuelTypes(preserveSelectedFuelType: true);
         }
       });
       _updatePreviousOdometer();
+      await _loadFormDraft();
     }
   }
 
@@ -548,6 +619,10 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
     _rateController.dispose();
     _volumeController.dispose();
     _paidAmountController.dispose();
+    _exchangeRateController.dispose();
+    _socStartController.dispose();
+    _socEndController.dispose();
+    _chargingPowerController.dispose();
 
     _odometerFocus.dispose();
     _tripDistanceFocus.dispose();
@@ -592,12 +667,15 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
             : AppLocalizations.of(context)!.addFuelData),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 840),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
                 children: [
                   Row(
                     children: [
@@ -626,6 +704,11 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     onChanged: (val) {
                       setState(() {
                         _selectedVehicleId = val!;
+                        final v = _selectedVehicle;
+                        if (v != null) {
+                          _currencyCode = v.baseCurrency;
+                          _isElectricSession = v.powertrainType == PowertrainType.bev;
+                        }
                         _updateAvailableFuelTypes();
                         _updatePreviousOdometer();
                       });
@@ -633,33 +716,125 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.vehicle),
                   ),
-                  DropdownButtonFormField<int>(
-                    initialValue: _selectedFuelTypeId != null &&
-                            _availableFuelTypes
-                                .any((ft) => ft.id == _selectedFuelTypeId)
-                        ? _selectedFuelTypeId
-                        : null,
-                    items: _availableFuelTypes
-                        .map((fuel) => DropdownMenuItem(
-                              value: fuel.id,
-                              child: Text(fuel.name),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedFuelTypeId = val!;
-                        final fuelName = _availableFuelTypes
-                            .firstWhere((ft) => ft.id == val)
-                            .name;
-                        _rateController.text =
-                            AppSettings.defaultFuelPrices[fuelName]
-                                    ?.toString() ??
-                                '';
-                      });
-                    },
-                    decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.fuelType),
-                  ),
+                  if (_canChargeElectric && !_isBev) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(
+                            value: false,
+                            icon: Icon(Icons.local_gas_station_outlined),
+                            label: Text('Liquid Fuel'),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            icon: Icon(Icons.electric_bolt_outlined),
+                            label: Text('EV Charging'),
+                          ),
+                        ],
+                        selected: {_isElectricSession},
+                        onSelectionChanged: (val) {
+                          setState(() {
+                            _isElectricSession = val.first;
+                            _updateAvailableFuelTypes();
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                  if (_isElectricSession) ...[
+                    const SizedBox(height: 12),
+                    Card(
+                      elevation: 0,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.battery_charging_full, size: 20, color: Theme.of(context).colorScheme.primary),
+                                const SizedBox(width: 8),
+                                const Text('Charging Session Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _socStartController,
+                                    decoration: const InputDecoration(labelText: 'Start SoC (%)', suffixText: '%'),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (_) => _onSocChanged(),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _socEndController,
+                                    decoration: const InputDecoration(labelText: 'End SoC (%)', suffixText: '%'),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (_) => _onSocChanged(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              value: _chargeType,
+                              decoration: const InputDecoration(labelText: 'Charging Tier / Speed'),
+                              items: const [
+                                DropdownMenuItem(value: 'acLevel1', child: Text('AC Level 1 (Slow 120V ~1.4kW)')),
+                                DropdownMenuItem(value: 'acLevel2', child: Text('AC Level 2 (Wallbox ~7.4kW)')),
+                                DropdownMenuItem(value: 'dcFast', child: Text('DC Fast Charging (50+ kW)')),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setState(() => _chargeType = val);
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _chargingPowerController,
+                              decoration: const InputDecoration(labelText: 'Charging Power (kW)', suffixText: 'kW'),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    DropdownButtonFormField<int>(
+                      initialValue: _selectedFuelTypeId != null &&
+                              _availableFuelTypes
+                                  .any((ft) => ft.id == _selectedFuelTypeId)
+                          ? _selectedFuelTypeId
+                          : null,
+                      items: _availableFuelTypes
+                          .map((fuel) => DropdownMenuItem(
+                                value: fuel.id,
+                                child: Text(fuel.name),
+                              ))
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedFuelTypeId = val!;
+                          final fuelName = _availableFuelTypes
+                              .firstWhere((ft) => ft.id == val)
+                              .name;
+                          _rateController.text =
+                              AppSettings.defaultFuelPrices[fuelName]
+                                      ?.toString() ??
+                                  '';
+                        });
+                      },
+                      decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.fuelType),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   LocationPickerField(
                     type: 'fuel_station',
@@ -856,39 +1031,41 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                      "${AppLocalizations.of(context)!.totalVolume}: ${_volume.toStringAsFixed(2)}"),
-                  Slider(
-                    value: clampedSliderValue,
-                    min: 0,
-                    max: maxVolume,
-                    divisions: (maxVolume * 100).toInt() > 0
-                        ? (maxVolume * 100).toInt()
-                        : 100,
-                    label: clampedSliderValue.toStringAsFixed(2),
-                    onChanged: (val) {
-                      final parsedVal = double.parse(val.toStringAsFixed(2));
-                      setState(() {
-                        _volume = parsedVal;
-                        _isUpdating = true;
-                        _volumeController.text = _volume.toStringAsFixed(2);
-                        if (_lockTarget == CalculationLockTarget.rate) {
-                          final double? paid = double.tryParse(_paidAmountController.text);
-                          if (paid != null && paid > 0 && _volume > 0) {
-                            _rateController.text = (paid / _volume).toStringAsFixed(2);
+                  if (!_isElectricSession) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                        "${AppLocalizations.of(context)!.totalVolume}: ${_volume.toStringAsFixed(2)}"),
+                    Slider(
+                      value: clampedSliderValue,
+                      min: 0,
+                      max: maxVolume,
+                      divisions: (maxVolume * 100).toInt() > 0
+                          ? (maxVolume * 100).toInt()
+                          : 100,
+                      label: clampedSliderValue.toStringAsFixed(2),
+                      onChanged: (val) {
+                        final parsedVal = double.parse(val.toStringAsFixed(2));
+                        setState(() {
+                          _volume = parsedVal;
+                          _isUpdating = true;
+                          _volumeController.text = _volume.toStringAsFixed(2);
+                          if (_lockTarget == CalculationLockTarget.rate) {
+                            final double? paid = double.tryParse(_paidAmountController.text);
+                            if (paid != null && paid > 0 && _volume > 0) {
+                              _rateController.text = (paid / _volume).toStringAsFixed(2);
+                            }
+                          } else {
+                            final double? rate = double.tryParse(_rateController.text);
+                            if (rate != null && rate > 0) {
+                              _paidAmountController.text =
+                                  (_volume * rate).toStringAsFixed(2);
+                            }
                           }
-                        } else {
-                          final double? rate = double.tryParse(_rateController.text);
-                          if (rate != null && rate > 0) {
-                            _paidAmountController.text =
-                                (_volume * rate).toStringAsFixed(2);
-                          }
-                        }
-                        _isUpdating = false;
-                      });
-                    },
-                  ),
+                          _isUpdating = false;
+                        });
+                      },
+                    ),
+                  ],
                   TextFormField(
                     controller: _volumeController,
                     focusNode: _volumeFocus,
@@ -896,7 +1073,9 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     onFieldSubmitted: (_) =>
                         FocusScope.of(context).requestFocus(_paidAmountFocus),
                     decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.totalVolume,
+                      labelText: _isElectricSession
+                          ? 'Energy Added (kWh)'
+                          : AppLocalizations.of(context)!.totalVolume,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _lockTarget == CalculationLockTarget.volume
@@ -964,18 +1143,81 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(AppLocalizations.of(context)!.fullTank),
-                    subtitle:
-                        Text(AppLocalizations.of(context)!.fullTankSubtitle),
-                    value: _isFullTank,
-                    onChanged: (val) {
-                      setState(() {
-                        _isFullTank = val;
-                      });
-                    },
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextFormField(
+                          initialValue: _currencyCode,
+                          decoration: InputDecoration(
+                            labelText: 'Currency',
+                            helperText: _selectedVehicle != null
+                                ? 'Base: ${_selectedVehicle!.baseCurrency}'
+                                : null,
+                          ),
+                          textCapitalization: TextCapitalization.characters,
+                          onChanged: (val) {
+                            setState(() {
+                              _currencyCode = val.trim().toUpperCase();
+                            });
+                          },
+                        ),
+                      ),
+                      if (_selectedVehicle != null &&
+                          _currencyCode != _selectedVehicle!.baseCurrency) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            controller: _exchangeRateController,
+                            decoration: InputDecoration(
+                              labelText: 'Exchange Rate',
+                              helperText:
+                                  '1 $_currencyCode = ... ${_selectedVehicle!.baseCurrency}',
+                            ),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                  if (_selectedVehicle != null &&
+                      _currencyCode != _selectedVehicle!.baseCurrency) ...[
+                    const SizedBox(height: 4),
+                    Builder(builder: (ctx) {
+                      final paid = double.tryParse(_paidAmountController.text) ?? 0.0;
+                      final exch = double.tryParse(_exchangeRateController.text) ?? 1.0;
+                      final baseTotal = paid * exch;
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Normalized Base Cost: ${baseTotal.toStringAsFixed(2)} ${_selectedVehicle!.baseCurrency}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                  if (!_isElectricSession) ...[
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(AppLocalizations.of(context)!.fullTank),
+                      subtitle:
+                          Text(AppLocalizations.of(context)!.fullTankSubtitle),
+                      value: _isFullTank,
+                      onChanged: (val) {
+                        setState(() {
+                          _isFullTank = val;
+                        });
+                      },
+                    ),
+                  ],
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(AppLocalizations.of(context)!.missedPrevious),
@@ -1078,8 +1320,8 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                             volume: finalVolume,
                             paidAmount:
                                 double.parse(_paidAmountController.text),
-                            isFullTank: _isFullTank,
-                            missedPrevious: _missedPrevious,
+                            isFullTank: _isElectricSession ? true : _isFullTank,
+                            missedPrevious: _isElectricSession ? false : _missedPrevious,
                             tripDistance: tripDist,
                             secondaryTripDistance: secTripDist,
                             drivingCondition: _drivingCondition,
@@ -1088,12 +1330,20 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                             longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
                             receiptImagePath: _receiptImagePath,
                             odometerImagePath: _odometerImagePath,
+                            currencyCode: _currencyCode,
+                            exchangeRateToBase: double.tryParse(_exchangeRateController.text) ?? 1.0,
+                            energyKwh: _isElectricSession ? finalVolume : null,
+                            socStart: _isElectricSession ? double.tryParse(_socStartController.text) : null,
+                            socEnd: _isElectricSession ? double.tryParse(_socEndController.text) : null,
+                            chargingPowerKw: _isElectricSession ? double.tryParse(_chargingPowerController.text) : null,
+                            chargeType: _isElectricSession ? _chargeType : null,
                           );
 
                           await ref
                               .read(fuelRecordRepositoryProvider)
                               .updateFuelRecord(updatedRecord);
                           await _rescheduleReminderForVehicle(_selectedVehicleId!);
+                          await _clearFormDraft();
                           if (!context.mounted) return;
                           Navigator.of(context).pop(true);
                         } else {
@@ -1148,8 +1398,8 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                             volume: finalVolume,
                             paidAmount:
                                 double.parse(_paidAmountController.text),
-                            isFullTank: _isFullTank,
-                            missedPrevious: _missedPrevious,
+                            isFullTank: _isElectricSession ? true : _isFullTank,
+                            missedPrevious: _isElectricSession ? false : _missedPrevious,
                             tripDistance: tripDist,
                             secondaryTripDistance: secTripDist,
                             drivingCondition: _drivingCondition,
@@ -1158,11 +1408,19 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                             longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
                             receiptImagePath: _receiptImagePath,
                             odometerImagePath: _odometerImagePath,
+                            currencyCode: _currencyCode,
+                            exchangeRateToBase: double.tryParse(_exchangeRateController.text) ?? 1.0,
+                            energyKwh: _isElectricSession ? finalVolume : null,
+                            socStart: _isElectricSession ? double.tryParse(_socStartController.text) : null,
+                            socEnd: _isElectricSession ? double.tryParse(_socEndController.text) : null,
+                            chargingPowerKw: _isElectricSession ? double.tryParse(_chargingPowerController.text) : null,
+                            chargeType: _isElectricSession ? _chargeType : null,
                           );
                           await ref
                               .read(fuelRecordRepositoryProvider)
                               .insertFuelRecord(record);
                           await _rescheduleReminderForVehicle(_selectedVehicleId!);
+                          await _clearFormDraft();
                           if (AppSettings.adsEnabled) {
                             _interstitialAdService.showAd();
                           }
@@ -1181,7 +1439,9 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
           ),
         ),
       ),
-      bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
-    );
+    ),
+  ),
+  bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
+);
   }
 }

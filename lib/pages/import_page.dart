@@ -702,9 +702,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 _buildSummaryCategoryTile(
                   context: context,
                   category: ImportCategory.vehicles,
-                  title: 'Vehicles & Fuel Types',
+                  title: 'Vehicles, Fuel Types & Tires',
                   subtitle: _validationSummary!.vehicleCount > 0
-                      ? '${_validationSummary!.vehicleCount} vehicles: ${_validationSummary!.vehicleNames.join(', ')}'
+                      ? '${_validationSummary!.vehicleCount} vehicles: ${_validationSummary!.vehicleNames.join(', ')}${_validationSummary!.tireCount > 0 ? ' (${_validationSummary!.tireCount} tires)' : ''}'
                       : 'No vehicle records in backup',
                   isPresent: _validationSummary!.vehicleCount > 0,
                   icon: Icons.directions_car_outlined,

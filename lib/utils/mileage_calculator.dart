@@ -210,7 +210,7 @@ class MileageCalculator {
     if (records.length < 2) return 0.0;
 
     final sorted = sortChronological(records);
-    final double totalCost = sorted.map((r) => r.paidAmount).reduce((a, b) => a + b);
+    final double totalCost = sorted.map((r) => r.basePaidAmount).reduce((a, b) => a + b);
     final double totalDistance = sorted.last.odometer - sorted.first.odometer;
 
     if (totalDistance <= 0) return 0.0;
@@ -233,7 +233,7 @@ class MileageCalculator {
   static double calculateDailyAverageCost(List<FuelRecord> records) {
     if (records.isEmpty) return 0.0;
 
-    final double totalCost = records.map((r) => r.paidAmount).reduce((a, b) => a + b);
+    final double totalCost = records.map((r) => r.basePaidAmount).reduce((a, b) => a + b);
     if (records.length < 2) return totalCost;
 
     final sorted = sortChronological(records);
@@ -529,6 +529,9 @@ class MileageCalculator {
             break;
           case FuelCategory.gasoline:
             factor = 2.31;
+            break;
+          case FuelCategory.electricity:
+            factor = 0.0; // 0 direct tailpipe emissions
             break;
         }
       }

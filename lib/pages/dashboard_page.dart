@@ -2,7 +2,9 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuel_tracker/pages/all_data_page.dart';
 import 'package:fuel_tracker/providers/fuel_record_providers.dart';
 import 'package:intl/intl.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
@@ -10,11 +12,13 @@ import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/maintenance_task.dart';
+import 'package:fuel_tracker/models/tire.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/pages/analytics_page.dart';
 import 'package:fuel_tracker/widgets/add_expense_bottom_sheet.dart';
+import 'package:fuel_tracker/widgets/tire_schematic_widget.dart';
 import 'package:fuel_tracker/services/app_shortcuts_service.dart';
 import 'package:fuel_tracker/services/home_widget_service.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
@@ -22,6 +26,7 @@ import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/maintenance_calculator.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
+import 'package:fuel_tracker/utils/tire_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/services/version_service.dart';
@@ -51,6 +56,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   int? _selectedVehicleId;
   List<MapEntry<MaintenanceTask, TaskPredictionResult>> _dueMaintenanceTasks = [];
   double? _estimatedServiceCost;
+  String? _tireAlertMessage;
+  List<Tire> _currentVehicleTires = [];
+  Map<String, Tire> _currentTirePositionMap = {};
+  String _selectedTirePosition = 'FL';
   bool _isAnomalyDismissed = false;
 
   @override
@@ -224,10 +233,64 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       }
     }
 
+    final tires = await DatabaseHelper.instance.getTiresForVehicle(vehicle.id!);
+    String? tireAlert;
+    final Map<String, Tire> posMap = {};
+    if (tires.isNotEmpty) {
+      final tireLogs = await DatabaseHelper.instance.getLatestTireLogsForVehicle(vehicle.id!);
+      final logMap = {for (final log in tireLogs) log.tireId: log};
+
+      for (final t in tires) {
+        final log = logMap[t.id];
+        if (log != null) {
+          posMap[log.position] = t;
+        }
+      }
+      final isBike = vehicle.type == VehicleType.motorcycle || vehicle.type == VehicleType.scooterOrMoped;
+      final fallbackPositions = isBike ? ['Front', 'Rear'] : ['FL', 'FR', 'RL', 'RR'];
+      for (int i = 0; i < tires.length && i < fallbackPositions.length; i++) {
+        if (!posMap.containsKey(fallbackPositions[i])) {
+          posMap[fallbackPositions[i]] = tires[i];
+        }
+      }
+
+      Tire? wornTire;
+      String? wornPos;
+      for (final tire in tires) {
+        final log = logMap[tire.id];
+        final currentTread = log?.treadDepthMm ?? tire.initialTreadDepthMm;
+        if (currentTread < 2.0) {
+          wornTire = tire;
+          wornPos = log?.position ?? 'Tire';
+          break;
+        }
+      }
+
+      final rotationLogs = tireLogs.where((l) => l.notes != null && l.notes!.toLowerCase().contains('rotat')).toList();
+      final double lastRotationOdo = rotationLogs.isNotEmpty
+          ? rotationLogs.map((l) => l.odometer).reduce((a, b) => a > b ? a : b)
+          : (tires.isNotEmpty
+              ? tires.map((t) => t.installedOdo).reduce((a, b) => a < b ? a : b)
+              : 0.0);
+      final bool rotationDue = TireCalculator.isRotationDue(
+        currentOdometer: maxOdo,
+        lastRotationOdometer: lastRotationOdo,
+      );
+
+      if (wornTire != null) {
+        tireAlert = 'Tire ($wornPos) tread critically low (< 2.0 mm). Inspection recommended.';
+      } else if (rotationDue) {
+        tireAlert = 'Tire rotation recommended (> 10,000 km since last rotation).';
+      }
+    }
+
     if (mounted) {
       setState(() {
         _dueMaintenanceTasks = dueItems;
         _estimatedServiceCost = estCost;
+        _tireAlertMessage = tireAlert;
+        _currentVehicleTires = tires;
+        _currentTirePositionMap = posMap;
       });
     }
   }
@@ -370,12 +433,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(
-                value.toStringAsFixed(2),
-                style: theme.textTheme.displaySmall?.copyWith(
-                  color: onBackgroundColor,
-                  fontWeight: FontWeight.bold,
-                ),
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.0, end: value),
+                duration: const Duration(milliseconds: 650),
+                curve: Curves.easeOutCubic,
+                builder: (context, animatedVal, _) {
+                  return Text(
+                    animatedVal.toStringAsFixed(2),
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      color: onBackgroundColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
               ),
               Text(
                 unit,
@@ -404,12 +474,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(
-                value.toStringAsFixed(2),
-                style: theme.textTheme.displaySmall?.copyWith(
-                  color: onBackgroundColor,
-                  fontWeight: FontWeight.bold,
-                ),
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.0, end: value),
+                duration: const Duration(milliseconds: 650),
+                curve: Curves.easeOutCubic,
+                builder: (context, animatedVal, _) {
+                  return Text(
+                    animatedVal.toStringAsFixed(2),
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      color: onBackgroundColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
               ),
               Text(
                 unit,
@@ -1146,336 +1223,572 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(localizations.appTitle),
-        actions: [
-          IconButton(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 720;
+
+    final vehicleSelectorWidget = DropdownButtonFormField<int>(
+      initialValue: _selectedVehicleId,
+      items: _vehicles.map((vehicle) {
+        return DropdownMenuItem<int>(
+          value: vehicle.id,
+          child: Text(vehicle.name),
+        );
+      }).toList(),
+      onChanged: (val) {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _selectedVehicleId = val;
+          _filterRecords();
+        });
+      },
+      decoration: InputDecoration(
+        labelText: localizations.vehicle,
+        border: const OutlineInputBorder(),
+      ),
+    );
+
+    final actionButtonsRow = Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
             icon: const Icon(Icons.add),
             onPressed: () async {
+              HapticFeedback.lightImpact();
               await Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const AddDataPage()));
               _loadInitialData();
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
-              );
-            },
-          ),
-        ],
-      ),
-      drawer: const MyDrawer(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                DropdownButtonFormField<int>(
-                  initialValue: _selectedVehicleId,
-                  items: _vehicles.map((vehicle) {
-                    return DropdownMenuItem<int>(
-                      value: vehicle.id,
-                      child: Text(vehicle.name),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedVehicleId = val;
-                      _filterRecords();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: localizations.vehicle,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.add),
-                        onPressed: () async {
-                          await Navigator.push(context,
-                              MaterialPageRoute(builder: (context) => const AddDataPage()));
-                          _loadInitialData();
-                        },
-                        label: Text(localizations.addFuelData),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          textStyle: theme.textTheme.titleMedium,
-                        ),
-                      ),
-                    ),
-                    if (_selectedVehicleId != null) ...[
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                        onPressed: () {
-                          AddExpenseBottomSheet.show(context, vehicleId: _selectedVehicleId!);
-                        },
-                        label: const Text('Expense'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  elevation: 1.0,
-                  margin: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const AnalyticsPage()),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(14.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(Icons.insights, color: colorScheme.onPrimaryContainer, size: 26),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Visual Analytics & Trends',
-                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  'Price trends, station efficiency & carbon footprint',
-                                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ...mileageCards,
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          localizations.dailyAverages,
-                          style: theme.textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            _buildCostCard(
-                              context,
-                              localizations.dailyAverageRun,
-                              calculateDailyAverageRun(_filteredRecords),
-                              'km/day',
-                              colorScheme.secondaryContainer,
-                              colorScheme.onSecondaryContainer,
-                              colorScheme.secondary,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildCostCard(
-                              context,
-                              localizations.dailyAverageCost,
-                              calculateDailyAverageCost(_filteredRecords),
-                              'BDT/day',
-                              colorScheme.errorContainer,
-                              colorScheme.onErrorContainer,
-                              colorScheme.error,
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (anomaly != null && anomaly.hasAnomaly && !_isAnomalyDismissed && selectedVehicle != null) ...[
-                  _buildMileageAnomalyCard(context, selectedVehicle, anomaly),
-                  const SizedBox(height: 24),
-                ],
-                if (prediction != null && selectedVehicle != null && prediction.isAlertActive) ...[
-                  _buildRefuelReminderCard(context, selectedVehicle, prediction),
-                  const SizedBox(height: 24),
-                ],
-                if (_dueMaintenanceTasks.isNotEmpty && selectedVehicle != null) ...[
-                  _buildMaintenanceWarningBanner(context, selectedVehicle),
-                  const SizedBox(height: 24),
-                ],
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          localizations.costEfficiency,
-                          style: theme.textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: costCards,
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          localizations.lastRefuelDetails,
-                          style: theme.textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        if (lastRecord != null) ...[
-                          const SizedBox(height: 8),
-                          Builder(
-                            builder: (context) {
-                              final avgCadence =
-                                  MileageCalculator.calculateAverageRefuelCadence(_filteredRecords);
-                              final now = DateTime.now();
-                              final diffDays = DateTime(now.year, now.month, now.day)
-                                  .difference(DateTime(
-                                      lastRecord.date.year, lastRecord.date.month, lastRecord.date.day))
-                                  .inDays;
-                              final isCadenceExceeded =
-                                  avgCadence > 0 && diffDays > (avgCadence * 1.5);
-
-                              return Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.calendar_today_outlined,
-                                      size: 16, color: colorScheme.secondary),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    DateFormat.yMMMd(Localizations.localeOf(context).toString())
-                                        .format(lastRecord.date),
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding:
-                                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: isCadenceExceeded
-                                          ? colorScheme.errorContainer
-                                          : colorScheme.secondaryContainer,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _formatRecency(context, lastRecord.date),
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: isCadenceExceeded
-                                            ? colorScheme.onErrorContainer
-                                            : colorScheme.onSecondaryContainer,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        Wrap(
-                          alignment: WrapAlignment.spaceAround,
-                          spacing: 16.0,
-                          runSpacing: 24.0,
-                          children: [
-                            _buildInfoTile(
-                              context,
-                              label: localizations.vehicle,
-                              value: vehicleName,
-                              icon: Icons.directions_car,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.volume,
-                              value:
-                                  '${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres',
-                              icon: Icons.local_gas_station,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.totalPrice,
-                              value:
-                                  '${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT',
-                              icon: Icons.monetization_on,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.odometer,
-                              value:
-                                  '${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km',
-                              icon: Icons.speed,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.fuelType,
-                              value: fuelTypeName,
-                              icon: Icons.opacity,
-                            ),
-                            _buildInfoTile(
-                              context,
-                              label: localizations.fuelRate,
-                              value:
-                                  '${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre',
-                              icon: Icons.price_change,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            label: Text(localizations.addFuelData),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              textStyle: theme.textTheme.titleMedium,
             ),
           ),
         ),
+        if (_selectedVehicleId != null) ...[
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.receipt_long_outlined, size: 18),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              AddExpenseBottomSheet.show(context, vehicleId: _selectedVehicleId!);
+            },
+            label: const Text('Expense'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final analyticsCard = Card(
+      elevation: 1.0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AnalyticsPage()),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.insights, color: colorScheme.onPrimaryContainer, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Visual Analytics & Trends',
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Price trends, station efficiency & carbon footprint',
+                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final dailyAveragesCard = Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              localizations.dailyAverages,
+              style: theme.textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _buildCostCard(
+                  context,
+                  localizations.dailyAverageRun,
+                  calculateDailyAverageRun(_filteredRecords),
+                  'km/day',
+                  colorScheme.secondaryContainer,
+                  colorScheme.onSecondaryContainer,
+                  colorScheme.secondary,
+                ),
+                const SizedBox(width: 16),
+                _buildCostCard(
+                  context,
+                  localizations.dailyAverageCost,
+                  calculateDailyAverageCost(_filteredRecords),
+                  'BDT/day',
+                  colorScheme.errorContainer,
+                  colorScheme.onErrorContainer,
+                  colorScheme.error,
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+
+    final costEfficiencyCard = Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              localizations.costEfficiency,
+              style: theme.textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: costCards,
+            )
+          ],
+        ),
+      ),
+    );
+
+    final lastRefuelCard = Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              localizations.lastRefuelDetails,
+              style: theme.textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            if (lastRecord != null) ...[
+              const SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  final avgCadence =
+                      MileageCalculator.calculateAverageRefuelCadence(_filteredRecords);
+                  final now = DateTime.now();
+                  final diffDays = DateTime(now.year, now.month, now.day)
+                      .difference(DateTime(
+                          lastRecord.date.year, lastRecord.date.month, lastRecord.date.day))
+                      .inDays;
+                  final isCadenceExceeded =
+                      avgCadence > 0 && diffDays > (avgCadence * 1.5);
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.calendar_today_outlined,
+                          size: 16, color: colorScheme.secondary),
+                      const SizedBox(width: 6),
+                      Text(
+                        DateFormat.yMMMd(Localizations.localeOf(context).toString())
+                            .format(lastRecord.date),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isCadenceExceeded
+                              ? colorScheme.errorContainer
+                              : colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _formatRecency(context, lastRecord.date),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: isCadenceExceeded
+                                ? colorScheme.onErrorContainer
+                                : colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+            const SizedBox(height: 20),
+            Wrap(
+              alignment: WrapAlignment.spaceAround,
+              spacing: 16.0,
+              runSpacing: 24.0,
+              children: [
+                _buildInfoTile(
+                  context,
+                  label: localizations.vehicle,
+                  value: vehicleName,
+                  icon: Icons.directions_car,
+                ),
+                _buildInfoTile(
+                  context,
+                  label: localizations.volume,
+                  value:
+                      '${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres',
+                  icon: Icons.local_gas_station,
+                ),
+                _buildInfoTile(
+                  context,
+                  label: localizations.totalPrice,
+                  value:
+                      '${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT',
+                  icon: Icons.monetization_on,
+                ),
+                _buildInfoTile(
+                  context,
+                  label: localizations.odometer,
+                  value:
+                      '${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km',
+                  icon: Icons.speed,
+                ),
+                _buildInfoTile(
+                  context,
+                  label: localizations.fuelType,
+                  value: fuelTypeName,
+                  icon: Icons.opacity,
+                ),
+                _buildInfoTile(
+                  context,
+                  label: localizations.fuelRate,
+                  value:
+                      '${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre',
+                  icon: Icons.price_change,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    Widget? tirePreviewCard;
+    if (selectedVehicle != null && _currentVehicleTires.isNotEmpty) {
+      tirePreviewCard = Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.tire_repair, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tire Wear & Health',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Manage'),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MaintenancePage(
+                            initialVehicleId: selectedVehicle.id,
+                            initialTabIndex: 1,
+                          ),
+                        ),
+                      ).then((_) {
+                        if (selectedVehicle.id != null) _checkMaintenanceStatus(selectedVehicle);
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TireSchematicWidget(
+                vehicle: selectedVehicle,
+                tires: _currentVehicleTires,
+                positionMap: _currentTirePositionMap,
+                selectedPosition: _selectedTirePosition,
+                onPositionSelected: (pos) => setState(() => _selectedTirePosition = pos),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final leftPane = Column(
+      children: [
+        vehicleSelectorWidget,
+        const SizedBox(height: 16),
+        actionButtonsRow,
+        const SizedBox(height: 16),
+        if (anomaly != null && anomaly.hasAnomaly && !_isAnomalyDismissed && selectedVehicle != null) ...[
+          _buildMileageAnomalyCard(context, selectedVehicle, anomaly),
+          const SizedBox(height: 16),
+        ],
+        if (prediction != null && selectedVehicle != null && prediction.isAlertActive) ...[
+          _buildRefuelReminderCard(context, selectedVehicle, prediction),
+          const SizedBox(height: 16),
+        ],
+        if (_dueMaintenanceTasks.isNotEmpty && selectedVehicle != null) ...[
+          _buildMaintenanceWarningBanner(context, selectedVehicle),
+          const SizedBox(height: 16),
+        ],
+        if (_tireAlertMessage != null && selectedVehicle != null) ...[
+          _buildTireAlertBanner(context, selectedVehicle),
+          const SizedBox(height: 16),
+        ],
+        ...mileageCards,
+        const SizedBox(height: 16),
+        costEfficiencyCard,
+      ],
+    );
+
+    final rightPane = Column(
+      children: [
+        analyticsCard,
+        const SizedBox(height: 16),
+        dailyAveragesCard,
+        const SizedBox(height: 16),
+        lastRefuelCard,
+        if (tirePreviewCard != null) ...[
+          const SizedBox(height: 16),
+          tirePreviewCard,
+        ],
+      ],
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isTablet && selectedVehicle != null
+            ? '${localizations.appTitle} - ${selectedVehicle.name}'
+            : localizations.appTitle),
+        actions: isTablet
+            ? []
+            : [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () async {
+                    HapticFeedback.lightImpact();
+                    await Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => const AddDataPage()));
+                    _loadInitialData();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SettingsPage()),
+                    );
+                  },
+                ),
+              ],
+      ),
+      drawer: isTablet ? null : const MyDrawer(),
+      body: SafeArea(
+        child: isTablet
+            ? Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: 0,
+                    extended: screenWidth >= 1100,
+                    leading: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Image.asset('assets/dash.png', height: 40, width: 40),
+                    ),
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard),
+                        label: Text('Dashboard'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.local_gas_station_outlined),
+                        selectedIcon: Icon(Icons.local_gas_station),
+                        label: Text('Log Fuel'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.table_chart_outlined),
+                        selectedIcon: Icon(Icons.table_chart),
+                        label: Text('All Data'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.insights_outlined),
+                        selectedIcon: Icon(Icons.insights),
+                        label: Text('Analytics'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.build_outlined),
+                        selectedIcon: Icon(Icons.build),
+                        label: Text('Maintenance'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.settings_outlined),
+                        selectedIcon: Icon(Icons.settings),
+                        label: Text('Settings'),
+                      ),
+                    ],
+                    onDestinationSelected: (idx) {
+                      _onRailDestinationSelected(context, idx);
+                    },
+                  ),
+                  const VerticalDivider(thickness: 1, width: 1),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 5, child: leftPane),
+                          const SizedBox(width: 24),
+                          Expanded(flex: 6, child: rightPane),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    vehicleSelectorWidget,
+                    const SizedBox(height: 16),
+                    actionButtonsRow,
+                    const SizedBox(height: 16),
+                    analyticsCard,
+                    const SizedBox(height: 16),
+                    ...mileageCards,
+                    const SizedBox(height: 24),
+                    dailyAveragesCard,
+                    const SizedBox(height: 24),
+                    if (anomaly != null && anomaly.hasAnomaly && !_isAnomalyDismissed && selectedVehicle != null) ...[
+                      _buildMileageAnomalyCard(context, selectedVehicle, anomaly),
+                      const SizedBox(height: 24),
+                    ],
+                    if (prediction != null && selectedVehicle != null && prediction.isAlertActive) ...[
+                      _buildRefuelReminderCard(context, selectedVehicle, prediction),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_dueMaintenanceTasks.isNotEmpty && selectedVehicle != null) ...[
+                      _buildMaintenanceWarningBanner(context, selectedVehicle),
+                      const SizedBox(height: 24),
+                    ],
+                    if (_tireAlertMessage != null && selectedVehicle != null) ...[
+                      _buildTireAlertBanner(context, selectedVehicle),
+                      const SizedBox(height: 24),
+                    ],
+                    costEfficiencyCard,
+                    const SizedBox(height: 24),
+                    lastRefuelCard,
+                    if (tirePreviewCard != null) ...[
+                      const SizedBox(height: 24),
+                      tirePreviewCard,
+                    ],
+                  ],
+                ),
+              ),
       ),
       bottomNavigationBar: const BannerAdWidget(),
     );
+  }
+
+  void _onRailDestinationSelected(BuildContext context, int index) {
+    HapticFeedback.selectionClick();
+    switch (index) {
+      case 0:
+        _loadInitialData();
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddDataPage()),
+        ).then((_) => _loadInitialData());
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AllDataPage()),
+        ).then((_) => _loadInitialData());
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AnalyticsPage()),
+        );
+        break;
+      case 4:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MaintenancePage(
+              initialVehicleId: _selectedVehicleId,
+            ),
+          ),
+        ).then((_) {
+          final v = _selectedVehicleId != null ? _vehicleMap[_selectedVehicleId] : null;
+          if (v != null) _checkMaintenanceStatus(v);
+        });
+        break;
+      case 5:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SettingsPage()),
+        ).then((_) => _loadInitialData());
+        break;
+    }
   }
 
   Widget _buildInfoTile(BuildContext context,
@@ -1691,6 +2004,78 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
               );
             }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTireAlertBanner(BuildContext context, Vehicle vehicle) {
+    final theme = Theme.of(context);
+    final isCritical = _tireAlertMessage?.contains('critically low') ?? false;
+
+    final bgColor = isCritical ? theme.colorScheme.errorContainer : Colors.amber.shade100;
+    final fgColor = isCritical ? theme.colorScheme.onErrorContainer : Colors.amber.shade900;
+    final borderColor = isCritical ? theme.colorScheme.error.withValues(alpha: 0.5) : Colors.amber.shade600;
+
+    return Card(
+      elevation: 0,
+      color: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0),
+        side: BorderSide(color: borderColor, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(
+              isCritical ? Icons.disc_full : Icons.sync_alt,
+              color: fgColor,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isCritical ? 'Tire Wear Warning' : 'Tire Maintenance',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: fgColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _tireAlertMessage ?? '',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: fgColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.tonal(
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                backgroundColor: theme.colorScheme.surface,
+                foregroundColor: fgColor,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MaintenancePage(
+                      initialVehicleId: vehicle.id,
+                      initialTabIndex: 1, // Tires tab
+                    ),
+                  ),
+                ).then((_) {
+                  if (vehicle.id != null) _checkMaintenanceStatus(vehicle);
+                });
+              },
+              child: const Text('View Tires'),
+            ),
           ],
         ),
       ),

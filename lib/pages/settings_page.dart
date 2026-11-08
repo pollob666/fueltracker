@@ -34,6 +34,12 @@ class _SettingsPageState extends State<SettingsPage> {
   int _autoBackupFrequencyDays = AppSettings.autoBackupFrequencyDays;
   bool _autoBackupWifiOnly = AppSettings.autoBackupWifiOnly;
   bool _autoBackupWebDavUpload = AppSettings.autoBackupWebDavUpload;
+
+  String _defaultDistanceUnit = AppSettings.defaultDistanceUnit;
+  String _defaultFuelVolumeUnit = AppSettings.defaultFuelVolumeUnit;
+  String _defaultConsumptionUnit = AppSettings.defaultConsumptionUnit;
+  final TextEditingController _defaultBaseCurrencyController = TextEditingController();
+
   final FuelTypeService _fuelTypeService = FuelTypeService();
   List<FuelType> _fuelTypes = [];
   final Map<String, TextEditingController> _priceControllers = {};
@@ -49,6 +55,10 @@ class _SettingsPageState extends State<SettingsPage> {
       hour: AppSettings.reminderHour,
       minute: AppSettings.reminderMinute,
     );
+    _defaultDistanceUnit = AppSettings.defaultDistanceUnit;
+    _defaultFuelVolumeUnit = AppSettings.defaultFuelVolumeUnit;
+    _defaultConsumptionUnit = AppSettings.defaultConsumptionUnit;
+    _defaultBaseCurrencyController.text = AppSettings.defaultBaseCurrency;
     _loadFuelTypes();
   }
 
@@ -150,6 +160,13 @@ class _SettingsPageState extends State<SettingsPage> {
       AppSettings.autoBackupFrequencyDays = _autoBackupFrequencyDays;
       AppSettings.autoBackupWifiOnly = _autoBackupWifiOnly;
       AppSettings.autoBackupWebDavUpload = _autoBackupWebDavUpload;
+
+      AppSettings.defaultDistanceUnit = _defaultDistanceUnit;
+      AppSettings.defaultFuelVolumeUnit = _defaultFuelVolumeUnit;
+      AppSettings.defaultConsumptionUnit = _defaultConsumptionUnit;
+      AppSettings.defaultBaseCurrency = _defaultBaseCurrencyController.text.trim().isEmpty
+          ? 'BDT'
+          : _defaultBaseCurrencyController.text.trim().toUpperCase();
 
       await AppSettings.saveSettings();
       if (reminderTimeChanged) {
@@ -315,6 +332,87 @@ class _SettingsPageState extends State<SettingsPage> {
                           });
                         }
                       },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 0,
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.straighten, size: 20, color: theme.colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text('Default Units & Currency', style: theme.textTheme.titleMedium),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Fallback standards applied when creating new vehicles.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                          const Divider(height: 16),
+                          Text('Default Distance', style: theme.textTheme.labelMedium),
+                          DropdownButton<String>(
+                            isExpanded: true,
+                            value: _defaultDistanceUnit,
+                            items: const [
+                              DropdownMenuItem(value: 'km', child: Text('Kilometers (km)')),
+                              DropdownMenuItem(value: 'mi', child: Text('Miles (mi)')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _defaultDistanceUnit = v);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Default Fuel Volume', style: theme.textTheme.labelMedium),
+                          DropdownButton<String>(
+                            isExpanded: true,
+                            value: _defaultFuelVolumeUnit,
+                            items: const [
+                              DropdownMenuItem(value: 'litre', child: Text('Litre (L)')),
+                              DropdownMenuItem(value: 'gallonUs', child: Text('Gallon (US)')),
+                              DropdownMenuItem(value: 'gallonUk', child: Text('Gallon (UK)')),
+                              DropdownMenuItem(value: 'kwh', child: Text('kWh')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _defaultFuelVolumeUnit = v);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Default Economy Metric', style: theme.textTheme.labelMedium),
+                          DropdownButton<String>(
+                            isExpanded: true,
+                            value: _defaultConsumptionUnit,
+                            items: const [
+                              DropdownMenuItem(value: 'kmPerLitre', child: Text('km/L')),
+                              DropdownMenuItem(value: 'litrePer100Km', child: Text('L/100km')),
+                              DropdownMenuItem(value: 'mpgUs', child: Text('MPG (US)')),
+                              DropdownMenuItem(value: 'mpgUk', child: Text('MPG (UK)')),
+                              DropdownMenuItem(value: 'kmPerKwh', child: Text('km/kWh')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _defaultConsumptionUnit = v);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _defaultBaseCurrencyController,
+                            decoration: const InputDecoration(
+                              labelText: 'Default Currency Code',
+                              hintText: 'e.g. BDT, USD, EUR, GBP',
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

@@ -28,6 +28,16 @@ class FuelRecord {
   String? odometerImagePath;
   String currencyCode;
 
+  // Tier 3: Foreign Currency & EV Telemetry
+  double exchangeRateToBase;
+  double? energyKwh;
+  double? socStart;
+  double? socEnd;
+  double? chargingPowerKw;
+  String? chargeType;
+
+  double get basePaidAmount => paidAmount * exchangeRateToBase;
+
   FuelRecord({
     this.id,
     required this.date,
@@ -48,6 +58,12 @@ class FuelRecord {
     this.receiptImagePath,
     this.odometerImagePath,
     this.currencyCode = 'BDT',
+    this.exchangeRateToBase = 1.0,
+    this.energyKwh,
+    this.socStart,
+    this.socEnd,
+    this.chargingPowerKw,
+    this.chargeType,
   });
 
   Map<String, dynamic> toMap() {
@@ -70,6 +86,12 @@ class FuelRecord {
       'receiptImagePath': receiptImagePath,
       'odometerImagePath': odometerImagePath,
       'currencyCode': currencyCode,
+      'exchangeRateToBase': exchangeRateToBase,
+      'energyKwh': energyKwh,
+      'socStart': socStart,
+      'socEnd': socEnd,
+      'chargingPowerKw': chargingPowerKw,
+      'chargeType': chargeType,
     };
     if (id != null) map['id'] = id;
     return map;
@@ -95,6 +117,12 @@ class FuelRecord {
       'receiptImagePath': receiptImagePath,
       'odometerImagePath': odometerImagePath,
       'currencyCode': currencyCode,
+      'exchangeRateToBase': exchangeRateToBase,
+      'energyKwh': energyKwh,
+      'socStart': socStart,
+      'socEnd': socEnd,
+      'chargingPowerKw': chargingPowerKw,
+      'chargeType': chargeType,
     };
   }
 
@@ -135,6 +163,12 @@ class FuelRecord {
       receiptImagePath: map['receiptImagePath'] as String?,
       odometerImagePath: map['odometerImagePath'] as String?,
       currencyCode: (map['currencyCode'] as String?) ?? 'BDT',
+      exchangeRateToBase: (map['exchangeRateToBase'] as num?)?.toDouble() ?? 1.0,
+      energyKwh: (map['energyKwh'] as num?)?.toDouble(),
+      socStart: (map['socStart'] as num?)?.toDouble(),
+      socEnd: (map['socEnd'] as num?)?.toDouble(),
+      chargingPowerKw: (map['chargingPowerKw'] as num?)?.toDouble(),
+      chargeType: map['chargeType'] as String?,
     );
   }
 
@@ -174,6 +208,12 @@ class FuelRecord {
       receiptImagePath: json['receiptImagePath'] as String?,
       odometerImagePath: json['odometerImagePath'] as String?,
       currencyCode: (json['currencyCode'] as String?) ?? 'BDT',
+      exchangeRateToBase: (json['exchangeRateToBase'] as num?)?.toDouble() ?? 1.0,
+      energyKwh: (json['energyKwh'] as num?)?.toDouble(),
+      socStart: (json['socStart'] as num?)?.toDouble(),
+      socEnd: (json['socEnd'] as num?)?.toDouble(),
+      chargingPowerKw: (json['chargingPowerKw'] as num?)?.toDouble(),
+      chargeType: json['chargeType'] as String?,
     );
   }
 
@@ -197,6 +237,12 @@ class FuelRecord {
     String? receiptImagePath,
     String? odometerImagePath,
     String? currencyCode,
+    double? exchangeRateToBase,
+    double? energyKwh,
+    double? socStart,
+    double? socEnd,
+    double? chargingPowerKw,
+    String? chargeType,
   }) {
     return FuelRecord(
       id: id ?? this.id,
@@ -218,6 +264,12 @@ class FuelRecord {
       receiptImagePath: receiptImagePath ?? this.receiptImagePath,
       odometerImagePath: odometerImagePath ?? this.odometerImagePath,
       currencyCode: currencyCode ?? this.currencyCode,
+      exchangeRateToBase: exchangeRateToBase ?? this.exchangeRateToBase,
+      energyKwh: energyKwh ?? this.energyKwh,
+      socStart: socStart ?? this.socStart,
+      socEnd: socEnd ?? this.socEnd,
+      chargingPowerKw: chargingPowerKw ?? this.chargingPowerKw,
+      chargeType: chargeType ?? this.chargeType,
     );
   }
 }

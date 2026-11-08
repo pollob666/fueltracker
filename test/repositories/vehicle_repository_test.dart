@@ -55,6 +55,12 @@ void main() {
               volumeReminderValue REAL NOT NULL DEFAULT 3.0,
               distanceReminderEnabled INTEGER NOT NULL DEFAULT 0,
               distanceReminderValue REAL NOT NULL DEFAULT 50.0,
+              distanceUnit TEXT NOT NULL DEFAULT 'km',
+              fuelVolumeUnit TEXT NOT NULL DEFAULT 'litre',
+              consumptionUnit TEXT NOT NULL DEFAULT 'kmPerLitre',
+              baseCurrency TEXT NOT NULL DEFAULT 'BDT',
+              powertrainType TEXT NOT NULL DEFAULT 'ice',
+              batteryCapacityKwh REAL,
               FOREIGN KEY (primaryFuelTypeId) REFERENCES fuel_types (id),
               FOREIGN KEY (secondaryFuelTypeId) REFERENCES fuel_types (id)
             )

@@ -96,10 +96,10 @@ The matrix below organizes all planned modernization initiatives by impact, engi
 | **SEC-01** | **Client-Side Encrypted Automated Cloud Backups** | High | L | v3.3.0 | **Tier 2** | Storage, WebDAV, Google Drive |
 | **OCR-01** | **Receipt & Odometer OCR Vision Pipeline** | High | L | v3.3.0 | **Tier 2** | `AddDataPage`, ML Kit, Camera |
 | **WGT-01** | **App Shortcuts & Home Screen Quick-Fill Widget** | Med | M | v3.3.0 | **Tier 2** | Android Native, `home_widget` |
-| **INT-01** | **Multi-Currency & International Unit Engine** | Med | M | v3.4.0 | **Tier 3** | AppSettings, Calculator, UI |
-| **FLT-01** | **Tire Life, Tread Depth & Rotation Tracker** | Med | M | v3.4.0 | **Tier 3** | Maintenance, DB, UI |
-| **EVV-01** | **Electric Vehicle (BEV/PHEV) Energy & Charging** | Med | L | v3.4.0 | **Tier 3** | Models, Calculator, FuelTypes |
-| **TAB-01** | **Adaptive Master-Detail Layouts (Tablet/Foldable)**| Low | M | v3.5.0 | **Tier 3** | Responsive Layouts, Navigation |
+| **INT-01** | **Multi-Currency & International Unit Engine** | Med | M | v3.4.0 | **Tier 3 (✅ Done)** | AppSettings, Calculator, UI |
+| **FLT-01** | **Tire Life, Tread Depth & Rotation Tracker** | Med | M | v3.4.0 | **Tier 3 (✅ Done)** | Maintenance, DB, UI |
+| **EVV-01** | **Electric Vehicle (BEV/PHEV) Energy & Charging** | Med | L | v3.4.0 | **Tier 3 (✅ Done)** | Models, Calculator, FuelTypes |
+| **TAB-01** | **Adaptive Master-Detail Layouts (Tablet/Foldable)**| Low | M | v3.5.0 | **Tier 3 (✅ Done)** | Responsive Layouts, Navigation |
 
 ---
 
@@ -575,23 +575,23 @@ CREATE TABLE IF NOT EXISTS tire_logs (
 A structured punch list of design, accessibility, and micro-interaction improvements:
 
 ### Micro-Interactions & Motion
-- [ ] **Fluid Animated Counters:** Implement `AnimatedFlipCounter` or implicit tween animations on dashboard statistics (`Running Average`, `Cost/km`, `Total Spend`) when switching vehicles.
-- [ ] **Tactile Haptic Feedback:** Trigger `HapticFeedback.lightImpact()` on form submission, `selectionClick()` on segmented button toggles, and `mediumImpact()` on deleting records.
+- [x] **Fluid Animated Counters:** Implement `AnimatedFlipCounter` or implicit tween animations on dashboard statistics (`Running Average`, `Cost/km`, `Total Spend`) when switching vehicles.
+- [x] **Tactile Haptic Feedback:** Trigger `HapticFeedback.lightImpact()` on form submission, `selectionClick()` on segmented button toggles, and `mediumImpact()` on deleting records.
 - [ ] **Smooth Transition Routes:** Implement Material 3 Shared Axis (`SharedAxisPageRoute`) transitions between the Dashboard, Add Data, and Analytics screens.
 
 ### Design System & Theme Adaptability
-- [ ] **Pure Material 3 Card Elevation:** Reduce default card elevation from heavy `6.0` to Material 3 standard `1.0` or `2.0`, relying on tonal surface tinting (`surfaceContainerHighest`) for depth.
-- [ ] **True Dynamic Monet Harmony:** Ensure dynamic colors harmoniously tint all neutral surfaces and cards rather than overriding them with fixed dark teal constants.
-- [ ] **High-Contrast Pure Black Theme (OLED):** Ensure the `black` theme provides true `#000000` background surfaces with high-contrast borders for battery savings on OLED panels.
+- [x] **Pure Material 3 Card Elevation:** Reduce default card elevation from heavy `6.0` to Material 3 standard `1.0` or `2.0`, relying on tonal surface tinting (`surfaceContainerHighest`) for depth.
+- [x] **True Dynamic Monet Harmony:** Ensure dynamic colors harmoniously tint all neutral surfaces and cards rather than overriding them with fixed dark teal constants.
+- [x] **High-Contrast Pure Black Theme (OLED):** Ensure the `black` theme provides true `#000000` background surfaces with high-contrast borders for battery savings on OLED panels.
 
 ### Accessibility (a11y) & Usability
-- [ ] **Text Scaling Protection:** Wrap custom header layouts in `MediaQuery.withClampedTextScaling(maxScaleFactor: 1.35)` to prevent overflow on devices configured with extra-large system accessibility fonts.
+- [x] **Text Scaling Protection:** Wrap custom header layouts in `MediaQuery.withClampedTextScaling(maxScaleFactor: 1.35)` to prevent overflow on devices configured with extra-large system accessibility fonts.
 - [ ] **Screen Reader Semantics:** Add `Semantics(label: ..., button: true)` tags to all icon buttons, anomaly warning badges, and custom progress indicators.
-- [ ] **WCAG 2.1 AA Contrast Ratios:** Eliminate hardcoded color combinations (e.g., light green chip on white card) and strictly use `Theme.of(context).colorScheme` color pairings (`colorScheme.onErrorContainer` on `colorScheme.errorContainer`).
+- [x] **WCAG 2.1 AA Contrast Ratios:** Eliminate hardcoded color combinations (e.g., light green chip on white card) and strictly use `Theme.of(context).colorScheme` color pairings (`colorScheme.onErrorContainer` on `colorScheme.errorContainer`).
 
 ### Error Recovery & Empty States
-- [ ] **Friendly Empty State Art:** Replace blank screens or raw progress spinners with vector illustrations and actionable guidance (e.g., *"No fuel records yet. Tap '+' to record your first fill-up!"*).
-- [ ] **Form Auto-Recovery & Draft State:** Persist unsubmitted refuel form inputs into a temporary draft buffer in `SharedPreferences` so accidental app backgrounding never loses entered odometer numbers.
+- [x] **Friendly Empty State Art:** Replace blank screens or raw progress spinners with vector illustrations and actionable guidance (e.g., *"No fuel records yet. Tap '+' to record your first fill-up!"*).
+- [x] **Form Auto-Recovery & Draft State:** Persist unsubmitted refuel form inputs into a temporary draft buffer in `SharedPreferences` so accidental app backgrounding never loses entered odometer numbers.
 
 ---
 

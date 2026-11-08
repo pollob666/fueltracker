@@ -11,6 +11,7 @@ import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
+import 'package:fuel_tracker/utils/unit_converter.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 
 class AddVehiclePage extends StatefulWidget {
@@ -39,6 +40,14 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   bool _distanceReminderEnabled = false;
   double _distanceReminderValue = 50.0;
 
+  // Tier 3: Powertrain & International Preferences
+  PowertrainType _powertrainType = PowertrainType.ice;
+  double? _batteryCapacityKwh;
+  DistanceUnit _distanceUnit = DistanceUnit.km;
+  FuelVolumeUnit _fuelVolumeUnit = FuelVolumeUnit.litre;
+  ConsumptionUnit _consumptionUnit = ConsumptionUnit.kmPerLitre;
+  String _baseCurrency = 'BDT';
+
   List<FuelType> _fuelTypes = [];
   List<MaintenanceTask> _tasks = [];
 
@@ -58,8 +67,18 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       _volumeReminderValue = widget.vehicle!.volumeReminderValue;
       _distanceReminderEnabled = widget.vehicle!.distanceReminderEnabled;
       _distanceReminderValue = widget.vehicle!.distanceReminderValue;
+      _powertrainType = widget.vehicle!.powertrainType;
+      _batteryCapacityKwh = widget.vehicle!.batteryCapacityKwh;
+      _distanceUnit = widget.vehicle!.distanceUnit;
+      _fuelVolumeUnit = widget.vehicle!.fuelVolumeUnit;
+      _consumptionUnit = widget.vehicle!.consumptionUnit;
+      _baseCurrency = widget.vehicle!.baseCurrency;
       _loadTasks(widget.vehicle!.id!);
     } else {
+      _distanceUnit = DistanceUnit.fromString(AppSettings.defaultDistanceUnit);
+      _fuelVolumeUnit = FuelVolumeUnit.fromString(AppSettings.defaultFuelVolumeUnit);
+      _consumptionUnit = ConsumptionUnit.fromString(AppSettings.defaultConsumptionUnit);
+      _baseCurrency = AppSettings.defaultBaseCurrency;
       _initDefaultTasks();
     }
     _loadFuelTypes();
@@ -278,12 +297,16 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           title: Text(widget.vehicle == null
               ? localizations.addVehicle
               : localizations.editVehicle)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 840),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
               children: [
                 if (widget.vehicle == null)
                   Card(
@@ -338,6 +361,50 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                   },
                   decoration: InputDecoration(labelText: localizations.vehicleType),
                 ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Powertrain & Motor',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<PowertrainType>(
+                  value: _powertrainType,
+                  decoration: const InputDecoration(labelText: 'Powertrain Type'),
+                  items: PowertrainType.values.map((pt) => DropdownMenuItem(
+                    value: pt,
+                    child: Text('${pt.code} - ${pt.label}'),
+                  )).toList(),
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() {
+                      _powertrainType = val;
+                      if (_powertrainType == PowertrainType.bev) {
+                        _isDualFuel = false;
+                        _consumptionUnit = ConsumptionUnit.kmPerKwh;
+                        _fuelVolumeUnit = FuelVolumeUnit.kwh;
+                        final elec = _fuelTypes.where((ft) => ft.category == FuelCategory.electricity).firstOrNull;
+                        if (elec != null) _primaryFuelTypeId = elec.id;
+                      } else if (_powertrainType == PowertrainType.ice) {
+                        if (_consumptionUnit == ConsumptionUnit.kmPerKwh || _consumptionUnit == ConsumptionUnit.kwhPer100Km) {
+                          _consumptionUnit = ConsumptionUnit.kmPerLitre;
+                          _fuelVolumeUnit = FuelVolumeUnit.litre;
+                        }
+                      }
+                    });
+                  },
+                ),
+                if (_powertrainType == PowertrainType.bev || _powertrainType == PowertrainType.phev) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: _batteryCapacityKwh?.toString(),
+                    decoration: const InputDecoration(labelText: 'Battery Capacity (kWh)', suffixText: 'kWh'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (val) => _batteryCapacityKwh = val == null || val.isEmpty ? null : double.tryParse(val),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -470,6 +537,69 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                         _tripMeterMode = newSelection.first;
                       });
                     },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: ExpansionTile(
+                    title: const Text('Units & Base Currency', style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      '${_distanceUnit.symbol} • ${_consumptionUnit.symbol} • $_baseCurrency',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                    childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    children: [
+                      DropdownButtonFormField<DistanceUnit>(
+                        value: _distanceUnit,
+                        decoration: const InputDecoration(labelText: 'Distance Unit'),
+                        items: DistanceUnit.values.map((u) => DropdownMenuItem(
+                          value: u,
+                          child: Text('${u.label} (${u.symbol})'),
+                        )).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _distanceUnit = val);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<ConsumptionUnit>(
+                        value: _consumptionUnit,
+                        decoration: const InputDecoration(labelText: 'Efficiency / Consumption Metric'),
+                        items: ConsumptionUnit.values.map((u) => DropdownMenuItem(
+                          value: u,
+                          child: Text('${u.label} (${u.symbol})'),
+                        )).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _consumptionUnit = val);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<FuelVolumeUnit>(
+                        value: _fuelVolumeUnit,
+                        decoration: const InputDecoration(labelText: 'Fuel Volume Unit'),
+                        items: FuelVolumeUnit.values.map((u) => DropdownMenuItem(
+                          value: u,
+                          child: Text('${u.label} (${u.symbol})'),
+                        )).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _fuelVolumeUnit = val);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        initialValue: _baseCurrency,
+                        decoration: const InputDecoration(
+                          labelText: 'Base Currency Code',
+                          hintText: 'e.g. BDT, USD, EUR, GBP, INR, CAD',
+                        ),
+                        textCapitalization: TextCapitalization.characters,
+                        onChanged: (val) => _baseCurrency = val,
+                        onSaved: (val) => _baseCurrency = (val == null || val.trim().isEmpty) ? 'BDT' : val.trim().toUpperCase(),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -786,6 +916,12 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                         volumeReminderValue: _volumeReminderValue,
                         distanceReminderEnabled: _distanceReminderEnabled,
                         distanceReminderValue: _distanceReminderValue,
+                        powertrainType: _powertrainType,
+                        batteryCapacityKwh: _batteryCapacityKwh,
+                        distanceUnit: _distanceUnit,
+                        fuelVolumeUnit: _fuelVolumeUnit,
+                        consumptionUnit: _consumptionUnit,
+                        baseCurrency: _baseCurrency.trim().isEmpty ? 'BDT' : _baseCurrency.trim().toUpperCase(),
                       );
                       final navigator = Navigator.of(context);
                       if (widget.vehicle == null) {
@@ -857,7 +993,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           ),
         ),
       ),
-      bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
-    );
+    ),
+  ),
+),
+bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
+);
   }
 }

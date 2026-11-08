@@ -70,7 +70,13 @@ void main() {
               longitude REAL,
               receiptImagePath TEXT,
               odometerImagePath TEXT,
-              currencyCode TEXT DEFAULT 'BDT'
+              currencyCode TEXT DEFAULT 'BDT',
+              exchangeRateToBase REAL NOT NULL DEFAULT 1.0,
+              energyKwh REAL,
+              socStart REAL,
+              socEnd REAL,
+              chargingPowerKw REAL,
+              chargeType TEXT
             )
           ''');
           await db.execute('''

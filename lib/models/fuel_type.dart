@@ -5,6 +5,7 @@ enum FuelCategory {
   gasoline,
   diesel,
   gas,
+  electricity,
 }
 
 enum FuelUnit {
@@ -12,6 +13,7 @@ enum FuelUnit {
   gallon,
   cubicMeter,
   gge, // Gasoline Gallon Equivalent
+  kwh,
 }
 
 class FuelType {
