@@ -12,6 +12,8 @@ Screenshot_*.png
 .svn/
 .swiftpm/
 migrate_working_dir/
+.kotlin/
+*.kotlin/
 
 # IntelliJ related
 *.iml
