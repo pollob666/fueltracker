@@ -8,7 +8,7 @@ description: "Fuel Consumption Tracker by https://github.com/pollob666"
 publish_to: 'none'
 
 # The following defines the version and build number for your application.
-version: 3.1.0+1
+version: 3.5.0+1
 
 # The following defines the environment constraints for your application.
 environment:
@@ -73,6 +73,12 @@ dependencies:
 
   # Background Automation
   workmanager: ^0.10.10
+
+  # Material 3 Animations & Shared Axis Transitions
+  animations: ^2.0.11
+
+  # In-App Purchase & Monetization
+  in_app_purchase: ^3.2.0
 
 
 # Development-only dependencies

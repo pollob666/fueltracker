@@ -2,9 +2,11 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/services/in_app_purchase_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/workmanager_backup_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
@@ -38,6 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String _defaultDistanceUnit = AppSettings.defaultDistanceUnit;
   String _defaultFuelVolumeUnit = AppSettings.defaultFuelVolumeUnit;
   String _defaultConsumptionUnit = AppSettings.defaultConsumptionUnit;
+  String _defaultGasUnit = AppSettings.defaultGasUnit;
   final TextEditingController _defaultBaseCurrencyController = TextEditingController();
 
   final FuelTypeService _fuelTypeService = FuelTypeService();
@@ -58,6 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _defaultDistanceUnit = AppSettings.defaultDistanceUnit;
     _defaultFuelVolumeUnit = AppSettings.defaultFuelVolumeUnit;
     _defaultConsumptionUnit = AppSettings.defaultConsumptionUnit;
+    _defaultGasUnit = AppSettings.defaultGasUnit;
     _defaultBaseCurrencyController.text = AppSettings.defaultBaseCurrency;
     _loadFuelTypes();
   }
@@ -164,6 +168,7 @@ class _SettingsPageState extends State<SettingsPage> {
       AppSettings.defaultDistanceUnit = _defaultDistanceUnit;
       AppSettings.defaultFuelVolumeUnit = _defaultFuelVolumeUnit;
       AppSettings.defaultConsumptionUnit = _defaultConsumptionUnit;
+      AppSettings.defaultGasUnit = _defaultGasUnit;
       AppSettings.defaultBaseCurrency = _defaultBaseCurrencyController.text.trim().isEmpty
           ? 'BDT'
           : _defaultBaseCurrencyController.text.trim().toUpperCase();
@@ -403,6 +408,20 @@ class _SettingsPageState extends State<SettingsPage> {
                             },
                           ),
                           const SizedBox(height: 8),
+                          Text('Default Gas (CNG/LPG) Unit', style: theme.textTheme.labelMedium),
+                          DropdownButton<String>(
+                            isExpanded: true,
+                            value: _defaultGasUnit,
+                            items: const [
+                              DropdownMenuItem(value: 'cubicMeter', child: Text('Cubic Meter (m³)')),
+                              DropdownMenuItem(value: 'gge', child: Text('Gasoline Gallon Equiv (GGE)')),
+                              DropdownMenuItem(value: 'litre', child: Text('Litre (L)')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _defaultGasUnit = v);
+                            },
+                          ),
+                          const SizedBox(height: 8),
                           TextFormField(
                             controller: _defaultBaseCurrencyController,
                             decoration: const InputDecoration(
@@ -449,6 +468,43 @@ class _SettingsPageState extends State<SettingsPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const SavedLocationsPage()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final isAdRemoved = ref.watch(isAdRemovedProvider);
+                      return ListTile(
+                        leading: Icon(
+                          isAdRemoved ? Icons.verified : Icons.block,
+                          color: isAdRemoved ? Colors.green : theme.colorScheme.primary,
+                        ),
+                        title: Text(
+                          isAdRemoved ? 'Ad-Free License Active' : 'Remove Ads',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          isAdRemoved
+                              ? 'Thank you for supporting FuelTracker!'
+                              : 'Upgrade for a clean, distraction-free experience',
+                        ),
+                        trailing: isAdRemoved
+                            ? const Chip(
+                                label: Text('Active', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                backgroundColor: Color(0x1F4CAF50),
+                              )
+                            : FilledButton.tonal(
+                                onPressed: () async {
+                                  final success = await InAppPurchaseService.instance.buyAdFreeUpgrade(ref: ref);
+                                  if (success && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Ads removed successfully!')),
+                                    );
+                                  }
+                                },
+                                child: const Text('Upgrade'),
+                              ),
                       );
                     },
                   ),

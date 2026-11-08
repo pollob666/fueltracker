@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/pages/dashboard_page.dart';
+import 'package:fuel_tracker/services/in_app_purchase_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/workmanager_backup_service.dart';
 import 'package:fuel_tracker/theme.dart';
@@ -22,6 +23,7 @@ Future<void> main() async {
     await AppSettings.loadSettings();
     await NotificationService.instance.initialize();
     await WorkManagerBackupService.initialize();
+    unawaited(InAppPurchaseService.instance.initialize(null));
     if (AppSettings.autoBackupEnabled) {
       await WorkManagerBackupService.schedulePeriodicBackup(
         frequencyDays: AppSettings.autoBackupFrequencyDays,

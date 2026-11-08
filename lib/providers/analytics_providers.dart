@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
@@ -13,6 +14,9 @@ import 'package:fuel_tracker/utils/mileage_calculator.dart';
 
 final selectedTimeWindowProvider =
     StateProvider.autoDispose<AnalyticsTimeWindow>((ref) => AnalyticsTimeWindow.allTime);
+
+final customAnalyticsDateRangeProvider =
+    StateProvider.autoDispose<DateTimeRange?>((ref) => null);
 
 final savedLocationsMapProvider =
     FutureProvider.autoDispose<Map<int, SavedLocation>>((ref) async {
@@ -31,9 +35,14 @@ final filteredAnalyticsRecordsProvider =
     Provider.autoDispose.family<List<FuelRecord>, int>((ref, vehicleId) {
   final recordsAsync = ref.watch(fuelRecordsProvider(vehicleId));
   final timeWindow = ref.watch(selectedTimeWindowProvider);
+  final customRange = ref.watch(customAnalyticsDateRangeProvider);
 
   return recordsAsync.maybeWhen(
-    data: (records) => AnalyticsService.filterByTimeWindow(records, timeWindow),
+    data: (records) => AnalyticsService.filterByTimeWindow(
+      records,
+      timeWindow,
+      customRange: customRange,
+    ),
     orElse: () => [],
   );
 });

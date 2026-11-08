@@ -3,6 +3,8 @@
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/services/analytics_service.dart';
 import 'package:intl/intl.dart';
@@ -10,11 +12,17 @@ import 'package:intl/intl.dart';
 class PriceTrendChartWidget extends StatelessWidget {
   final Map<int, List<PriceTrendPoint>> priceTrends;
   final Map<int, FuelType> fuelTypeMap;
+  final void Function(FuelRecord record)? onRecordTap;
+  final String? currencySymbol;
+  final String? volumeUnit;
 
   const PriceTrendChartWidget({
     super.key,
     required this.priceTrends,
     required this.fuelTypeMap,
+    this.onRecordTap,
+    this.currencySymbol,
+    this.volumeUnit,
   });
 
   @override
@@ -54,6 +62,7 @@ class PriceTrendChartWidget extends StatelessWidget {
     int colorIndex = 0;
     final lineBarsData = <LineChartBarData>[];
     final legendItems = <Widget>[];
+    final barToPointsMap = <int, List<PriceTrendPoint>>{};
 
     priceTrends.forEach((fuelTypeId, points) {
       if (points.isEmpty) return;
@@ -103,6 +112,7 @@ class PriceTrendChartWidget extends StatelessWidget {
           color: color.withValues(alpha: 0.12),
         ),
       ));
+      barToPointsMap[lineBarsData.length - 1] = points;
 
       // 30-day moving average trend line
       if (points.length >= 3) {
@@ -120,6 +130,7 @@ class PriceTrendChartWidget extends StatelessWidget {
           dashArray: [5, 4],
           dotData: const FlDotData(show: false),
         ));
+        barToPointsMap[lineBarsData.length - 1] = points;
       }
     });
 
@@ -182,10 +193,11 @@ class PriceTrendChartWidget extends StatelessWidget {
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 42,
+                        reservedSize: 46,
                         getTitlesWidget: (value, meta) {
+                          final sym = currencySymbol ?? '';
                           return Text(
-                            value.toStringAsFixed(1),
+                            '$sym${value.toStringAsFixed(1)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontSize: 10,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -222,6 +234,22 @@ class PriceTrendChartWidget extends StatelessWidget {
                   borderData: FlBorderData(show: false),
                   lineBarsData: lineBarsData,
                   lineTouchData: LineTouchData(
+                    touchCallback: (FlTouchEvent event, LineTouchResponse? touchResponse) {
+                      if (event is FlTapUpEvent &&
+                          touchResponse != null &&
+                          touchResponse.lineBarSpots != null &&
+                          touchResponse.lineBarSpots!.isNotEmpty) {
+                        final spot = touchResponse.lineBarSpots!.first;
+                        final pointsList = barToPointsMap[spot.barIndex];
+                        if (pointsList != null && spot.spotIndex >= 0 && spot.spotIndex < pointsList.length) {
+                          final targetRecord = pointsList[spot.spotIndex].record;
+                          if (targetRecord != null && onRecordTap != null) {
+                            HapticFeedback.lightImpact();
+                            onRecordTap!(targetRecord);
+                          }
+                        }
+                      }
+                    },
                     touchTooltipData: LineTouchTooltipData(
                       getTooltipColor: (_) => theme.colorScheme.surfaceContainerHighest,
                       tooltipRoundedRadius: 10,
@@ -229,13 +257,17 @@ class PriceTrendChartWidget extends StatelessWidget {
                       fitInsideVertically: true,
                       getTooltipItems: (touchedSpots) {
                         return touchedSpots.map((spot) {
-                          final idx = spot.x.toInt();
-                          if (idx >= 0 && idx < primarySeries.length) {
-                            final pt = primarySeries[idx];
-                            final station = pt.stationName != null ? '\n${pt.stationName}' : '';
+                          final pointsList = barToPointsMap[spot.barIndex] ?? primarySeries;
+                          final idx = spot.spotIndex;
+                          if (idx >= 0 && idx < pointsList.length) {
+                            final pt = pointsList[idx];
+                            final sym = currencySymbol ?? '';
+                            final volStr = volumeUnit != null ? ' / $volumeUnit' : '';
+                            final station = pt.stationName != null ? '\nStation: ${pt.stationName}' : '';
                             return LineTooltipItem(
                               '${DateFormat('dd MMM yyyy').format(pt.date)}\n'
-                              'Rate: ${pt.rate.toStringAsFixed(2)}$station',
+                              'Rate: $sym${pt.rate.toStringAsFixed(2)}$volStr$station\n'
+                              '👉 Tap to inspect / edit',
                               theme.textTheme.bodySmall!.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: theme.colorScheme.onSurfaceVariant,

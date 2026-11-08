@@ -26,7 +26,11 @@ You can download the latest version of the application from the [GitHub Releases
 *   **Unified Location Management & Anomaly Flagging:** Always-on GPS capture on refueling and maintenance logging with 80-meter proximity clustering, station naming, and multi-station disambiguation. Automated mileage drop ($>15\%$) and boost ($>15\%$) anomaly detection against weighted historical running averages, interactive attribution candidate diagnostics, return warning badges (Amber ⚠️ Suspect Quality) and recognition badges (Green 🟢 High Efficiency), dedicated Saved Locations manager with unnamed toggle, and full CSV export/import parity.
 *   **Advanced Trip Meter & Driving Condition Analytics:** Configurable per-vehicle trip meter mode (None, Single Trip A, Dual Trip A/B), one-tap odometer auto-sync ($O = O_{\text{prev}} + \text{Trip}$), real-time non-blocking discrepancy warning chips ($|\Delta O - \text{Trip}| > 1.0\text{ km}$), driving condition tagging (City, Highway, Mixed), and condition-segregated mileage cards on the dashboard.
 *   **Odometer Anomaly Safeguard:** Real-time soft confirmation dialog preventing accidental entries when odometer readings are less than or equal to previous records.
-*   **Visual Analytics & Interactive Telemetry:** Dedicated visual telemetry dashboard powered by `fl_chart` with selectable time windows (1M, 3M, 6M, 1Y, All Time). Features multi-series fuel price fluctuation line charts with 30-day moving average smoothing and station attribution tooltips, interval station efficiency variance scatter analysis with ±15% anomaly threshold bands, driving condition consumption and cost segregation (City vs Highway vs Mixed), and carbon footprint calculation with eco-ratings and tree sapling offset equivalents.
+*   **Visual Analytics, Interactive Telemetry & Sparklines:** Dedicated visual telemetry dashboard powered by `fl_chart` with selectable time windows (`1 Month`, `3 Months`, `6 Months`, `1 Year`, `All Time`, and `[Custom Range]` date picker). Features multi-series fuel price fluctuation line charts with 30-day moving average smoothing and interactive spot tap-to-inspect bottom sheets (with direct one-tap jump to edit records), interval station efficiency variance scatter analysis with ±15% anomaly threshold bands and N-1 station attribution, driving condition consumption and cost segregation (City vs Highway vs Mixed), carbon footprint calculation with eco-ratings and tree sapling offset equivalents, and embedded 64dp mini sparkline preview cards on both the Dashboard and wide-screen Tablet right pane.
+*   **Material 3 Shared Axis Transitions & Motion:** Smooth, hardware-accelerated `SharedAxisPageRoute` transitions (`animations: ^2.0.11`) delivering fluid lateral sliding and scaling between the Dashboard, Refuel Entry, History, Analytics, and Maintenance screens.
+*   **Accessible Screen Reader Semantics:** Comprehensive WCAG 2.1 AA screen reader accessibility with explicit `Semantics(label: ..., button: true)` tags wrapping icon buttons, anomaly badges, and progress gauges.
+*   **Customizable Gas Category Measurement Units:** Global category fallback in `AppSettings` and per-fuel-type customization for GAS fuel types (CNG, LPG), supporting Cubic Meters (`m³`), Gasoline Gallon Equivalent (`GGE`), or Litres (`L`) with automatic form label morphing and calculation parity.
+*   **Ad-Free In-App Purchase (IAP) Architecture:** Official Play Store / App Store in-app purchase integration (`in_app_purchase: ^3.3.1`) featuring a reactive Riverpod state notifier (`isAdRemovedProvider`), persistent license storage in `SharedPreferences`, automatic suppression of banner and interstitial video ads, and a built-in development sandbox bypass for offline testing.
 *   **Redesigned History & Timeline Cards:** Overhauled `AllDataPage` with ergonomic Material 3 timeline cards, dynamic text search across station names and notes, date filter chips (All Dates, This Month, Last 3 Months, Custom Range), road condition selector chips, and a dual-view mode switcher toggling between timeline cards and classic tabular view.
 *   **Non-Fuel Expenses & Total Cost of Ownership (TCO):** Track all non-fuel vehicle expenses (Tolls, Parking, Car Wash, Insurance, Taxes, Fines, Other) with dedicated logging sheets, category chips, and odometer stamps. Visual analytics dashboard renders monthly stacked bar charts decomposing total ownership costs into Fuel, Service, and Non-Fuel expenditures alongside true all-inclusive cost-per-kilometer metrics ($\frac{\text{Fuel} + \text{Service} + \text{NonFuel}}{\sum \Delta O}$).
 *   **Printable PDF Tax & Fleet Expense Reports:** Compile audit-ready, high-resolution A4 PDF expense reports formatted for tax write-offs, employer reimbursement, and fleet management logs using `pdf` and `printing`. Reports include executive vehicle summary cards, total ownership cost KPI breakdowns, itemized refueling logs with station attribution, maintenance service history, non-fuel expense breakdowns, and formal driver/auditor verification signature sign-off blocks. Direct preview/print spooling and native share sheet dispatch are supported directly from the Export center.
@@ -49,20 +53,12 @@ You can download the latest version of the application from the [GitHub Releases
 
 ## Future Development Plan
 
-The following is a roadmap of planned features to be implemented in the future:
+The following is a roadmap of planned features to be implemented in future releases:
 
-### Advanced Fuel Type Management
-
-*   **Fuel Categories:** Fuel types will be categorized into `Gasoline` (e.g., Petrol, Octane), `Diesel`, and `GAS` (e.g., LPG, CNG).
-*   **Customizable Units:** Users will be able to set the measurement unit for each fuel category from the settings.
-    *   **Gasoline/Diesel:** Litre (default), Gallon.
-    *   **GAS (CNG/LPG):** Litre, Cubic Meter (m³), or Gasoline Gallon Equivalent (GGE).
-
-### Advanced Mileage and Cost Tracking
-
-*   **Per-Fuel Mileage:** For vehicles with multiple fuel types, mileage will be calculated separately for each fuel type.
-*   **Overall Mileage:** The app will also provide an overall mileage calculation for multi-fuel vehicles.
-*   **Cost-Efficiency Tracking:** A new feature will be added to track and compare the cost-efficiency of different fuel types.
+### Advanced Mileage & Multi-Fuel Telemetry
+*   **Per-Fuel Mileage:** For bi-fuel vehicles, segregated mileage metrics calculated independently for each fuel type.
+*   **Overall Blended Mileage:** Multi-fuel weighted efficiency tracking combining liquid fuel and gas / electric consumption.
+*   **Cost-Efficiency Comparison:** Dynamic tracking and comparative metrics evaluating cost-per-kilometer across alternative fuel types.
 
 ## License
 

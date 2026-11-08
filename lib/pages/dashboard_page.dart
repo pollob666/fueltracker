@@ -18,6 +18,7 @@ import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/pages/analytics_page.dart';
 import 'package:fuel_tracker/widgets/add_expense_bottom_sheet.dart';
+import 'package:fuel_tracker/widgets/charts/mini_telemetry_sparkline.dart';
 import 'package:fuel_tracker/widgets/tire_schematic_widget.dart';
 import 'package:fuel_tracker/services/app_shortcuts_service.dart';
 import 'package:fuel_tracker/services/home_widget_service.dart';
@@ -1282,56 +1283,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ],
     );
 
-    final analyticsCard = Card(
-      elevation: 1.0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AnalyticsPage()),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.insights, color: colorScheme.onPrimaryContainer, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Visual Analytics & Trends',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Price trends, station efficiency & carbon footprint',
-                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
-    );
+    final analyticsCard = _selectedVehicleId != null
+        ? MiniTelemetrySparklineWidget(vehicleId: _selectedVehicleId!)
+        : const SizedBox.shrink();
 
     final dailyAveragesCard = Card(
       child: Padding(

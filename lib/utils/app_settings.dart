@@ -30,6 +30,7 @@ class AppSettings {
   static String defaultFuelVolumeUnit = 'litre';
   static String defaultConsumptionUnit = 'kmPerLitre';
   static String defaultBaseCurrency = 'BDT';
+  static String defaultGasUnit = 'cubicMeter';
 
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -52,6 +53,7 @@ class AppSettings {
     defaultFuelVolumeUnit = prefs.getString('defaultFuelVolumeUnit') ?? 'litre';
     defaultConsumptionUnit = prefs.getString('defaultConsumptionUnit') ?? 'kmPerLitre';
     defaultBaseCurrency = prefs.getString('defaultBaseCurrency') ?? 'BDT';
+    defaultGasUnit = prefs.getString('defaultGasUnit') ?? 'cubicMeter';
 
     final defaultPricesString = prefs.getString('defaultFuelPrices');
     if (defaultPricesString != null) {
@@ -80,6 +82,7 @@ class AppSettings {
     await prefs.setString('defaultFuelVolumeUnit', defaultFuelVolumeUnit);
     await prefs.setString('defaultConsumptionUnit', defaultConsumptionUnit);
     await prefs.setString('defaultBaseCurrency', defaultBaseCurrency);
+    await prefs.setString('defaultGasUnit', defaultGasUnit);
     await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }
 
@@ -103,6 +106,7 @@ class AppSettings {
         'defaultFuelVolumeUnit': defaultFuelVolumeUnit,
         'defaultConsumptionUnit': defaultConsumptionUnit,
         'defaultBaseCurrency': defaultBaseCurrency,
+        'defaultGasUnit': defaultGasUnit,
         'defaultFuelPrices': defaultFuelPrices,
       };
 
@@ -126,6 +130,7 @@ class AppSettings {
     if (map['defaultFuelVolumeUnit'] != null) defaultFuelVolumeUnit = map['defaultFuelVolumeUnit'] as String;
     if (map['defaultConsumptionUnit'] != null) defaultConsumptionUnit = map['defaultConsumptionUnit'] as String;
     if (map['defaultBaseCurrency'] != null) defaultBaseCurrency = map['defaultBaseCurrency'] as String;
+    if (map['defaultGasUnit'] != null) defaultGasUnit = map['defaultGasUnit'] as String;
     if (map['defaultFuelPrices'] != null) {
       defaultFuelPrices = Map<String, double>.from(
         (map['defaultFuelPrices'] as Map).map(

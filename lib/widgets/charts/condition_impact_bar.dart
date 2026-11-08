@@ -6,10 +6,16 @@ import 'package:fuel_tracker/services/analytics_service.dart';
 
 class ConditionImpactBarWidget extends StatelessWidget {
   final ConditionDeltaSummary summary;
+  final String economyUnit;
+  final String currencySymbol;
+  final String distanceUnit;
 
   const ConditionImpactBarWidget({
     super.key,
     required this.summary,
+    this.economyUnit = 'km/L',
+    this.currencySymbol = '',
+    this.distanceUnit = 'km',
   });
 
   @override
@@ -139,7 +145,7 @@ class ConditionImpactBarWidget extends StatelessWidget {
           const SizedBox(height: 6),
           if (hasRecords && metric.mileage > 0) ...[
             Text(
-              '${metric.mileage.toStringAsFixed(2)}',
+              metric.mileage.toStringAsFixed(2),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
@@ -147,12 +153,12 @@ class ConditionImpactBarWidget extends StatelessWidget {
               ),
             ),
             Text(
-              'km/L',
+              economyUnit,
               style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 4),
             Text(
-              '${metric.costPerKm.toStringAsFixed(2)} /km',
+              '$currencySymbol${metric.costPerKm.toStringAsFixed(2)} /$distanceUnit',
               style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
             ),
           ] else ...[

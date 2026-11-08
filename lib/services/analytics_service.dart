@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+import 'package:flutter/material.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
@@ -11,6 +12,7 @@ enum AnalyticsTimeWindow {
   sixMonths,
   oneYear,
   allTime,
+  custom,
 }
 
 class PriceTrendPoint {
@@ -21,6 +23,7 @@ class PriceTrendPoint {
   final String? stationName;
   final double volume;
   final double paidAmount;
+  final FuelRecord? record;
 
   const PriceTrendPoint({
     required this.date,
@@ -30,6 +33,7 @@ class PriceTrendPoint {
     this.stationName,
     required this.volume,
     required this.paidAmount,
+    this.record,
   });
 }
 
@@ -108,8 +112,19 @@ class AnalyticsService {
     List<FuelRecord> records,
     AnalyticsTimeWindow window, {
     DateTime? anchorDate,
+    DateTimeRange? customRange,
   }) {
-    if (window == AnalyticsTimeWindow.allTime || records.isEmpty) {
+    if (records.isEmpty) {
+      return records;
+    }
+
+    if (window == AnalyticsTimeWindow.custom && customRange != null) {
+      final start = DateTime(customRange.start.year, customRange.start.month, customRange.start.day);
+      final end = DateTime(customRange.end.year, customRange.end.month, customRange.end.day, 23, 59, 59, 999);
+      return records.where((r) => !r.date.isBefore(start) && !r.date.isAfter(end)).toList();
+    }
+
+    if (window == AnalyticsTimeWindow.allTime) {
       return records;
     }
 
@@ -131,6 +146,7 @@ class AnalyticsService {
         cutoff = DateTime(latest.year - 1, latest.month, latest.day);
         break;
       case AnalyticsTimeWindow.allTime:
+      case AnalyticsTimeWindow.custom:
         return records;
     }
 
@@ -179,6 +195,7 @@ class AnalyticsService {
           stationName: stationName,
           volume: current.volume,
           paidAmount: current.paidAmount,
+          record: current,
         ));
       }
       result[fuelTypeId] = points;

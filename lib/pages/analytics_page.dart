@@ -3,11 +3,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuel_tracker/models/fuel_record.dart';
+import 'package:fuel_tracker/pages/add_data_page.dart';
 import 'package:fuel_tracker/providers/analytics_providers.dart';
 import 'package:fuel_tracker/providers/fuel_record_providers.dart';
 import 'package:fuel_tracker/providers/non_fuel_expense_providers.dart';
 import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/analytics_service.dart';
+import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/add_expense_bottom_sheet.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/charts/carbon_footprint_card.dart';
@@ -16,6 +19,7 @@ import 'package:fuel_tracker/widgets/charts/price_trend_chart.dart';
 import 'package:fuel_tracker/widgets/charts/station_efficiency_scatter.dart';
 import 'package:fuel_tracker/widgets/charts/tco_stacked_bar_chart.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
+import 'package:intl/intl.dart';
 
 class AnalyticsPage extends ConsumerStatefulWidget {
   const AnalyticsPage({super.key});
@@ -109,8 +113,12 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                     Consumer(
                       builder: (context, ref, _) {
                         final summary = ref.watch(tcoOverviewProvider(vehicleId));
+                        final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
+                        final distSym = activeVehicle?.distanceUnit.symbol ?? 'km';
                         return TcoStackedBarWidget(
                           summary: summary,
+                          currencySymbol: currSym,
+                          distanceUnit: distSym,
                           onLogExpense: () {
                             AddExpenseBottomSheet.show(context, vehicleId: vehicleId);
                           },
@@ -124,9 +132,14 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                       builder: (context, ref, _) {
                         final trends = ref.watch(priceTrendsProvider(vehicleId));
                         final fuelTypes = ref.watch(fuelTypesMapProvider).value ?? {};
+                        final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
+                        final volSym = activeVehicle?.fuelVolumeUnit.symbol ?? 'L';
                         return PriceTrendChartWidget(
                           priceTrends: trends,
                           fuelTypeMap: fuelTypes,
+                          currencySymbol: currSym,
+                          volumeUnit: volSym,
+                          onRecordTap: (record) => _handleRecordTap(context, record),
                         );
                       },
                     ),
@@ -137,9 +150,12 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                       builder: (context, ref, _) {
                         final points = ref.watch(stationEfficiencyPointsProvider(vehicleId));
                         final runningAvg = ref.watch(vehicleRunningAverageProvider(vehicleId));
+                        final econUnit = activeVehicle?.consumptionUnit.symbol ?? 'km/L';
                         return StationEfficiencyScatterWidget(
                           points: points,
                           runningAverage: runningAvg,
+                          economyUnit: econUnit,
+                          onRecordTap: (record) => _handleRecordTap(context, record),
                         );
                       },
                     ),
@@ -149,7 +165,15 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                     Consumer(
                       builder: (context, ref, _) {
                         final summary = ref.watch(conditionDeltaProvider(vehicleId));
-                        return ConditionImpactBarWidget(summary: summary);
+                        final econUnit = activeVehicle?.consumptionUnit.symbol ?? 'km/L';
+                        final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
+                        final distSym = activeVehicle?.distanceUnit.symbol ?? 'km';
+                        return ConditionImpactBarWidget(
+                          summary: summary,
+                          economyUnit: econUnit,
+                          currencySymbol: currSym,
+                          distanceUnit: distSym,
+                        );
                       },
                     ),
                     const SizedBox(height: 16),
@@ -174,6 +198,12 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
   }
 
   Widget _buildTimeWindowSelector(BuildContext context, AnalyticsTimeWindow current) {
+    final customRange = ref.watch(customAnalyticsDateRangeProvider);
+    String customLabel = 'Custom Range';
+    if (customRange != null) {
+      customLabel = '${DateFormat('dd MMM').format(customRange.start)} - ${DateFormat('dd MMM').format(customRange.end)}';
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -187,8 +217,170 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
           _buildChip(context, '1 Year', AnalyticsTimeWindow.oneYear, current),
           const SizedBox(width: 8),
           _buildChip(context, 'All Time', AnalyticsTimeWindow.allTime, current),
+          const SizedBox(width: 8),
+          _buildCustomChip(context, customLabel, current, customRange),
         ],
       ),
+    );
+  }
+
+  Widget _buildCustomChip(
+    BuildContext context,
+    String label,
+    AnalyticsTimeWindow current,
+    DateTimeRange? customRange,
+  ) {
+    final isSelected = current == AnalyticsTimeWindow.custom;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ActionChip(
+      avatar: Icon(
+        Icons.date_range,
+        size: 16,
+        color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant,
+      ),
+      label: Text(label),
+      backgroundColor: isSelected ? colorScheme.primaryContainer : null,
+      labelStyle: TextStyle(
+        fontSize: 12,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
+      ),
+      onPressed: () async {
+        final now = DateTime.now();
+        final initialRange = customRange ??
+            DateTimeRange(
+              start: DateTime(now.year, now.month - 1, now.day),
+              end: now,
+            );
+        final picked = await showDateRangePicker(
+          context: context,
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+          initialDateRange: initialRange,
+        );
+        if (picked != null) {
+          ref.read(customAnalyticsDateRangeProvider.notifier).state = picked;
+          ref.read(selectedTimeWindowProvider.notifier).state = AnalyticsTimeWindow.custom;
+        }
+      },
+    );
+  }
+
+  void _handleRecordTap(BuildContext context, FuelRecord record) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final activeVehicle = ref.read(activeVehicleProvider);
+    final currencySymbol = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
+    final volumeUnitStr = activeVehicle?.fuelVolumeUnit.symbol ?? 'L';
+    final distUnitStr = activeVehicle?.distanceUnit.symbol ?? 'km';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Refuel Record #${record.id ?? ""}',
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      DateFormat('dd MMM yyyy, hh:mm a').format(record.date),
+                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMetricColumn(theme, 'Volume', '${record.volume.toStringAsFixed(1)} $volumeUnitStr'),
+                      _buildMetricColumn(theme, 'Rate', '$currencySymbol${record.rate.toStringAsFixed(2)}/$volumeUnitStr'),
+                      _buildMetricColumn(theme, 'Paid', '$currencySymbol${record.paidAmount.toStringAsFixed(2)}', isBold: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.speed, size: 16, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text('Odometer: ${record.odometer.toStringAsFixed(0)} $distUnitStr', style: theme.textTheme.bodyMedium),
+                    const Spacer(),
+                    Icon(Icons.alt_route, size: 16, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text('Condition: ${record.drivingCondition.name.toUpperCase()}', style: theme.textTheme.bodyMedium),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddDataPage(recordToEdit: record),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Edit This Refuel Record'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMetricColumn(ThemeData theme, String label, String value, {bool isBold = false}) {
+    return Column(
+      children: [
+        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: isBold ? theme.colorScheme.primary : null,
+          ),
+        ),
+      ],
     );
   }
 

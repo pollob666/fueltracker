@@ -5,17 +5,19 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:fuel_tracker/services/in_app_purchase_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 
-class BannerAdWidget extends StatefulWidget {
+class BannerAdWidget extends ConsumerStatefulWidget {
   const BannerAdWidget({super.key});
 
   @override
-  State<BannerAdWidget> createState() => _BannerAdWidgetState();
+  ConsumerState<BannerAdWidget> createState() => _BannerAdWidgetState();
 }
 
-class _BannerAdWidgetState extends State<BannerAdWidget> {
+class _BannerAdWidgetState extends ConsumerState<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isBannerAdReady = false;
   bool _isBannerVisible = true;
@@ -43,7 +45,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (AppSettings.adsEnabled) {
+    final isAdRemoved = ref.read(isAdRemovedProvider);
+    if (!isAdRemoved && AppSettings.adsEnabled) {
       _loadBannerAd();
     }
   }
@@ -63,10 +66,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       size: size,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          setState(() {
-            _bannerAd = ad as BannerAd;
-            _isBannerAdReady = true;
-          });
+          if (mounted) {
+            setState(() {
+              _bannerAd = ad as BannerAd;
+              _isBannerAdReady = true;
+            });
+          }
         },
         onAdFailedToLoad: (ad, err) {
           ad.dispose();
@@ -84,7 +89,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (AppSettings.adsEnabled && _isBannerAdReady && _isBannerVisible) {
+    final isAdRemoved = ref.watch(isAdRemovedProvider);
+    if (isAdRemoved) {
+      return const SizedBox.shrink();
+    }
+
+    if (AppSettings.adsEnabled && _isBannerAdReady && _isBannerVisible && _bannerAd != null) {
       return SafeArea(
           child: Container(
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),

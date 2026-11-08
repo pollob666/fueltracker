@@ -9,11 +9,15 @@ import 'package:intl/intl.dart';
 class TcoStackedBarWidget extends StatelessWidget {
   final TcoOverviewSummary summary;
   final VoidCallback? onLogExpense;
+  final String currencySymbol;
+  final String distanceUnit;
 
   const TcoStackedBarWidget({
     super.key,
     required this.summary,
     this.onLogExpense,
+    this.currencySymbol = '৳',
+    this.distanceUnit = 'km',
   });
 
   @override
@@ -172,7 +176,7 @@ class TcoStackedBarWidget extends StatelessWidget {
                           style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, color: colorScheme.onSurfaceVariant),
                         ),
                         Text(
-                          '${summary.totalSpend.toStringAsFixed(0)} ৳',
+                          '${summary.totalSpend.toStringAsFixed(0)} $currencySymbol',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.primary,
@@ -191,7 +195,7 @@ class TcoStackedBarWidget extends StatelessWidget {
                             style: theme.textTheme.bodySmall?.copyWith(fontSize: 10, color: colorScheme.onSurfaceVariant),
                           ),
                           Text(
-                            '${summary.allInclusiveCostPerKm.toStringAsFixed(2)} ৳/km',
+                            '${summary.allInclusiveCostPerKm.toStringAsFixed(2)} $currencySymbol/$distanceUnit',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: Colors.teal.shade700,
@@ -290,10 +294,10 @@ class TcoStackedBarWidget extends StatelessWidget {
                         final monthStr = DateFormat('MMMM yyyy').format(dp.month);
                         return BarTooltipItem(
                           '$monthStr\n'
-                          '⛽ Fuel: ${dp.fuelSpend.toStringAsFixed(0)} ৳\n'
-                          '🔧 Service: ${dp.serviceSpend.toStringAsFixed(0)} ৳\n'
-                          '🏷️ Non-Fuel: ${dp.nonFuelSpend.toStringAsFixed(0)} ৳\n'
-                          'Total: ${dp.totalSpend.toStringAsFixed(0)} ৳',
+                          '⛽ Fuel: ${dp.fuelSpend.toStringAsFixed(0)} $currencySymbol\n'
+                          '🔧 Service: ${dp.serviceSpend.toStringAsFixed(0)} $currencySymbol\n'
+                          '🏷️ Non-Fuel: ${dp.nonFuelSpend.toStringAsFixed(0)} $currencySymbol\n'
+                          'Total: ${dp.totalSpend.toStringAsFixed(0)} $currencySymbol',
                           TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,

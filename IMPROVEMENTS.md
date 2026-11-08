@@ -89,7 +89,7 @@ The matrix below organizes all planned modernization initiatives by impact, engi
 | **EXP-01** | **Resilient Export/Import v2 (Validation & Parity)**| High | M | v3.1.0 | **Tier 1** | `ExportPage`, `ImportPage`, CSV |
 | **UXX-01** | **Remove Immersive Sticky Mode & Fix Monet Colors** | Med | S | v3.1.0 | **Tier 1** | `main.dart`, `theme.dart` |
 | **UXX-02** | **Refuel Form UX (Bidirectional Lock & Auto-Next)** | High | M | v3.1.0 | **Tier 1** | `AddDataPage`, Form Widgets |
-| **ANA-01** | **Interactive Fuel Trend & Price Analytics (`fl_chart`)**| High | M | v3.2.0 | **Tier 2** | `DashboardPage`, New Analytics |
+| **ANA-01** | **Interactive Fuel Trend & Price Analytics (`fl_chart`)**| High | M | v3.2.0 | **Tier 2 (✅ Done)** | `DashboardPage`, `AnalyticsPage` |
 | **REP-01** | **Printable PDF Tax & Fleet Expense Reports** | High | M | v3.2.0 | **Tier 2** | `ExportPage`, `pdf`, `printing` |
 | **HST-01** | **Card/List View, Date Filters & Search in History**| High | M | v3.2.0 | **Tier 2** | `AllDataPage`, Search Filters |
 | **TCO-01** | **Multi-Category Non-Fuel Expense Tracker** | High | M | v3.2.0 | **Tier 2** | DB, Models, `DashboardPage` |
@@ -170,11 +170,17 @@ Currently, `DashboardPage` only displays numeric summary cards (`Running Average
 - **Interactions:** Horizontal scrubbing along line charts triggers a floating tooltip chip highlighting exact dates, costs, and fuel stations. Tap on a point allows direct navigation to that fuel record's edit bottom sheet.
 
 #### Implementation Checklist & Acceptance Criteria
-- [ ] Add `fl_chart` to `pubspec.yaml`.
-- [ ] Implement `AnalyticsService` with bucketing algorithms (Daily, Weekly, Monthly).
-- [ ] Implement `PriceTrendChartWidget`, `TcoStackedBarWidget`, and `ConditionDeltaWidget`.
-- [ ] Integrate emission math into `MileageCalculator.calculateCarbonFootprint()`.
-- [ ] **Acceptance Criteria:** Chart renders 500+ data points smoothly at 60 FPS without UI jank; handles single-record or zero-record edge cases gracefully with informative empty illustrations.
+- [x] Add `fl_chart` to `pubspec.yaml`.
+- [x] Implement `AnalyticsService` with time-window bucketing algorithms (1M, 3M, 6M, 1Y, All Time).
+- [x] Implement `PriceTrendChartWidget`, `StationEfficiencyScatterWidget`, `TcoStackedBarWidget`, and `ConditionImpactBarWidget`.
+- [x] Integrate emission math into `MileageCalculator.calculateCarbonFootprint()` and build `CarbonFootprintCardWidget`.
+- [x] **Acceptance Criteria:** Chart renders data points smoothly without UI jank; handles single-record or zero-record edge cases gracefully with informative empty illustrations.
+
+##### Phase 2 Tasks (Completed):
+- [x] Add `[Custom Range]` DateRangePicker filter chip to `AnalyticsPage` and `AnalyticsService`.
+- [x] Add interactive tap-to-inspect / tap-to-edit callback on chart spots to open fuel record edit bottom sheet.
+- [x] Integrate `UnitConverter` and `AppSettings` for dynamic multi-unit and multi-currency formatting on chart axes and tooltips.
+- [x] Implement Dashboard & Tablet Right-Pane mini telemetry / sparkline preview widget.
 
 ---
 
@@ -577,7 +583,7 @@ A structured punch list of design, accessibility, and micro-interaction improvem
 ### Micro-Interactions & Motion
 - [x] **Fluid Animated Counters:** Implement `AnimatedFlipCounter` or implicit tween animations on dashboard statistics (`Running Average`, `Cost/km`, `Total Spend`) when switching vehicles.
 - [x] **Tactile Haptic Feedback:** Trigger `HapticFeedback.lightImpact()` on form submission, `selectionClick()` on segmented button toggles, and `mediumImpact()` on deleting records.
-- [ ] **Smooth Transition Routes:** Implement Material 3 Shared Axis (`SharedAxisPageRoute`) transitions between the Dashboard, Add Data, and Analytics screens.
+- [x] **Smooth Transition Routes:** Implement Material 3 Shared Axis (`SharedAxisPageRoute`) transitions between the Dashboard, Add Data, and Analytics screens.
 
 ### Design System & Theme Adaptability
 - [x] **Pure Material 3 Card Elevation:** Reduce default card elevation from heavy `6.0` to Material 3 standard `1.0` or `2.0`, relying on tonal surface tinting (`surfaceContainerHighest`) for depth.
@@ -586,7 +592,7 @@ A structured punch list of design, accessibility, and micro-interaction improvem
 
 ### Accessibility (a11y) & Usability
 - [x] **Text Scaling Protection:** Wrap custom header layouts in `MediaQuery.withClampedTextScaling(maxScaleFactor: 1.35)` to prevent overflow on devices configured with extra-large system accessibility fonts.
-- [ ] **Screen Reader Semantics:** Add `Semantics(label: ..., button: true)` tags to all icon buttons, anomaly warning badges, and custom progress indicators.
+- [x] **Screen Reader Semantics:** Add `Semantics(label: ..., button: true)` tags to all icon buttons, anomaly warning badges, and custom progress indicators.
 - [x] **WCAG 2.1 AA Contrast Ratios:** Eliminate hardcoded color combinations (e.g., light green chip on white card) and strictly use `Theme.of(context).colorScheme` color pairings (`colorScheme.onErrorContainer` on `colorScheme.errorContainer`).
 
 ### Error Recovery & Empty States
@@ -630,30 +636,30 @@ Because FuelTracker collects sensitive location telemetry, financial expenditure
 +----------------------------------------------------------------------------------------------------+
 | MILESTONE 1 (v3.1.0) - Core Architecture & Form Ergonomics                                         |
 | [X] Remove Immersive Sticky Mode & Fix Dynamic Theming                                             |
-| [ ] SQLite Schema v9 Migration (Indexes + Image Paths + Currency)                                  |
-| [ ] Bidirectional Form Calculation Locks in AddDataPage                                            |
-| [ ] CSV & JSON Exporter Full-Parity & Dry-Run Validation                                            |
-| [ ] Migrate Core State to Riverpod Repositories & Providers                                        |
+| [X] SQLite Schema v9 Migration (Indexes + Image Paths + Currency)                                  |
+| [X] Bidirectional Form Calculation Locks in AddDataPage                                            |
+| [X] CSV & JSON Exporter Full-Parity & Dry-Run Validation                                            |
+| [X] Migrate Core State to Riverpod Repositories & Providers                                        |
 +----------------------------------------------------------------------------------------------------+
 | MILESTONE 2 (v3.2.0) - Visual Analytics & Fleet Reporting                                          |
-| [ ] Interactive FL Chart Integration (Price Trends, Rolling Mileage, Station Scatter)             |
-| [ ] Total Cost of Ownership (TCO) & Non-Fuel Expense Logging Module                                |
-| [ ] Carbon Footprint Estimation Engine                                                             |
-| [ ] Printable PDF Tax & Fleet Expense Reports (pdf / printing)                                    |
-| [ ] AllDataPage Card-List Redesign with Date Filters & Search                                      |
+| [X] Interactive FL Chart Integration (Price Trends, Rolling Mileage, Station Scatter, Sparklines)|
+| [X] Total Cost of Ownership (TCO) & Non-Fuel Expense Logging Module                                |
+| [X] Carbon Footprint Estimation Engine                                                             |
+| [X] Printable PDF Tax & Fleet Expense Reports (pdf / printing)                                    |
+| [X] AllDataPage Card-List Redesign with Date Filters & Search                                      |
 +----------------------------------------------------------------------------------------------------+
 | MILESTONE 3 (v3.3.0) - Vision OCR & Automated Cloud Sync                                           |
-| [ ] On-Device ML Kit OCR for Pump Meters, Odometers & Receipts                                     |
-| [ ] Scoped Image Storage & Compression Pipeline (WebP)                                             |
-| [ ] Encrypted Automated Backups (AES-256-GCM + PBKDF2)                                              |
-| [ ] Google Drive AppData & WebDAV Sync Providers                                                   |
-| [ ] Android App Shortcuts & Home Screen Glance Widget                                              |
+| [X] On-Device ML Kit OCR for Pump Meters, Odometers & Receipts                                     |
+| [X] Scoped Image Storage & Compression Pipeline (WebP)                                             |
+| [X] Encrypted Automated Backups (AES-256-GCM + PBKDF2)                                              |
+| [X] Google Drive AppData & WebDAV Sync Providers                                                   |
+| [X] Android App Shortcuts & Home Screen Glance Widget                                              |
 +----------------------------------------------------------------------------------------------------+
 | MILESTONE 4 (v3.4.0) - Alternative Powertrains & Fleet Operations                                  |
-| [ ] Battery Electric Vehicle (BEV) kWh & Charging Session Tracker                                  |
-| [ ] Tire Lifecycle, Tread Depth Wear & Rotation Reminder Module                                    |
-| [ ] Multi-Currency Transaction Engine with Offline Conversion                                      |
-| [ ] Adaptive Two-Pane Master-Detail Layout for Tablets & Foldables                                  |
+| [X] Battery Electric Vehicle (BEV) kWh & Charging Session Tracker                                  |
+| [X] Tire Lifecycle, Tread Depth Wear & Rotation Reminder Module                                    |
+| [X] Multi-Currency Transaction Engine with Offline Conversion                                      |
+| [X] Adaptive Two-Pane Master-Detail Layout for Tablets & Foldables                                  |
 +----------------------------------------------------------------------------------------------------+
 ```
 

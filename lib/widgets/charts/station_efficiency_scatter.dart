@@ -3,17 +3,23 @@
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/services/analytics_service.dart';
 import 'package:intl/intl.dart';
 
 class StationEfficiencyScatterWidget extends StatelessWidget {
   final List<StationEfficiencyPoint> points;
   final double runningAverage;
+  final void Function(FuelRecord record)? onRecordTap;
+  final String economyUnit;
 
   const StationEfficiencyScatterWidget({
     super.key,
     required this.points,
     required this.runningAverage,
+    this.onRecordTap,
+    this.economyUnit = 'km/L',
   });
 
   @override
@@ -191,7 +197,7 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                               color: colorScheme.primary,
                             ),
-                            labelResolver: (_) => 'Avg: ${runningAverage.toStringAsFixed(1)}',
+                            labelResolver: (_) => 'Avg: ${runningAverage.toStringAsFixed(1)} $economyUnit',
                           ),
                         ),
                     ],
@@ -224,6 +230,22 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                     ),
                   ],
                   lineTouchData: LineTouchData(
+                    touchCallback: (FlTouchEvent event, LineTouchResponse? touchResponse) {
+                      if (event is FlTapUpEvent &&
+                          touchResponse != null &&
+                          touchResponse.lineBarSpots != null &&
+                          touchResponse.lineBarSpots!.isNotEmpty) {
+                        final spot = touchResponse.lineBarSpots!.first;
+                        final idx = spot.spotIndex;
+                        if (idx >= 0 && idx < points.length) {
+                          final targetRecord = points[idx].record;
+                          if (onRecordTap != null) {
+                            HapticFeedback.lightImpact();
+                            onRecordTap!(targetRecord);
+                          }
+                        }
+                      }
+                    },
                     touchTooltipData: LineTouchTooltipData(
                       getTooltipColor: (_) => theme.colorScheme.surfaceContainerHighest,
                       tooltipRoundedRadius: 10,
@@ -238,8 +260,9 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                             final station = pt.stationName != null ? '\nStation: ${pt.stationName}' : '';
                             return LineTooltipItem(
                               'Fill #${pt.intervalIndex} (${DateFormat('dd MMM').format(pt.date)})\n'
-                              'Economy: ${pt.intervalMileage.toStringAsFixed(2)} km/L\n'
-                              'Variance: $sign${pt.deltaPercent.toStringAsFixed(1)}%$station',
+                              'Economy: ${pt.intervalMileage.toStringAsFixed(2)} $economyUnit\n'
+                              'Variance: $sign${pt.deltaPercent.toStringAsFixed(1)}%$station\n'
+                              '👉 Tap to inspect / edit',
                               theme.textTheme.bodySmall!.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: pt.isBoost

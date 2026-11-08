@@ -15,6 +15,7 @@ import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/pages/manage_vehicles_page.dart';
 import 'package:fuel_tracker/pages/saved_locations_page.dart';
 import 'package:fuel_tracker/pages/settings_page.dart';
+import 'package:fuel_tracker/utils/shared_axis_page_route.dart';
 
 class MyDrawer extends StatefulWidget {
   const MyDrawer({super.key});
@@ -103,9 +104,7 @@ class _MyDrawerState extends State<MyDrawer> {
               _onItemTapped(9);
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const AnalyticsPage(),
-                ),
+                SharedAxisPageRoute(page: const AnalyticsPage()),
               );
             },
           ),

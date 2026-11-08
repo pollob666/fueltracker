@@ -2,6 +2,7 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/pages/settings_page.dart';
@@ -15,13 +16,15 @@ void main() {
     Locale locale = const Locale('en'),
     Size surfaceSize = const Size(800, 1200),
   }) {
-    return MediaQuery(
-      data: MediaQueryData(size: surfaceSize),
-      child: MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: locale,
-        home: const SettingsPage(),
+    return ProviderScope(
+      child: MediaQuery(
+        data: MediaQueryData(size: surfaceSize),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: locale,
+          home: const SettingsPage(),
+        ),
       ),
     );
   }

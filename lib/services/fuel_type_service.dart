@@ -35,4 +35,8 @@ class FuelTypeService {
     final allTypes = await getFuelTypes();
     return allTypes.firstWhere((type) => type.id == id);
   }
+
+  Future<int> updateFuelType(FuelType fuelType) async {
+    return _dbHelper.updateFuelType(fuelType);
+  }
 }
