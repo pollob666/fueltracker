@@ -15,6 +15,8 @@ import 'package:fuel_tracker/pages/add_vehicle_page.dart';
 import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/pages/analytics_page.dart';
 import 'package:fuel_tracker/widgets/add_expense_bottom_sheet.dart';
+import 'package:fuel_tracker/services/app_shortcuts_service.dart';
+import 'package:fuel_tracker/services/home_widget_service.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
@@ -56,6 +58,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     super.initState();
     _loadInitialData();
     _checkForUpdates();
+    AppShortcutsService.instance.initialize(
+      onShortcut: (shortcutType) {
+        if (!mounted) return;
+        switch (shortcutType) {
+          case 'action_add_refuel':
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const AddDataPage()),
+            );
+            break;
+          case 'action_add_service':
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const MaintenancePage()),
+            );
+            break;
+          case 'action_analytics':
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const AnalyticsPage()),
+            );
+            break;
+        }
+      },
+    );
   }
 
   Future<void> _checkForUpdates() async {
@@ -155,6 +179,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
     final vehicle = _vehicleMap[_selectedVehicleId];
     if (vehicle != null) {
+      HomeWidgetService.updateGlanceWidget(
+        vehicle: vehicle,
+        fuelRecords: _filteredRecords,
+      );
       if (vehicle.volumeReminderEnabled || vehicle.distanceReminderEnabled) {
         final prediction = MileageCalculator.calculateRefuelPrediction(
           vehicle: vehicle,

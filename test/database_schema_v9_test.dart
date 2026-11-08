@@ -3,7 +3,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
-import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -19,13 +18,10 @@ void main() {
       inMemoryDatabasePath,
       version: 9,
       onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON;'),
-      onCreate: (db, version) async {
-        // Test onCreate path
-        final helper = DatabaseHelper.instance;
-        // Invoke private _createTables via reflection or test directly
-      },
+      onCreate: (db, version) async {},
     );
-
+    expect(db, isNotNull);
+    await db.close();
     DatabaseHelper.setDatabaseForTesting(null);
   });
 

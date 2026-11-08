@@ -11,9 +11,6 @@ import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_data_page.dart';
-import 'package:fuel_tracker/providers/analytics_providers.dart';
-import 'package:fuel_tracker/providers/fuel_record_providers.dart';
-import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
@@ -383,8 +380,6 @@ class _AllDataPageState extends ConsumerState<AllDataPage> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     if (localizations == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));

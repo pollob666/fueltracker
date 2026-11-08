@@ -887,13 +887,103 @@ class DatabaseHelper {
   Future<double> getTotalNonFuelExpenses({int? vehicleId}) async {
     Database db = await instance.database;
     final results = await db.rawQuery(
-      'SELECT SUM(amount) as total FROM non_fuel_expenses' +
-          (vehicleId != null ? ' WHERE vehicleId = ?' : ''),
+      'SELECT SUM(amount) as total FROM non_fuel_expenses${vehicleId != null ? ' WHERE vehicleId = ?' : ''}',
       vehicleId != null ? [vehicleId] : [],
     );
     if (results.isNotEmpty && results.first['total'] != null) {
       return (results.first['total'] as num).toDouble();
     }
     return 0.0;
+  }
+
+  /// Atomically clears all database tables, respecting foreign keys.
+  Future<void> clearAllData() async {
+    Database db = await instance.database;
+    await db.transaction((txn) async {
+      await txn.delete('non_fuel_expenses');
+      await txn.delete('service_session_items');
+      await txn.delete('service_sessions');
+      await txn.delete('fuel_records');
+      await txn.delete('maintenance_tasks');
+      await txn.delete('vehicles');
+      await txn.delete('saved_locations');
+      await txn.delete('fuel_types');
+    });
+  }
+
+  /// Exports raw database tables as a Map for backup bundling.
+  Future<Map<String, dynamic>> dumpAllData() async {
+    Database db = await instance.database;
+    final fuelTypes = await db.query('fuel_types');
+    final savedLocations = await db.query('saved_locations');
+    final vehicles = await db.query('vehicles');
+    final maintenanceTasks = await db.query('maintenance_tasks');
+    final fuelRecords = await db.query('fuel_records');
+    final serviceSessions = await db.query('service_sessions');
+    final serviceSessionItems = await db.query('service_session_items');
+    final nonFuelExpenses = await db.query('non_fuel_expenses');
+
+    return {
+      'schemaVersion': 10,
+      'fuel_types': fuelTypes,
+      'saved_locations': savedLocations,
+      'vehicles': vehicles,
+      'maintenance_tasks': maintenanceTasks,
+      'fuel_records': fuelRecords,
+      'service_sessions': serviceSessions,
+      'service_session_items': serviceSessionItems,
+      'non_fuel_expenses': nonFuelExpenses,
+    };
+  }
+
+  /// Restores raw database tables atomically.
+  Future<void> restoreAllData(Map<String, dynamic> data, {bool replaceExisting = false}) async {
+    Database db = await instance.database;
+    await db.transaction((txn) async {
+      if (replaceExisting) {
+        await txn.delete('non_fuel_expenses');
+        await txn.delete('service_session_items');
+        await txn.delete('service_sessions');
+        await txn.delete('fuel_records');
+        await txn.delete('maintenance_tasks');
+        await txn.delete('vehicles');
+        await txn.delete('saved_locations');
+        await txn.delete('fuel_types');
+      }
+
+      final fuelTypes = (data['fuel_types'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final savedLocations = (data['saved_locations'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final vehicles = (data['vehicles'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final maintenanceTasks = (data['maintenance_tasks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final fuelRecords = (data['fuel_records'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final serviceSessions = (data['service_sessions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final serviceSessionItems = (data['service_session_items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final nonFuelExpenses = (data['non_fuel_expenses'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+      for (final row in fuelTypes) {
+        await txn.insert('fuel_types', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final row in savedLocations) {
+        await txn.insert('saved_locations', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final row in vehicles) {
+        await txn.insert('vehicles', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final row in maintenanceTasks) {
+        await txn.insert('maintenance_tasks', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final row in fuelRecords) {
+        await txn.insert('fuel_records', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final row in serviceSessions) {
+        await txn.insert('service_sessions', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final row in serviceSessionItems) {
+        await txn.insert('service_session_items', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (final row in nonFuelExpenses) {
+        await txn.insert('non_fuel_expenses', row, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    });
   }
 }

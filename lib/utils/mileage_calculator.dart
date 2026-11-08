@@ -528,7 +528,6 @@ class MileageCalculator {
             factor = fuelType.name.toLowerCase().contains('lpg') ? 1.51 : 2.75;
             break;
           case FuelCategory.gasoline:
-          default:
             factor = 2.31;
             break;
         }

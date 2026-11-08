@@ -54,4 +54,41 @@ class AppSettings {
     await prefs.setInt('reminderMinute', reminderMinute);
     await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }
+
+  static Map<String, dynamic> toMap() => {
+        'maxVolume': maxVolume,
+        'storageOption': storageOption,
+        'localFolderPath': localFolderPath,
+        'googleDriveFolderPath': googleDriveFolderPath,
+        'dropboxFolderPath': dropboxFolderPath,
+        'language': language,
+        'themeMode': themeMode,
+        'darkTheme': darkTheme,
+        'adsEnabled': adsEnabled,
+        'reminderHour': reminderHour,
+        'reminderMinute': reminderMinute,
+        'defaultFuelPrices': defaultFuelPrices,
+      };
+
+  static Future<void> fromMap(Map<String, dynamic> map) async {
+    if (map['maxVolume'] != null) maxVolume = (map['maxVolume'] as num).toDouble();
+    if (map['storageOption'] != null) storageOption = map['storageOption'] as String;
+    if (map['localFolderPath'] != null) localFolderPath = map['localFolderPath'] as String;
+    if (map['googleDriveFolderPath'] != null) googleDriveFolderPath = map['googleDriveFolderPath'] as String;
+    if (map['dropboxFolderPath'] != null) dropboxFolderPath = map['dropboxFolderPath'] as String;
+    if (map['language'] != null) language = map['language'] as String;
+    if (map['themeMode'] != null) themeMode = map['themeMode'] as String;
+    if (map['darkTheme'] != null) darkTheme = map['darkTheme'] as String;
+    if (map['adsEnabled'] != null) adsEnabled = map['adsEnabled'] as bool;
+    if (map['reminderHour'] != null) reminderHour = map['reminderHour'] as int;
+    if (map['reminderMinute'] != null) reminderMinute = map['reminderMinute'] as int;
+    if (map['defaultFuelPrices'] != null) {
+      defaultFuelPrices = Map<String, double>.from(
+        (map['defaultFuelPrices'] as Map).map(
+          (k, v) => MapEntry(k.toString(), (v as num).toDouble()),
+        ),
+      );
+    }
+    await saveSettings();
+  }
 }

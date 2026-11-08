@@ -6,17 +6,21 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
+import 'package:fuel_tracker/services/backup_encryption_service.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/pdf_report_generator.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
+import 'package:fuel_tracker/services/webdav_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
@@ -50,6 +54,7 @@ class _ExportPageState extends State<ExportPage> {
     end: DateTime.now(),
   );
   bool _generatingPdf = false;
+  bool _exportingBackup = false;
   final TextEditingController _pdfNotesController =
       TextEditingController(text: 'Fleet & Tax Audit Report');
 
@@ -536,6 +541,617 @@ class _ExportPageState extends State<ExportPage> {
     }
   }
 
+  Future<void> _showEncryptedExportDialog() async {
+    final passwordController = TextEditingController();
+    final confirmController = TextEditingController();
+    bool includeAttachments = true;
+    bool obscurePassword = true;
+
+    final shouldExport = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final theme = Theme.of(context);
+            return AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.shield_outlined, size: 22),
+                  SizedBox(width: 8),
+                  Text('Create Encrypted Backup'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your data is protected with AES-256-CBC and PBKDF2 key derivation. Choose a strong master password.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Master Password',
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        suffixIcon: IconButton(
+                          icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setDialogState(() => obscurePassword = !obscurePassword),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirmController,
+                      obscureText: obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password',
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Include photo attachments (receipts, odometers)', style: TextStyle(fontSize: 13)),
+                      value: includeAttachments,
+                      onChanged: (val) => setDialogState(() => includeAttachments = val ?? true),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final pass = passwordController.text;
+                    final conf = confirmController.text;
+                    if (pass.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Password cannot be empty.')),
+                      );
+                      return;
+                    }
+                    if (pass != conf) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Passwords do not match.')),
+                      );
+                      return;
+                    }
+                    Navigator.of(ctx).pop(true);
+                  },
+                  child: const Text('Encrypt & Export'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldExport == true) {
+      final password = passwordController.text;
+      setState(() => _exportingBackup = true);
+      try {
+        final backupFile = await BackupEncryptionService.createEncryptedBackupFile(
+          password: password,
+          includeAttachments: includeAttachments,
+        );
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(backupFile.path)],
+            subject: 'FuelTracker Encrypted Backup',
+            text: 'FuelTracker encrypted backup created on ${DateTime.now()}',
+          ),
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Backup creation failed: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _exportingBackup = false);
+      }
+    }
+  }
+
+  Future<void> _restoreFromFile(File file) async {
+    final fileContent = await file.readAsString();
+    EncryptedBackupBundle bundle;
+    try {
+      bundle = EncryptedBackupBundle.fromJson(fileContent);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid backup archive: $e')),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    final passwordController = TextEditingController();
+    bool obscurePassword = true;
+
+    final enteredPassword = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.key, size: 22),
+                  SizedBox(width: 8),
+                  Text('Enter Master Password'),
+                ],
+              ),
+              content: TextField(
+                controller: passwordController,
+                obscureText: obscurePassword,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Master Password',
+                  isDense: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off, size: 20),
+                    onPressed: () => setDialogState(() => obscurePassword = !obscurePassword),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(null),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(passwordController.text),
+                  child: const Text('Decrypt'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (enteredPassword == null || enteredPassword.isEmpty) return;
+
+    Map<String, dynamic> payload;
+    try {
+      payload = BackupEncryptionService.decryptBackup(
+        bundle: bundle,
+        password: enteredPassword,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Decryption error: $e')),
+        );
+      }
+      return;
+    }
+
+    final summary = BackupEncryptionService.getPayloadSummary(payload);
+    if (!mounted) return;
+
+    final restoreChoice = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return AlertDialog(
+          title: const Text('Backup Verified'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Archive contains verified records:',
+                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text('• ${summary['vehicles']} vehicles'),
+              Text('• ${summary['fuelRecords']} fuel records'),
+              Text('• ${summary['serviceSessions']} maintenance sessions'),
+              Text('• ${summary['nonFuelExpenses']} non-fuel expenses'),
+              Text('• ${summary['savedLocations']} saved locations'),
+              Text('• ${summary['attachments']} photo attachments'),
+              const SizedBox(height: 14),
+              const Text('Select restoration strategy:'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('merge'),
+              child: const Text('Merge with Existing'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+              onPressed: () => Navigator.of(ctx).pop('replace'),
+              child: const Text('Replace All Data'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (restoreChoice == null) return;
+    final replaceExisting = restoreChoice == 'replace';
+
+    setState(() => _exportingBackup = true);
+    try {
+      await BackupEncryptionService.restoreFromDecryptedPayload(
+        payload: payload,
+        replaceExisting: replaceExisting,
+      );
+      await _loadVehicles();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              replaceExisting
+                  ? 'All data successfully restored from backup.'
+                  : 'Backup data successfully merged.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to restore data: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportingBackup = false);
+    }
+  }
+
+  Future<void> _showEncryptedImportDialog() async {
+    final PlatformFile? file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['ftbackup', 'json'],
+    );
+    if (file == null || file.path == null) {
+      return;
+    }
+
+    final localFile = File(file.path!);
+    await _restoreFromFile(localFile);
+  }
+
+  Future<void> _showWebDavSyncSheet() async {
+    final savedConfig = await WebDavService.loadSavedConfig();
+    final urlController = TextEditingController(text: savedConfig?.serverUrl ?? '');
+    final userController = TextEditingController(text: savedConfig?.username ?? '');
+    final passController = TextEditingController(text: savedConfig?.password ?? '');
+
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (bottomSheetContext) {
+        bool isConnecting = false;
+        bool obscurePassword = true;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.cloud_sync, color: colorScheme.onSecondaryContainer, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('WebDAV & Nextcloud Sync', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                              Text('Sync client-side encrypted backups to private cloud', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: urlController,
+                      decoration: InputDecoration(
+                        labelText: 'WebDAV Server URL',
+                        hintText: 'https://cloud.example.com/remote.php/dav/files/user/FuelTracker/',
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: userController,
+                      decoration: InputDecoration(
+                        labelText: 'Username',
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: passController,
+                      obscureText: obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'App Password / Password',
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        suffixIcon: IconButton(
+                          icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setSheetState(() => obscurePassword = !obscurePassword),
+                        ),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 14),
+                    if (isConnecting)
+                      const Center(child: Padding(padding: EdgeInsets.all(12.0), child: CircularProgressIndicator()))
+                    else
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.wifi_tethering, size: 16),
+                                  label: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text('Test Connection'),
+                                  ),
+                                  onPressed: () async {
+                                    final config = WebDavConfig(
+                                      serverUrl: urlController.text.trim(),
+                                      username: userController.text.trim(),
+                                      password: passController.text,
+                                    );
+                                    if (!config.isValid) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Please enter server URL and username.')),
+                                      );
+                                      return;
+                                    }
+                                    setSheetState(() => isConnecting = true);
+                                    try {
+                                      final ok = await WebDavService.testConnection(config: config);
+                                      await WebDavService.saveConfig(config);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(ok ? 'Connected successfully!' : 'Connection returned non-207 status.'),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Connection failed: $e')),
+                                        );
+                                      }
+                                    } finally {
+                                      setSheetState(() => isConnecting = false);
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  icon: const Icon(Icons.cloud_upload, size: 16),
+                                  label: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text('Upload Backup'),
+                                  ),
+                                  onPressed: () async {
+                                    final config = WebDavConfig(
+                                      serverUrl: urlController.text.trim(),
+                                      username: userController.text.trim(),
+                                      password: passController.text,
+                                    );
+                                    if (!config.isValid) return;
+                                    await WebDavService.saveConfig(config);
+
+                                    if (!context.mounted) return;
+                                    final passwordController = TextEditingController();
+                                    final masterPass = await showDialog<String>(
+                                      context: context,
+                                      builder: (dialogCtx) => AlertDialog(
+                                        title: const Text('Master Encryption Password'),
+                                        content: TextField(
+                                          controller: passwordController,
+                                          obscureText: true,
+                                          autofocus: true,
+                                          decoration: const InputDecoration(labelText: 'Password'),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(dialogCtx).pop(null),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () => Navigator.of(dialogCtx).pop(passwordController.text),
+                                            child: const Text('Encrypt & Upload'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (masterPass == null || masterPass.isEmpty) return;
+
+                                    setSheetState(() => isConnecting = true);
+                                    try {
+                                      final backupFile = await BackupEncryptionService.createEncryptedBackupFile(
+                                        password: masterPass,
+                                      );
+                                      final fileName = p.basename(backupFile.path);
+                                      final bytes = await backupFile.readAsBytes();
+                                      final ok = await WebDavService.uploadBackup(
+                                        config: config,
+                                        fileName: fileName,
+                                        content: bytes,
+                                      );
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text(ok ? 'Backup uploaded to WebDAV: $fileName' : 'Upload failed.')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Upload error: $e')),
+                                        );
+                                      }
+                                    } finally {
+                                      setSheetState(() => isConnecting = false);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.cloud_download, size: 16),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('List & Download Remote Backups'),
+                              ),
+                              onPressed: () async {
+                                final config = WebDavConfig(
+                                  serverUrl: urlController.text.trim(),
+                                  username: userController.text.trim(),
+                                  password: passController.text,
+                                );
+                                if (!config.isValid) return;
+                                setSheetState(() => isConnecting = true);
+                                List<WebDavFileInfo> files = [];
+                                try {
+                                  files = await WebDavService.listRemoteBackups(config: config);
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to list backups: $e')),
+                                    );
+                                  }
+                                } finally {
+                                  setSheetState(() => isConnecting = false);
+                                }
+
+                                if (!context.mounted || files.isEmpty) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('No .ftbackup files found on server.')),
+                                    );
+                                  }
+                                  return;
+                                }
+
+                                final chosen = await showDialog<WebDavFileInfo>(
+                                  context: context,
+                                  builder: (dCtx) => AlertDialog(
+                                    title: const Text('Select Remote Backup'),
+                                    content: SizedBox(
+                                      width: double.maxFinite,
+                                      child: ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: files.length,
+                                        itemBuilder: (ctx, i) {
+                                          final f = files[i];
+                                          return ListTile(
+                                            leading: const Icon(Icons.shield),
+                                            title: Text(f.name, style: const TextStyle(fontSize: 12)),
+                                            onTap: () => Navigator.of(dCtx).pop(f),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                );
+
+                                if (chosen == null || !context.mounted) return;
+
+                                setSheetState(() => isConnecting = true);
+                                try {
+                                  final downloadedBytes = await WebDavService.downloadBackup(
+                                    config: config,
+                                    remoteFileName: chosen.name,
+                                  );
+                                  final tempDir = await getTemporaryDirectory();
+                                  final localFile = File(p.join(tempDir.path, chosen.name));
+                                  await localFile.writeAsBytes(downloadedBytes);
+
+                                  if (context.mounted) {
+                                    Navigator.of(context).pop(); // close bottom sheet
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Downloaded ${chosen.name}. Restoring...')),
+                                    );
+                                    await _restoreFromFile(localFile);
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Download failed: $e')),
+                                    );
+                                  }
+                                } finally {
+                                  setSheetState(() => isConnecting = false);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -795,6 +1411,91 @@ class _ExportPageState extends State<ExportPage> {
                             ),
                           ],
                         ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 3. Client-Side Encrypted Backup & Cloud Sync Card
+              Card(
+                elevation: 1.5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: colorScheme.tertiaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.shield_outlined, color: colorScheme.onTertiaryContainer, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Encrypted Vault & Cloud Sync',
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'AES-256 client-side encrypted .ftbackup & WebDAV',
+                                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Full-fidelity zero-knowledge backups protected with PBKDF2 (100,000 rounds) and AES-256-CBC. Includes vehicle records, service logs, receipts, and odometer photos.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 18),
+                      if (_exportingBackup)
+                        const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                      else ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _showEncryptedExportDialog,
+                                icon: const Icon(Icons.lock, size: 16),
+                                label: const Text('Export .ftbackup'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _showEncryptedImportDialog,
+                                icon: const Icon(Icons.restore, size: 16),
+                                label: const Text('Restore File'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(42),
+                            side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5)),
+                          ),
+                          onPressed: _showWebDavSyncSheet,
+                          icon: const Icon(Icons.cloud_sync, size: 18),
+                          label: const Text('WebDAV / Nextcloud Sync Settings'),
+                        ),
+                      ],
                     ],
                   ),
                 ),

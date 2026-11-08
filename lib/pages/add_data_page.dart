@@ -315,7 +315,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
       return InkWell(
         onTap: () => ImageLightboxDialog.show(
           context: context,
-          imagePath: imagePath!,
+          imagePath: imagePath,
           title: title,
           onDelete: onDelete,
         ),
@@ -333,7 +333,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(
-                  File(imagePath!),
+                  File(imagePath),
                   width: 48,
                   height: 58,
                   fit: BoxFit.cover,

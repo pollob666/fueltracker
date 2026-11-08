@@ -2,7 +2,6 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:fuel_tracker/models/fuel_record.dart';
-import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 

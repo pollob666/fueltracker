@@ -43,3 +43,8 @@
 
 -keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
 -keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+
+# Home Widget Provider
+-keep class com.pollob666.fueltracker.RefuelGlanceWidgetProvider { *; }
+-keep class es.antonborri.home_widget.** { *; }
+

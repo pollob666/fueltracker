@@ -71,6 +71,10 @@ fueltracker/
 *   **`lib/services/pdf_report_generator.dart`**: High-resolution multi-page printable PDF generation for tax write-offs, audit logs, and fleet reports with executive KPI grids, itemized refuels, service history, auxiliary expenses, and verification signature blocks.
 *   **`lib/services/attachment_service.dart`**: Scoped attachment file manager handling persistent storage, copy-on-import, and deletion of receipt and odometer photos within the application sandbox.
 *   **`lib/services/ocr_vision_service.dart`**: On-device machine learning text recognition via ML Kit with heuristic regex extraction for volume, rate, paid amount, and odometer readings.
+*   **`lib/services/backup_encryption_service.dart`**: Client-side AES-256-CBC authenticated encryption and decryption with PBKDF2-HMAC-SHA256 (100,000 iterations), full SQLite table bundling, attachment persistence, and `.ftbackup` archive management.
+*   **`lib/services/webdav_service.dart`**: Lightweight pure Dart WebDAV / Nextcloud client supporting HTTP Basic Auth, PROPFIND XML remote directory parsing, PUT backup uploads, and GET downloads.
+*   **`lib/services/app_shortcuts_service.dart`**: Dynamic Android launcher quick actions registration (`Log Refuel`, `Log Service`, `Analytics`) via `quick_actions`.
+*   **`lib/services/home_widget_service.dart`**: Broadcasts active vehicle telemetry, remaining fuel gauges, range/DTE projections, odometer, and last fill date to Android Home Screen Glance Widgets.
 *   **`lib/pages/analytics_page.dart`**: Hardware-accelerated visual analytics dashboard rendering `fl_chart` price trend lines, station variance scatter bands, driving condition comparison bars, and carbon footprint metrics.
 *   **`lib/services/location_service.dart`**: Geolocation capture, 80m proximity clustering, multi-station disambiguation, and attribution candidate lookup.
 *   **`lib/pages/all_data_page.dart`**: Redesigned history view with dual-mode timeline cards and classic table view, real-time search, and date/road condition filter chips.
@@ -96,6 +100,8 @@ The project is built with Flutter and relies on several key packages to provide 
 *   **`file_picker` & `csv`**: Used for the data import and export functionality, allowing users to manage their data in CSV format.
 *   **`pdf` & `printing`**: Used for compiling audit-ready A4 fleet and tax expense reports with print spooling and native sharing.
 *   **`image_picker` & `google_mlkit_text_recognition`**: Used for capturing receipt/dispenser photos and performing on-device ML Kit OCR vision heuristics for automated form entry.
+*   **`encrypt` & `pointycastle`**: Cryptographic suites for PBKDF2-HMAC-SHA256 key derivation and AES-256-CBC authenticated client-side vault encryption.
+*   **`quick_actions` & `home_widget`**: Used for Android dynamic launcher quick actions and home screen glance telemetry widgets.
 *   **`google_mobile_ads`**: Used for displaying Google AdMob ads for monetization.
 
 ## 5. CI/CD and Release Process

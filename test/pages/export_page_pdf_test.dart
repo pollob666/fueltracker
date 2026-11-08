@@ -8,7 +8,6 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/export_page.dart';
-import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 

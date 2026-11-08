@@ -63,6 +63,14 @@ dependencies:
   image_picker: ^1.1.2
   google_mlkit_text_recognition: ^1.0.0
 
+  # Encrypted Backups & Cloud Sync
+  encrypt: ^5.0.3
+  pointycastle: ^3.9.1
+
+  # Launcher Quick Actions & Home Screen Widgets
+  quick_actions: ^1.1.0
+  home_widget: ^0.10.0
+
 
 # Development-only dependencies
 dev_dependencies:

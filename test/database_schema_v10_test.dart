@@ -2,7 +2,6 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/non_fuel_expense.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
