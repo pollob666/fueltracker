@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,16 +10,21 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
+import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/providers/fuel_record_providers.dart';
+import 'package:fuel_tracker/providers/non_fuel_expense_providers.dart';
+import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
+import 'package:fuel_tracker/services/unified_backup_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
-import 'package:fuel_tracker/widgets/import_dry_run_sheet.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 
 class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
@@ -28,8 +34,28 @@ class ImportPage extends ConsumerStatefulWidget {
 }
 
 class _ImportPageState extends ConsumerState<ImportPage> {
-  List<List<dynamic>> _previewData = [];
   String? _filePath;
+  String? _fileName;
+  int _fileSizeBytes = 0;
+
+  // Single JSON State
+  bool _isJsonBackup = false;
+  BackupValidationSummary? _validationSummary;
+  Map<String, dynamic>? _jsonPayload;
+  final Set<ImportCategory> _selectedCategories = {
+    ImportCategory.vehicles,
+    ImportCategory.fuelRecords,
+    ImportCategory.serviceRecords,
+    ImportCategory.savedLocations,
+    ImportCategory.nonFuelExpenses,
+    ImportCategory.appSettings,
+    ImportCategory.attachments,
+  };
+  ConflictResolutionStrategy _conflictStrategy = ConflictResolutionStrategy.overwriteExisting;
+  bool _importing = false;
+
+  // Legacy CSV Preview State
+  List<List<dynamic>> _previewData = [];
 
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
@@ -37,41 +63,163 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<void> _pickFile() async {
     final PlatformFile? file = await FilePicker.pickFile(
       type: FileType.custom,
-      allowedExtensions: ['csv'],
+      allowedExtensions: ['json', 'csv'],
+      dialogTitle: 'Select FuelTracker Backup or CSV',
     );
 
     if (file != null && file.path != null) {
+      final f = File(file.path!);
+      final size = await f.length();
       setState(() {
         _filePath = file.path!;
+        _fileName = p.basename(file.path!);
+        _fileSizeBytes = size;
       });
-      await _previewFile();
+      await _processPickedFile();
     }
   }
 
-  Future<void> _previewFile() async {
+  Future<void> _processPickedFile() async {
     if (_filePath == null) return;
 
     try {
       final file = File(_filePath!);
       final content = await file.readAsString();
 
-      List<List<dynamic>> csvTable = Csv().decode(content);
-
-      if (csvTable.isNotEmpty) {
-        setState(() {
-          _previewData = csvTable;
-        });
+      if (_filePath!.toLowerCase().endsWith('.json')) {
+        _handleJsonContent(content);
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(AppLocalizations.of(context)!.csvFileEmptyOrIncorrectlyFormatted)));
+        _handleCsvContent(content);
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("${AppLocalizations.of(context)!.errorReadingCSVFile}$e")));
+        SnackBar(content: Text('Error reading file: $e')),
+      );
     }
   }
+
+  void _handleJsonContent(String content) {
+    final summary = UnifiedBackupService.validateBackupPayload(content);
+    if (summary.isValid) {
+      setState(() {
+        _isJsonBackup = true;
+        _validationSummary = summary;
+        _jsonPayload = jsonDecode(content) as Map<String, dynamic>;
+        _previewData = [];
+      });
+    } else {
+      setState(() {
+        _isJsonBackup = false;
+        _validationSummary = null;
+        _jsonPayload = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(summary.errorMessage ?? 'Invalid JSON backup.')),
+        );
+      }
+    }
+  }
+
+  void _handleCsvContent(String content) {
+    try {
+      List<List<dynamic>> csvTable = Csv().decode(content);
+      if (csvTable.isNotEmpty) {
+        setState(() {
+          _isJsonBackup = false;
+          _validationSummary = null;
+          _jsonPayload = null;
+          _previewData = csvTable;
+        });
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.csvFileEmptyOrIncorrectlyFormatted)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${AppLocalizations.of(context)!.errorReadingCSVFile}$e")),
+      );
+    }
+  }
+
+  Future<void> _startJsonImport() async {
+    if (_jsonPayload == null) return;
+
+    setState(() => _importing = true);
+
+    try {
+      final result = await UnifiedBackupService.executeImport(
+        payload: _jsonPayload!,
+        selectedCategories: _selectedCategories,
+        conflictStrategy: _conflictStrategy,
+      );
+
+      if (!mounted) return;
+
+      if (result.success) {
+        ref.invalidate(vehiclesProvider);
+        ref.invalidate(activeVehicleProvider);
+        ref.invalidate(fuelRecordsProvider);
+        ref.invalidate(nonFuelExpenseRepositoryProvider);
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 40),
+            title: const Text('Import Successful'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (result.importedVehicles > 0)
+                  Text('• Vehicles: ${result.importedVehicles}'),
+                if (result.importedRefuels > 0)
+                  Text('• Refueling Records: ${result.importedRefuels}'),
+                if (result.importedServices > 0)
+                  Text('• Service Visits: ${result.importedServices}'),
+                if (result.importedLocations > 0)
+                  Text('• Saved Locations: ${result.importedLocations}'),
+                if (result.importedExpenses > 0)
+                  Text('• Non-Fuel Expenses: ${result.importedExpenses}'),
+                if (result.importedSettings)
+                  const Text('• App Settings Restored'),
+                if (result.importedAttachments > 0)
+                  Text('• Attachments Restored: ${result.importedAttachments}'),
+              ],
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                },
+                child: const Text('Done'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
+  }
+
+  // --- Legacy CSV Parsing & Importing Logic ---
 
   int _findColumnIndex(List<String> headers, List<String> aliases) {
     for (int i = 0; i < headers.length; i++) {
@@ -85,19 +233,17 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     return -1;
   }
 
-  Future<void> _importData() async {
+  Future<void> _importLegacyCsvData() async {
     if (_previewData.length < 2) return;
 
     final localizations = AppLocalizations.of(context);
     final headers = _previewData.first.map((e) => e.toString().trim()).toList();
 
-    // Check if imported CSV is service records
     if (_findColumnIndex(headers, ['Task', 'task', 'Workshop', 'workshop', 'Brand / Spec', 'brand']) != -1) {
       await _importServiceData(headers);
       return;
     }
 
-    // Check if imported CSV is saved locations
     if (_findColumnIndex(headers, ['RadiusMeters', 'IsSuspectFuel', 'IsRecommendedFuel', 'radiusMeters']) != -1) {
       await _importSavedLocationsData(headers);
       return;
@@ -160,470 +306,182 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       'Driving Condition', 'drivingCondition', 'Condition', 'driving_condition',
     ]);
     int locationCol = _findColumnIndex(headers, [
-      'Location Name', 'locationName', 'Location', 'location', 'Station', 'station',
+      'Location Name', 'Location', 'location', 'Station', 'station',
     ]);
     int latCol = _findColumnIndex(headers, [
-      'Latitude', 'latitude', 'lat', 'Lat',
+      'Latitude', 'latitude', 'lat',
     ]);
     int lngCol = _findColumnIndex(headers, [
-      'Longitude', 'longitude', 'lng', 'Lng', 'lon', 'Lon',
+      'Longitude', 'longitude', 'lng',
     ]);
 
-    // Positional fallback for legacy or non-header CSVs
-    if (dateCol == -1 && headers.isNotEmpty) dateCol = 0;
-    if (odoCol == -1 && headers.length > 1) odoCol = 1;
-    if (vehicleCol == -1 && fuelTypeCol == -1) {
-      if (headers.length >= 7) {
-        vehicleCol = 2;
-        fuelTypeCol = 3;
-        rateCol = 4;
-        volumeCol = 5;
-        paidCol = 6;
-      } else if (headers.length == 6) {
-        fuelTypeCol = 2;
-        rateCol = 3;
-        volumeCol = 4;
-        paidCol = 5;
-      }
-    } else {
-      if (rateCol == -1 && fuelTypeCol != -1 && fuelTypeCol + 1 < headers.length) {
-        rateCol = fuelTypeCol + 1;
-      }
-      if (volumeCol == -1 && rateCol != -1 && rateCol + 1 < headers.length) {
-        volumeCol = rateCol + 1;
-      }
-      if (paidCol == -1 && volumeCol != -1 && volumeCol + 1 < headers.length) {
-        paidCol = volumeCol + 1;
-      }
-    }
-
-    final bool hasVehicleColumn = vehicleCol != -1;
-    int? selectedVehicleId;
-    if (!hasVehicleColumn) {
-      selectedVehicleId = await _showVehicleSelectionDialog();
-      if (selectedVehicleId == null) return;
-    }
-
-    try {
-      final fuelTypes = await _fuelTypeService.getFuelTypes();
-      final vehicles = await _vehicleService.getVehicles();
-      final savedLocations = await DatabaseHelper.instance.getSavedLocations();
-      final Map<String, int> fuelTypeMap = {
-        for (var ft in fuelTypes) ft.name.toLowerCase(): ft.id!
-      };
-      final Map<String, int> vehicleMap = {
-        for (var v in vehicles) v.name.toLowerCase(): v.id!
-      };
-
-      List<FuelRecord> entries = [];
-      for (final row in _previewData.skip(1)) {
-        if (row.isEmpty) continue;
-        try {
-          final String rawDate =
-              dateCol != -1 && dateCol < row.length ? row[dateCol].toString().trim() : '';
-          final DateTime recordDate =
-              DateTime.tryParse(rawDate) ?? DateTime.now();
-
-          final double odometer = odoCol != -1 && odoCol < row.length
-              ? double.tryParse(row[odoCol].toString()) ?? 0.0
-              : 0.0;
-
-          final String fuelTypeName = fuelTypeCol != -1 && fuelTypeCol < row.length
-              ? row[fuelTypeCol].toString().trim()
-              : '';
-          int? fuelTypeId = fuelTypeMap[fuelTypeName.toLowerCase()];
-          if (fuelTypeId == null && fuelTypes.isNotEmpty) {
-            fuelTypeId = fuelTypes.first.id;
-          }
-          if (fuelTypeId == null) continue;
-
-          int? recordVehicleId;
-          if (hasVehicleColumn && vehicleCol < row.length) {
-            final String vehicleName = row[vehicleCol].toString().trim();
-            if (vehicleName.isNotEmpty && vehicleName != 'N/A') {
-              if (vehicleMap.containsKey(vehicleName.toLowerCase())) {
-                recordVehicleId = vehicleMap[vehicleName.toLowerCase()];
-              } else {
-                // Auto-create missing vehicle
-                final newVehicle = Vehicle(
-                  name: vehicleName,
-                  type: VehicleType.carOrSedan,
-                  primaryFuelTypeId: fuelTypeId,
-                );
-                final newId =
-                    await DatabaseHelper.instance.insertVehicle(newVehicle);
-                vehicleMap[vehicleName.toLowerCase()] = newId;
-                recordVehicleId = newId;
-              }
-            } else {
-              recordVehicleId = selectedVehicleId ??
-                  (vehicles.isNotEmpty ? vehicles.first.id : null);
-            }
-          } else {
-            recordVehicleId = selectedVehicleId;
-          }
-
-          if (recordVehicleId == null) {
-            if (vehicles.isNotEmpty && vehicles.first.id != null) {
-              recordVehicleId = vehicles.first.id!;
-            } else {
-              final newVehicle = Vehicle(
-                name: 'Default Vehicle',
-                type: VehicleType.carOrSedan,
-                primaryFuelTypeId: fuelTypeId,
-              );
-              recordVehicleId =
-                  await DatabaseHelper.instance.insertVehicle(newVehicle);
-            }
-          }
-
-          final double rate = rateCol != -1 && rateCol < row.length
-              ? double.tryParse(row[rateCol].toString()) ?? 0.0
-              : 0.0;
-          final double volume = volumeCol != -1 && volumeCol < row.length
-              ? double.tryParse(row[volumeCol].toString()) ?? 0.0
-              : 0.0;
-          final double paidAmount = paidCol != -1 && paidCol < row.length
-              ? double.tryParse(row[paidCol].toString()) ?? 0.0
-              : 0.0;
-
-          bool isFullTank = true;
-          if (fullTankCol != -1 && fullTankCol < row.length) {
-            final val = row[fullTankCol].toString().trim().toLowerCase();
-            if (val == 'false' || val == '0' || val == 'no' || val == 'না') {
-              isFullTank = false;
-            }
-          }
-
-          bool missedPrevious = false;
-          if (missedCol != -1 && missedCol < row.length) {
-            final val = row[missedCol].toString().trim().toLowerCase();
-            if (val == 'true' || val == '1' || val == 'yes' || val == 'হ্যাঁ') {
-              missedPrevious = true;
-            }
-          }
-
-          double? tripDistance;
-          if (tripDistCol != -1 && tripDistCol < row.length) {
-            final val = row[tripDistCol].toString().trim();
-            if (val.isNotEmpty && val != 'N/A' && val != 'null') {
-              tripDistance = double.tryParse(val);
-            }
-          }
-
-          double? secondaryTripDistance;
-          if (secTripCol != -1 && secTripCol < row.length) {
-            final val = row[secTripCol].toString().trim();
-            if (val.isNotEmpty && val != 'N/A' && val != 'null') {
-              secondaryTripDistance = double.tryParse(val);
-            }
-          }
-
-          DrivingCondition drivingCondition = DrivingCondition.mixed;
-          if (conditionCol != -1 && conditionCol < row.length) {
-            final val = row[conditionCol].toString().trim().toLowerCase();
-            if (val.contains('city')) {
-              drivingCondition = DrivingCondition.city;
-            } else if (val.contains('highway')) {
-              drivingCondition = DrivingCondition.highway;
-            }
-          }
-
-          double? latitude;
-          if (latCol != -1 && latCol < row.length) {
-            final val = row[latCol].toString().trim();
-            if (val.isNotEmpty && val != 'N/A') {
-              latitude = double.tryParse(val);
-            }
-          }
-
-          double? longitude;
-          if (lngCol != -1 && lngCol < row.length) {
-            final val = row[lngCol].toString().trim();
-            if (val.isNotEmpty && val != 'N/A') {
-              longitude = double.tryParse(val);
-            }
-          }
-
-          int? locationId;
-          if (locationCol != -1 && locationCol < row.length) {
-            final locName = row[locationCol].toString().trim();
-            if (locName.isNotEmpty && locName != 'N/A') {
-              final locMap = {
-                for (var l in savedLocations) l.name.toLowerCase(): l.id!
-              };
-              if (locMap.containsKey(locName.toLowerCase())) {
-                locationId = locMap[locName.toLowerCase()];
-              } else {
-                final newLoc = SavedLocation(
-                  name: locName,
-                  isNamed: true,
-                  type: 'fuel_station',
-                  latitude: latitude,
-                  longitude: longitude,
-                );
-                locationId =
-                    await DatabaseHelper.instance.insertSavedLocation(newLoc);
-                savedLocations.add(newLoc..id = locationId);
-              }
-            }
-          }
-
-          entries.add(FuelRecord(
-            date: recordDate,
-            odometer: odometer,
-            vehicleId: recordVehicleId,
-            fuelTypeId: fuelTypeId,
-            rate: rate,
-            volume: volume,
-            paidAmount: paidAmount,
-            isFullTank: isFullTank,
-            missedPrevious: missedPrevious,
-            tripDistance: tripDistance,
-            secondaryTripDistance: secondaryTripDistance,
-            drivingCondition: drivingCondition,
-            locationId: locationId,
-            latitude: latitude,
-            longitude: longitude,
-          ));
-        } catch (e) {
-          debugPrint('Error parsing CSV row: $e');
-        }
-      }
-
-      if (entries.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(localizations?.csvFileEmptyOrIncorrectlyFormatted ??
-                "CSV file empty or incorrectly formatted")));
-        return;
-      }
-
-      final existingRecords = await DatabaseHelper.instance.getFuelRecords();
-      final existingMap = <String, FuelRecord>{};
-      for (final ex in existingRecords) {
-        final fp = ImportDryRunSheet.computeFingerprint(
-          vehicleId: ex.vehicleId,
-          date: ex.date,
-          odometer: ex.odometer,
-          volume: ex.volume,
-        );
-        existingMap[fp] = ex;
-      }
-
-      final List<FuelRecord> newRecords = [];
-      final List<MapEntry<FuelRecord, FuelRecord>> duplicatePairs = [];
-
-      for (final entry in entries) {
-        final fp = ImportDryRunSheet.computeFingerprint(
-          vehicleId: entry.vehicleId,
-          date: entry.date,
-          odometer: entry.odometer,
-          volume: entry.volume,
-        );
-        if (existingMap.containsKey(fp)) {
-          duplicatePairs.add(MapEntry(entry, existingMap[fp]!));
-        } else {
-          newRecords.add(entry);
-        }
-      }
-
-      final summary = ImportDryRunSummary(
-        newRecords: newRecords,
-        duplicatePairs: duplicatePairs,
-        totalFound: _previewData.length - 1,
-        corruptedCount: (_previewData.length - 1) - entries.length,
-      );
-
+    if (dateCol == -1 || odoCol == -1 || vehicleCol == -1 || fuelTypeCol == -1 ||
+        rateCol == -1 || volumeCol == -1 || paidCol == -1) {
       if (!mounted) return;
-
-      await ImportDryRunSheet.show(
-        context: context,
-        summary: summary,
-        onCommit: (strategy) async {
-          final repo = ref.read(fuelRecordRepositoryProvider);
-          if (strategy == ConflictStrategy.skip) {
-            for (final r in newRecords) {
-              await repo.insertFuelRecord(r);
-            }
-          } else if (strategy == ConflictStrategy.overwrite) {
-            for (final pair in duplicatePairs) {
-              final updated = pair.key.copyWith(id: pair.value.id);
-              await repo.updateFuelRecord(updated);
-            }
-            for (final r in newRecords) {
-              await repo.insertFuelRecord(r);
-            }
-          } else {
-            // merge
-            for (final r in entries) {
-              await repo.insertFuelRecord(r);
-            }
-          }
-
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    '${localizations?.dataImportedSuccessfully ?? "Import completed"}')),
-          );
-
-          setState(() {
-            _previewData = [];
-            _filePath = null;
-          });
-        },
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CSV file lacks required refueling columns.')),
       );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("${localizations?.errorImportingData ?? 'Error: '}$e")));
+      return;
     }
-  }
 
-  Future<int?> _showVehicleSelectionDialog() async {
     final vehicles = await _vehicleService.getVehicles();
-    if (vehicles.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.noVehiclesFound)),
-        );
+    final fuelTypes = await _fuelTypeService.getFuelTypes();
+    final vehicleMap = {for (var v in vehicles) v.name.toLowerCase(): v};
+    final fuelTypeMap = {for (var ft in fuelTypes) ft.name.toLowerCase(): ft};
+
+    int importedCount = 0;
+    for (int i = 1; i < _previewData.length; i++) {
+      final r = _previewData[i];
+      if (r.isEmpty) continue;
+
+      final dateStr = r[dateCol].toString().trim();
+      final odoStr = r[odoCol].toString().trim();
+      final vehicleStr = r[vehicleCol].toString().trim();
+      final fuelTypeStr = r[fuelTypeCol].toString().trim();
+      final rateStr = r[rateCol].toString().trim();
+      final volumeStr = r[volumeCol].toString().trim();
+      final paidStr = r[paidCol].toString().trim();
+
+      DateTime? date = DateTime.tryParse(dateStr);
+      double? odo = double.tryParse(odoStr);
+      double? rate = double.tryParse(rateStr);
+      double? volume = double.tryParse(volumeStr);
+      double? paid = double.tryParse(paidStr);
+
+      if (date == null || odo == null || rate == null || volume == null || paid == null) {
+        continue;
       }
-      return null;
+
+      var vehicle = vehicleMap[vehicleStr.toLowerCase()];
+      if (vehicle == null) {
+        var defaultFuelType = fuelTypeMap[fuelTypeStr.toLowerCase()];
+        if (defaultFuelType == null) {
+          final newFuelType = FuelType(name: fuelTypeStr, category: FuelCategory.gasoline, unit: FuelUnit.litre);
+          final newFuelTypeId = await DatabaseHelper.instance.insertFuelType(newFuelType);
+          defaultFuelType = newFuelType.copyWith(id: newFuelTypeId);
+          fuelTypeMap[fuelTypeStr.toLowerCase()] = defaultFuelType;
+        }
+
+        final newVehicle = Vehicle(
+          name: vehicleStr,
+          type: VehicleType.carOrSedan,
+          primaryFuelTypeId: defaultFuelType.id!,
+        );
+        final newVehicleId = await DatabaseHelper.instance.insertVehicle(newVehicle);
+        vehicle = newVehicle.copyWith(id: newVehicleId);
+        vehicleMap[vehicleStr.toLowerCase()] = vehicle;
+      }
+
+      var fuelType = fuelTypeMap[fuelTypeStr.toLowerCase()];
+      if (fuelType == null) {
+        final newFuelType = FuelType(name: fuelTypeStr, category: FuelCategory.gasoline, unit: FuelUnit.litre);
+        final newFuelTypeId = await DatabaseHelper.instance.insertFuelType(newFuelType);
+        fuelType = newFuelType.copyWith(id: newFuelTypeId);
+        fuelTypeMap[fuelTypeStr.toLowerCase()] = fuelType;
+      }
+
+      bool isFull = fullTankCol != -1 && fullTankCol < r.length &&
+          (r[fullTankCol].toString().toLowerCase() == 'true' || r[fullTankCol].toString() == '1');
+      bool isMissed = missedCol != -1 && missedCol < r.length &&
+          (r[missedCol].toString().toLowerCase() == 'true' || r[missedCol].toString() == '1');
+      double? tripDist = tripDistCol != -1 && tripDistCol < r.length ? double.tryParse(r[tripDistCol].toString()) : null;
+      double? secTrip = secTripCol != -1 && secTripCol < r.length ? double.tryParse(r[secTripCol].toString()) : null;
+
+      DrivingCondition cond = DrivingCondition.mixed;
+      if (conditionCol != -1 && conditionCol < r.length) {
+        final cStr = r[conditionCol].toString().trim().toLowerCase();
+        if (cStr == 'city') cond = DrivingCondition.city;
+        if (cStr == 'highway') cond = DrivingCondition.highway;
+      }
+
+      int? locId;
+      if (locationCol != -1 && locationCol < r.length && r[locationCol].toString().trim().isNotEmpty) {
+        final locName = r[locationCol].toString().trim();
+        final existingLocs = await DatabaseHelper.instance.getSavedLocations();
+        final match = existingLocs.where((l) => l.name.toLowerCase() == locName.toLowerCase()).firstOrNull;
+        if (match != null) {
+          locId = match.id;
+        } else {
+          final newLoc = SavedLocation(
+            name: locName,
+            isNamed: true,
+            type: 'fuel_station',
+          );
+          locId = await DatabaseHelper.instance.insertSavedLocation(newLoc);
+        }
+      }
+
+      final record = FuelRecord(
+        vehicleId: vehicle.id!,
+        date: date,
+        odometer: odo,
+        fuelTypeId: fuelType!.id!,
+        rate: rate,
+        volume: volume,
+        paidAmount: paid,
+        isFullTank: isFull,
+        missedPrevious: isMissed,
+        tripDistance: tripDist,
+        secondaryTripDistance: secTrip,
+        drivingCondition: cond,
+        locationId: locId,
+      );
+
+      await DatabaseHelper.instance.insertFuelRecord(record);
+      importedCount++;
     }
 
-    if (!mounted) return null;
-
-    int? selectedVehicleId = vehicles.first.id;
-
-    return showDialog<int>(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(builder: (context, setState) {
-          return AlertDialog(
-            title: Text(AppLocalizations.of(context)!.importToVehicle),
-            content: DropdownButton<int>(
-              value: selectedVehicleId,
-              items: vehicles.map((vehicle) {
-                return DropdownMenuItem<int>(
-                  value: vehicle.id,
-                  child: Text(vehicle.name),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() {
-                  selectedVehicleId = val;
-                });
-              },
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text(AppLocalizations.of(context)!.cancel),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: Text(AppLocalizations.of(context)!.ok),
-                onPressed: () {
-                  Navigator.of(context).pop(selectedVehicleId);
-                },
-              ),
-            ],
-          );
-        });
-      },
+    if (!mounted) return;
+    ref.invalidate(fuelRecordsProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Successfully imported $importedCount records.')),
     );
+    Navigator.pop(context);
   }
 
   Future<void> _importServiceData(List<String> headers) async {
-    int dateCol = _findColumnIndex(headers, ['Date', 'date', 'DateTime']);
-    int odoCol = _findColumnIndex(headers, ['Odometer', 'odometer']);
-    int vehicleCol = _findColumnIndex(headers, ['Vehicle', 'vehicle']);
-    int workshopCol = _findColumnIndex(headers, ['Workshop', 'workshop', 'mechanic']);
-    int totalCostCol = _findColumnIndex(headers, ['Total Cost', 'totalCost', 'Cost', 'cost']);
-    int taskCol = _findColumnIndex(headers, ['Task', 'task', 'Task Title', 'taskTitle']);
-    int brandCol = _findColumnIndex(headers, ['Brand / Spec', 'brandOrSpec', 'Brand', 'brand', 'spec']);
-    int itemCostCol = _findColumnIndex(headers, ['Item Cost', 'itemCost']);
-    int notesCol = _findColumnIndex(headers, ['Notes', 'notes', 'comment']);
-
     final vehicles = await _vehicleService.getVehicles();
     final vehicleMap = {for (var v in vehicles) v.name.toLowerCase(): v};
 
+    final dateCol = _findColumnIndex(headers, ['Date', 'date', 'DateTime']);
+    final odoCol = _findColumnIndex(headers, ['Odometer', 'odometer']);
+    final vehicleCol = _findColumnIndex(headers, ['Vehicle', 'vehicle']);
+    final workshopCol = _findColumnIndex(headers, ['Workshop', 'workshop']);
+    final totalCostCol = _findColumnIndex(headers, ['Total Cost', 'totalCost']);
+    final taskCol = _findColumnIndex(headers, ['Task', 'task']);
+    final brandCol = _findColumnIndex(headers, ['Brand / Spec', 'brand']);
+    final itemCostCol = _findColumnIndex(headers, ['Item Cost', 'itemCost']);
+    final notesCol = _findColumnIndex(headers, ['Notes', 'notes']);
+
     int importedCount = 0;
-    final Map<String, List<List<dynamic>>> sessionGroups = {};
-
     for (int i = 1; i < _previewData.length; i++) {
-      final row = _previewData[i];
-      if (row.isEmpty) continue;
-      final dateStr = (dateCol != -1 && dateCol < row.length) ? row[dateCol].toString().trim() : '';
-      final odoStr = (odoCol != -1 && odoCol < row.length) ? row[odoCol].toString().trim() : '';
-      final vName = (vehicleCol != -1 && vehicleCol < row.length) ? row[vehicleCol].toString().trim() : '';
-      final key = '$vName|$dateStr|$odoStr';
-      sessionGroups.putIfAbsent(key, () => []).add(row);
-    }
+      final r = _previewData[i];
+      if (r.isEmpty) continue;
 
-    for (final entry in sessionGroups.entries) {
-      final rows = entry.value;
-      final firstRow = rows.first;
-      final dateStr = (dateCol != -1 && dateCol < firstRow.length) ? firstRow[dateCol].toString().trim() : '';
-      final odoStr = (odoCol != -1 && odoCol < firstRow.length) ? firstRow[odoCol].toString().trim() : '';
-      final vName = (vehicleCol != -1 && vehicleCol < firstRow.length) ? firstRow[vehicleCol].toString().trim().toLowerCase() : '';
-      final workshop = (workshopCol != -1 && workshopCol < firstRow.length) ? firstRow[workshopCol].toString().trim() : null;
-      final totalCostStr = (totalCostCol != -1 && totalCostCol < firstRow.length) ? firstRow[totalCostCol].toString().trim() : null;
-      final notes = (notesCol != -1 && notesCol < firstRow.length) ? firstRow[notesCol].toString().trim() : null;
-
-      final vehicle = vehicleMap[vName] ?? (vehicles.isNotEmpty ? vehicles.first : null);
-      if (vehicle == null || vehicle.id == null) continue;
+      final dateStr = dateCol != -1 && dateCol < r.length ? r[dateCol].toString().trim() : '';
+      final odoStr = odoCol != -1 && odoCol < r.length ? r[odoCol].toString().trim() : '';
+      final vehicleStr = vehicleCol != -1 && vehicleCol < r.length ? r[vehicleCol].toString().trim() : '';
+      final workshop = workshopCol != -1 && workshopCol < r.length ? r[workshopCol].toString().trim() : null;
+      final totalCost = totalCostCol != -1 && totalCostCol < r.length ? double.tryParse(r[totalCostCol].toString().trim()) : null;
+      final notes = notesCol != -1 && notesCol < r.length ? r[notesCol].toString().trim() : null;
 
       final serviceDate = DateTime.tryParse(dateStr) ?? DateTime.now();
       final odo = double.tryParse(odoStr) ?? 0.0;
-      final totalCost = double.tryParse(totalCostStr ?? '');
 
-      final vehicleTasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicle.id!);
-      final taskMap = {for (var t in vehicleTasks) t.title.toLowerCase(): t};
-
-      final List<ServiceSessionItem> items = [];
-      for (final r in rows) {
-        final taskTitle = (taskCol != -1 && taskCol < r.length) ? r[taskCol].toString().trim() : '';
-        if (taskTitle.isEmpty) continue;
-
-        var task = taskMap[taskTitle.toLowerCase()];
-        if (task == null) {
-          final newTask = MaintenanceTask(
-            vehicleId: vehicle.id!,
-            title: taskTitle,
-            intervalKm: 5000.0,
-            lastServiceOdo: odo,
-            lastServiceDate: serviceDate,
-          );
-          final taskId = await DatabaseHelper.instance.insertMaintenanceTask(newTask);
-          task = newTask.copyWith(id: taskId);
-          taskMap[taskTitle.toLowerCase()] = task;
-        }
-
-        final brand = (brandCol != -1 && brandCol < r.length && r[brandCol].toString().trim().isNotEmpty)
-            ? r[brandCol].toString().trim()
-            : null;
-        final itemCost = (itemCostCol != -1 && itemCostCol < r.length)
-            ? double.tryParse(r[itemCostCol].toString().trim())
-            : null;
-
-        items.add(ServiceSessionItem(
-          taskId: task.id!,
-          brandOrSpec: brand,
-          cost: itemCost,
-        ));
+      var vehicle = vehicleMap[vehicleStr.toLowerCase()];
+      if (vehicle == null && vehicles.isNotEmpty) {
+        vehicle = vehicles.first;
       }
+      if (vehicle == null) continue;
 
       final session = ServiceSession(
         vehicleId: vehicle.id!,
         odometer: odo,
         serviceDate: serviceDate,
         totalCost: totalCost,
-        workshopName: (workshop != null && workshop.isNotEmpty) ? workshop : null,
-        notes: (notes != null && notes.isNotEmpty) ? notes : null,
-        items: items,
+        workshopName: workshop,
+        notes: notes,
+        items: [],
       );
 
       await DatabaseHelper.instance.insertServiceSession(session);
@@ -632,72 +490,40 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Imported $importedCount service visit(s) successfully.')),
+      SnackBar(content: Text('Imported $importedCount service visits.')),
     );
     Navigator.pop(context);
   }
 
   Future<void> _importSavedLocationsData(List<String> headers) async {
     final nameCol = _findColumnIndex(headers, ['Name', 'name', 'Location']);
-    final isNamedCol = _findColumnIndex(headers, ['IsNamed', 'isNamed']);
-    final typeCol = _findColumnIndex(headers, ['Type', 'type', 'Category']);
     final latCol = _findColumnIndex(headers, ['Latitude', 'latitude', 'lat']);
     final lngCol = _findColumnIndex(headers, ['Longitude', 'longitude', 'lng']);
-    final radiusCol = _findColumnIndex(headers, ['RadiusMeters', 'radiusMeters', 'radius']);
-    final suspectFuelCol = _findColumnIndex(headers, ['IsSuspectFuel', 'isSuspectFuel']);
-    final suspectServiceCol = _findColumnIndex(headers, ['IsSuspectServiceOrParts', 'isSuspectServiceOrParts']);
-    final suspectReasonCol = _findColumnIndex(headers, ['SuspectReason', 'suspectReason']);
-    final recFuelCol = _findColumnIndex(headers, ['IsRecommendedFuel', 'isRecommendedFuel']);
-    final recServiceCol = _findColumnIndex(headers, ['IsRecommendedServiceOrParts', 'isRecommendedServiceOrParts']);
-    final perfReasonCol = _findColumnIndex(headers, ['PerformanceReason', 'performanceReason']);
 
     int count = 0;
     for (int i = 1; i < _previewData.length; i++) {
       final row = _previewData[i];
       if (row.isEmpty) continue;
-      try {
-        final name = nameCol != -1 && nameCol < row.length ? row[nameCol].toString().trim() : 'Saved Location';
-        final isNamed = isNamedCol != -1 && isNamedCol < row.length ? (row[isNamedCol].toString().toLowerCase() == 'true' || row[isNamedCol].toString() == '1') : true;
-        final type = typeCol != -1 && typeCol < row.length ? row[typeCol].toString().trim() : 'fuel_station';
-        final lat = latCol != -1 && latCol < row.length ? double.tryParse(row[latCol].toString()) : null;
-        final lng = lngCol != -1 && lngCol < row.length ? double.tryParse(row[lngCol].toString()) : null;
-        final radius = radiusCol != -1 && radiusCol < row.length ? (double.tryParse(row[radiusCol].toString()) ?? 80.0) : 80.0;
-        final isSuspectFuel = suspectFuelCol != -1 && suspectFuelCol < row.length ? (row[suspectFuelCol].toString().toLowerCase() == 'true' || row[suspectFuelCol].toString() == '1') : false;
-        final isSuspectService = suspectServiceCol != -1 && suspectServiceCol < row.length ? (row[suspectServiceCol].toString().toLowerCase() == 'true' || row[suspectServiceCol].toString() == '1') : false;
-        final suspectReason = suspectReasonCol != -1 && suspectReasonCol < row.length && row[suspectReasonCol].toString().isNotEmpty ? row[suspectReasonCol].toString() : null;
-        final isRecFuel = recFuelCol != -1 && recFuelCol < row.length ? (row[recFuelCol].toString().toLowerCase() == 'true' || row[recFuelCol].toString() == '1') : false;
-        final isRecService = recServiceCol != -1 && recServiceCol < row.length ? (row[recServiceCol].toString().toLowerCase() == 'true' || row[recServiceCol].toString() == '1') : false;
-        final perfReason = perfReasonCol != -1 && perfReasonCol < row.length && row[perfReasonCol].toString().isNotEmpty ? row[perfReasonCol].toString() : null;
+      final name = nameCol != -1 && nameCol < row.length ? row[nameCol].toString().trim() : 'Location';
+      final lat = latCol != -1 && latCol < row.length ? double.tryParse(row[latCol].toString()) : null;
+      final lng = lngCol != -1 && lngCol < row.length ? double.tryParse(row[lngCol].toString()) : null;
 
-        final loc = SavedLocation(
-          name: name,
-          isNamed: isNamed,
-          type: type,
-          latitude: lat,
-          longitude: lng,
-          radiusMeters: radius,
-          isSuspectFuel: isSuspectFuel,
-          isSuspectServiceOrParts: isSuspectService,
-          suspectReason: suspectReason,
-          isRecommendedFuel: isRecFuel,
-          isRecommendedServiceOrParts: isRecService,
-          performanceReason: perfReason,
-        );
-        await DatabaseHelper.instance.insertSavedLocation(loc);
-        count++;
-      } catch (e) {
-        debugPrint('Error importing location row: $e');
-      }
+      final loc = SavedLocation(
+        name: name,
+        isNamed: true,
+        type: 'fuel_station',
+        latitude: lat,
+        longitude: lng,
+      );
+      await DatabaseHelper.instance.insertSavedLocation(loc);
+      count++;
     }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$count saved locations imported successfully.')),
+      SnackBar(content: Text('$count saved locations imported.')),
     );
-    setState(() {
-      _previewData = [];
-      _filePath = null;
-    });
+    Navigator.pop(context);
   }
 
   List<DataColumn> _getColumns() {
@@ -707,10 +533,86 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         .toList();
   }
 
+  // --- Widgets for Redesigned Single JSON UI ---
+
+  Widget _buildSummaryCategoryTile({
+    required BuildContext context,
+    required ImportCategory category,
+    required String title,
+    required String subtitle,
+    required bool isPresent,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    final isSelected = _selectedCategories.contains(category);
+
+    return Opacity(
+      opacity: isPresent ? 1.0 : 0.45,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected && isPresent
+                ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          color: isSelected && isPresent
+              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
+              : theme.colorScheme.surface,
+        ),
+        child: Row(
+          children: [
+            Checkbox(
+              value: isSelected && isPresent,
+              onChanged: isPresent
+                  ? (val) {
+                      setState(() {
+                        if (val == true) {
+                          _selectedCategories.add(category);
+                        } else {
+                          _selectedCategories.remove(category);
+                        }
+                      });
+                    }
+                  : null,
+            ),
+            Icon(icon, size: 22, color: isPresent ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            if (isPresent)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text('Valid', style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+              )
+            else
+              Text('None', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final localizations = AppLocalizations.of(context)!;
+    final dateFormatter = DateFormat.yMMMd().add_jm();
 
     return Scaffold(
       appBar: AppBar(title: Text(localizations.import)),
@@ -718,42 +620,303 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton(
-                onPressed: _pickFile,
-                child: Text(localizations.selectCSVFile),
-              ),
-              if (_filePath != null)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                      '${localizations.selectedFile}: $_filePath',
-                      style: theme.textTheme.titleMedium),
+              // Top Action / File Picker Button
+              Card(
+                elevation: 0,
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: colorScheme.outlineVariant),
                 ),
-              _previewData.length > 1
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: _getColumns(),
-                        rows: _previewData.skip(1).map((row) {
-                          return DataRow(
-                              cells: row
-                                  .map((cell) => DataCell(Text(cell.toString())))
-                                  .toList());
-                        }).toList(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.file_open, color: colorScheme.onPrimaryContainer, size: 24),
                       ),
-                    )
-                  : Center(
-                      child: Text(localizations.noDataPreviewAvailable),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _fileName != null ? _fileName! : 'Select Backup File',
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _filePath != null
+                                  ? '${(_fileSizeBytes / 1024).toStringAsFixed(1)} KB • ${_isJsonBackup ? "Unified JSON" : "CSV File"}'
+                                  : 'Supports Single JSON backups & legacy CSVs',
+                              style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                      FilledButton.tonal(
+                        onPressed: _importing ? null : _pickFile,
+                        child: Text(_filePath != null ? 'Change' : 'Browse'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // CASE 1: Single JSON Backup Validation Summary
+              if (_isJsonBackup && _validationSummary != null) ...[
+                Row(
+                  children: [
+                    Icon(Icons.verified, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Detected Content Summary',
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
-              if (_previewData.length > 1)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton(
-                    onPressed: _importData,
+                    const Spacer(),
+                    if (_validationSummary!.exportTimestamp != null)
+                      Text(
+                        dateFormatter.format(_validationSummary!.exportTimestamp!.toLocal()),
+                        style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Select categories to import. Overlapping data can be overwritten or merged.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 14),
+
+                // Category summary cards
+                _buildSummaryCategoryTile(
+                  context: context,
+                  category: ImportCategory.vehicles,
+                  title: 'Vehicles & Fuel Types',
+                  subtitle: _validationSummary!.vehicleCount > 0
+                      ? '${_validationSummary!.vehicleCount} vehicles: ${_validationSummary!.vehicleNames.join(', ')}'
+                      : 'No vehicle records in backup',
+                  isPresent: _validationSummary!.vehicleCount > 0,
+                  icon: Icons.directions_car_outlined,
+                ),
+                _buildSummaryCategoryTile(
+                  context: context,
+                  category: ImportCategory.fuelRecords,
+                  title: 'Refueling Logs',
+                  subtitle: _validationSummary!.refuelCount > 0
+                      ? '${_validationSummary!.refuelCount} fuel logs ready for import'
+                      : 'No refueling logs in backup',
+                  isPresent: _validationSummary!.refuelCount > 0,
+                  icon: Icons.local_gas_station_outlined,
+                ),
+                _buildSummaryCategoryTile(
+                  context: context,
+                  category: ImportCategory.serviceRecords,
+                  title: 'Service & Maintenance',
+                  subtitle: _validationSummary!.serviceSessionCount > 0
+                      ? '${_validationSummary!.serviceSessionCount} visits, ${_validationSummary!.serviceItemCount} line items'
+                      : 'No service records in backup',
+                  isPresent: _validationSummary!.serviceSessionCount > 0,
+                  icon: Icons.build_outlined,
+                ),
+                _buildSummaryCategoryTile(
+                  context: context,
+                  category: ImportCategory.savedLocations,
+                  title: 'Saved GPS Locations',
+                  subtitle: _validationSummary!.locationCount > 0
+                      ? '${_validationSummary!.locationCount} fuel stations & workshops'
+                      : 'No saved locations in backup',
+                  isPresent: _validationSummary!.locationCount > 0,
+                  icon: Icons.place_outlined,
+                ),
+                _buildSummaryCategoryTile(
+                  context: context,
+                  category: ImportCategory.nonFuelExpenses,
+                  title: 'Non-Fuel Expenses',
+                  subtitle: _validationSummary!.expenseCount > 0
+                      ? '${_validationSummary!.expenseCount} entries (Tolls, Parking, Insurance)'
+                      : 'No non-fuel expenses in backup',
+                  isPresent: _validationSummary!.expenseCount > 0,
+                  icon: Icons.receipt_long_outlined,
+                ),
+                _buildSummaryCategoryTile(
+                  context: context,
+                  category: ImportCategory.appSettings,
+                  title: 'App Settings & Preferences',
+                  subtitle: _validationSummary!.hasAppSettings
+                      ? 'Validated, ready for import'
+                      : 'No app settings in backup',
+                  isPresent: _validationSummary!.hasAppSettings,
+                  icon: Icons.settings_outlined,
+                ),
+                _buildSummaryCategoryTile(
+                  context: context,
+                  category: ImportCategory.attachments,
+                  title: 'Photo Attachments (Base64)',
+                  subtitle: _validationSummary!.attachmentCount > 0
+                      ? '${_validationSummary!.attachmentCount} photos embedded in backup'
+                      : 'No photo attachments in backup',
+                  isPresent: _validationSummary!.attachmentCount > 0,
+                  icon: Icons.photo_camera_outlined,
+                ),
+                const SizedBox(height: 16),
+
+                // Conflict Resolution Strategy Card
+                Card(
+                  elevation: 0,
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: colorScheme.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.tune, color: colorScheme.primary, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Overlapping Data Strategy',
+                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Choose how to handle records with matching IDs:',
+                          style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 8),
+                        RadioListTile<ConflictResolutionStrategy>(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Overwrite Existing (Default)'),
+                          subtitle: const Text('Updates existing rows from backup. Ideal for restoring.'),
+                          value: ConflictResolutionStrategy.overwriteExisting,
+                          groupValue: _conflictStrategy,
+                          onChanged: (val) {
+                            if (val != null) setState(() => _conflictStrategy = val);
+                          },
+                        ),
+                        RadioListTile<ConflictResolutionStrategy>(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Skip Existing (Only New)'),
+                          subtitle: const Text('Keeps current data intact and adds only new entries.'),
+                          value: ConflictResolutionStrategy.skipExisting,
+                          groupValue: _conflictStrategy,
+                          onChanged: (val) {
+                            if (val != null) setState(() => _conflictStrategy = val);
+                          },
+                        ),
+                        RadioListTile<ConflictResolutionStrategy>(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Copy / Merge All'),
+                          subtitle: const Text('Assigns new IDs to incoming rows, preserving duplicates.'),
+                          value: ConflictResolutionStrategy.copyMergeAll,
+                          groupValue: _conflictStrategy,
+                          onChanged: (val) {
+                            if (val != null) setState(() => _conflictStrategy = val);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Primary Import Button
+                if (_importing)
+                  const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _selectedCategories.isEmpty ? null : _startJsonImport,
+                      icon: const Icon(Icons.file_download_done),
+                      label: Text('Start Import (${_selectedCategories.length} Categories Selected)'),
+                    ),
+                  ),
+              ] else if (_previewData.length > 1) ...[
+                // CASE 2: Legacy CSV Table Preview
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.1),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Legacy CSV file detected. Showing tabular preview.',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: _getColumns(),
+                    rows: _previewData.skip(1).take(10).map((row) {
+                      return DataRow(
+                        cells: row.map((cell) => DataCell(Text(cell.toString()))).toList(),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _importLegacyCsvData,
                     child: Text(localizations.importData),
                   ),
                 ),
+              ] else if (_filePath == null) ...[
+                // CASE 3: Empty State Illustration
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Column(
+                      children: [
+                        Icon(Icons.cloud_upload_outlined, size: 64, color: colorScheme.outline),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No Backup Selected',
+                          style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Pick a single JSON backup file from Google Drive, Dropbox, or Device Storage',
+                          style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

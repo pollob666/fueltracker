@@ -19,6 +19,12 @@ class AppSettings {
   static int reminderMinute = 0;
   static Map<String, double> defaultFuelPrices = {};
 
+  // Automated Background Backup Settings
+  static bool autoBackupEnabled = false;
+  static int autoBackupFrequencyDays = 3;
+  static bool autoBackupWifiOnly = true;
+  static bool autoBackupWebDavUpload = false;
+
   static Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     maxVolume = prefs.getDouble('maxVolume') ?? 100.0;
@@ -32,6 +38,10 @@ class AppSettings {
     adsEnabled = prefs.getBool('adsEnabled') ?? false;
     reminderHour = prefs.getInt('reminderHour') ?? 9;
     reminderMinute = prefs.getInt('reminderMinute') ?? 0;
+    autoBackupEnabled = prefs.getBool('autoBackupEnabled') ?? false;
+    autoBackupFrequencyDays = prefs.getInt('autoBackupFrequencyDays') ?? 3;
+    autoBackupWifiOnly = prefs.getBool('autoBackupWifiOnly') ?? true;
+    autoBackupWebDavUpload = prefs.getBool('autoBackupWebDavUpload') ?? false;
 
     final defaultPricesString = prefs.getString('defaultFuelPrices');
     if (defaultPricesString != null) {
@@ -52,6 +62,10 @@ class AppSettings {
     await prefs.setBool('adsEnabled', adsEnabled);
     await prefs.setInt('reminderHour', reminderHour);
     await prefs.setInt('reminderMinute', reminderMinute);
+    await prefs.setBool('autoBackupEnabled', autoBackupEnabled);
+    await prefs.setInt('autoBackupFrequencyDays', autoBackupFrequencyDays);
+    await prefs.setBool('autoBackupWifiOnly', autoBackupWifiOnly);
+    await prefs.setBool('autoBackupWebDavUpload', autoBackupWebDavUpload);
     await prefs.setString('defaultFuelPrices', json.encode(defaultFuelPrices));
   }
 
@@ -67,6 +81,10 @@ class AppSettings {
         'adsEnabled': adsEnabled,
         'reminderHour': reminderHour,
         'reminderMinute': reminderMinute,
+        'autoBackupEnabled': autoBackupEnabled,
+        'autoBackupFrequencyDays': autoBackupFrequencyDays,
+        'autoBackupWifiOnly': autoBackupWifiOnly,
+        'autoBackupWebDavUpload': autoBackupWebDavUpload,
         'defaultFuelPrices': defaultFuelPrices,
       };
 
@@ -82,6 +100,10 @@ class AppSettings {
     if (map['adsEnabled'] != null) adsEnabled = map['adsEnabled'] as bool;
     if (map['reminderHour'] != null) reminderHour = map['reminderHour'] as int;
     if (map['reminderMinute'] != null) reminderMinute = map['reminderMinute'] as int;
+    if (map['autoBackupEnabled'] != null) autoBackupEnabled = map['autoBackupEnabled'] as bool;
+    if (map['autoBackupFrequencyDays'] != null) autoBackupFrequencyDays = map['autoBackupFrequencyDays'] as int;
+    if (map['autoBackupWifiOnly'] != null) autoBackupWifiOnly = map['autoBackupWifiOnly'] as bool;
+    if (map['autoBackupWebDavUpload'] != null) autoBackupWebDavUpload = map['autoBackupWebDavUpload'] as bool;
     if (map['defaultFuelPrices'] != null) {
       defaultFuelPrices = Map<String, double>.from(
         (map['defaultFuelPrices'] as Map).map(

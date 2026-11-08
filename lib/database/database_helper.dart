@@ -26,6 +26,11 @@ class DatabaseHelper {
     _database = db;
   }
 
+  @visibleForTesting
+  Future<void> createTablesForTesting(Database db) async {
+    await _createTables(db);
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();

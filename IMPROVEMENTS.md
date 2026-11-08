@@ -222,14 +222,15 @@ Vehicle expense logs are essential for business tax write-offs, fleet expense re
   - Itemized Maintenance Table: Date, Odometer, Workshop Name, Tasks Executed, Parts/Oil Brand ("Mobil"), Incurred Cost.
 - **Export Options:** Direct native print spooling (`Printing.layoutPdf`) or PDF document sharing (`SharePlus`).
 
-##### B. Resilient CSV & JSON Import/Export Pipeline (v2 Schema)
-- **JSON Unified Backup Schema (`schema_version: 2`):**
+##### B. Resilient Single-File JSON Import/Export Pipeline (v2 Schema) & Native Cloud SAF
+- **JSON Unified Single-File Backup Schema (`schema_version: 2`):**
+  Eliminates multi-file export complexity by consolidating all application tables, relations, settings, and optional photo attachments into a single portable `.json` file:
   ```json
   {
     "schema_version": 2,
-    "app_version": "3.1.0",
-    "export_timestamp": "2026-11-06T12:00:00Z",
-    "device_info": "Pixel 9 Pro",
+    "app_version": "3.3.0",
+    "export_timestamp": "2026-11-08T12:00:00Z",
+    "device_info": "Motorola Moto G60",
     "vehicles": [...],
     "fuel_types": [...],
     "fuel_records": [...],
@@ -238,38 +239,50 @@ Vehicle expense logs are essential for business tax write-offs, fleet expense re
     "service_session_items": [...],
     "saved_locations": [...],
     "non_fuel_expenses": [...],
-    "app_settings": {...}
+    "app_settings": {...},
+    "attachments": {
+      "refuel_101_rec.webp": "data:image/webp;base64,UklGR...",
+      "service_201_inv.webp": "data:image/webp;base64,UklGR..."
+    }
   }
   ```
-- **CSV Exporter Parity Update:**
-  Include all modern fields in `refuel_records.csv`:
-  `Date,Odometer,Vehicle,Fuel Type,Price Rate,Volume,Paid Amount,Full Tank,Missed Previous,Trip Distance,Secondary Trip Distance,Driving Condition,Location Name,Latitude,Longitude`
-- **Import Dry-Run Preview Modal:**
-  Before mutating SQLite tables, the importer executes a dry run:
-  - Validates schema format and checks data types.
-  - Detects duplicate records using a composite deterministic hash:
-    $$H = \text{SHA256}(\text{vehicleId} + \text{date} + \text{odometer} + \text{volume})$$
-  - Displays summary dialog: *"Found 120 records (115 new, 5 duplicates)"*.
-- **Conflict Resolution Selector:**
-  - `Skip Duplicates`: Preserves existing database rows.
-  - `Overwrite Existing`: Updates existing rows matching composite keys.
-  - `Merge / Import All`: Force imports as new entries.
+- **Export Category Checklists (All Selected by Default):**
+  Users can customize export contents. All categories are checked by default; if a user unchecks a category (e.g., App Settings), that section is exported as empty (`{}` or `[]`), preserving a unified file structure.
+- **Embedded Attachments Toggle:**
+  Optional checkbox: `[x] Include photo attachments` (encodes receipts and odometer photos into base64 strings inside the single JSON file, default enabled; can be disabled for lightweight text-only export).
+- **Native Android Storage Access Framework (SAF) for Google Drive & Dropbox:**
+  Zero proprietary SDKs, zero paid cloud subscriptions, zero API keys. Invoking Android's native `ACTION_CREATE_DOCUMENT` via `FilePicker.saveFile` presents the OS DocumentsUI file manager drawer (exposing Google Drive accounts, Dropbox, and internal storage), streaming the single JSON file directly to the user's chosen cloud or local destination.
+- **Redesigned Summary-Driven Import UX:**
+  Replaces the raw tabular view with an executive validation summary card before committing any data:
+  - *"App Settings: Validated, ready for import"*
+  - *"Vehicle Information: 2 vehicles found (Toyota Premio, Honda Civic)"*
+  - *"Refueling data: 111 records found (2023 - 2026)"*
+  - *"Service records: 14 sessions found"*
+  - *"Saved locations: 8 locations found"*
+  - *"Non-fuel expenses: 18 entries found"*
+  - Category selector checkboxes allowing granular restoration.
+- **Conflict Resolution Selector (Default: Overwrite Existing):**
+  - `Overwrite Existing` (Default): Updates existing matching records from the backup.
+  - `Skip Existing`: Imports only new records and preserves current rows intact.
+  - `Copy / Merge All`: Assigns new unique IDs and appends all records without overwriting.
 
-##### C. Client-Side Encrypted Automated Backups
-- **Security:** AES-256-GCM authenticated encryption. Key derived from a user master password using PBKDF2 with SHA-256 (100,000 iterations and a random 16-byte salt stored in the file header).
-- **Storage Providers:**
-  - **Local Storage:** Scoped cache export (`.ftbackup`).
-  - **WebDAV / Nextcloud:** Standard HTTP Basic Auth against user-provided Nextcloud/ownCloud endpoints.
-  - **Google Drive:** Dedicated App Data folder (`drive.appdata` scope). Completely isolated from normal user drive files; cannot read or tamper with user personal documents.
-- **Automation:** Scheduled background sync triggered weekly or after every 3 refuels via `workmanager` or periodic alarms.
+##### C. Client-Side Encryption & Automated Background Backups (WorkManager)
+- **Security:** AES-256-CBC authenticated encryption with PBKDF2-HMAC-SHA256 (100,000 iterations, 16-byte random salt, 16-byte random IV) for password-protected `.ftbackup` archives.
+- **Automated Headless Backups with WorkManager:**
+  - Scheduled background execution via `workmanager: ^0.10.10` running periodically (Daily, Every 3 Days, Weekly).
+  - Headless dual-destination execution:
+    1. Generates timestamped revolving JSON backups in application-scoped storage (`/Backups/`, retaining the last 7 backups and pruning older files).
+    2. Directly uploads the backup to the user's WebDAV / Nextcloud cloud server if configured.
 
 #### Implementation Checklist & Acceptance Criteria
-- [ ] Add `pdf`, `printing`, `encrypt`, and `crypto` to `pubspec.yaml`.
-- [ ] Implement `PdfReportGenerator` generating Material-themed A4/Letter documents.
-- [ ] Upgrade CSV export/import parsers to include all location and trip fields.
-- [ ] Implement `BackupEncryptionService` with AES-256-GCM and PBKDF2.
-- [ ] Implement `GoogleDriveSyncService` and `WebDavSyncService`.
-- [ ] **Acceptance Criteria:** Successfully export and re-import a complete dataset across Android devices with 0 data loss; import validates corrupted files and rolls back cleanly without partial table corruption.
+- [x] Add `pdf`, `printing`, `encrypt`, `crypto`, and `workmanager` to `pubspec.yaml`.
+- [x] Implement `PdfReportGenerator` generating Material-themed A4/Letter documents.
+- [x] Upgrade CSV export/import parsers to include all location and trip fields.
+- [x] Implement `BackupEncryptionService` with AES-256 and PBKDF2.
+- [x] Implement single JSON unified backup with Android SAF (Google Drive, Dropbox) and `WebDavService`.
+- [x] Implement `WorkManagerBackupService` for automated periodic background backups.
+- [x] Redesign summary-driven import UX with selective category toggles and conflict strategies.
+- [x] **Acceptance Criteria:** Successfully export and re-import a complete dataset across Android devices with 0 data loss; import validates corrupted files and rolls back cleanly without partial table corruption.
 
 ---
 

@@ -412,7 +412,17 @@ void main() {
       await tester.pumpWidget(createExportPageTestApp());
       await tester.pumpAndSettle();
 
-      final checkboxes = find.byType(CheckboxListTile);
+      // Open legacy CSV accordion
+      final expansionTile = find.byType(ExpansionTile);
+      await tester.ensureVisible(expansionTile);
+      await tester.pumpAndSettle();
+      await tester.tap(expansionTile);
+      await tester.pumpAndSettle();
+
+      final checkboxes = find.descendant(
+        of: expansionTile,
+        matching: find.byType(CheckboxListTile),
+      );
       expect(checkboxes, findsNWidgets(5));
 
       // Defaults: refueling = true, service = true, savedLocations = false, settings = false, vehicles = false
@@ -423,16 +433,12 @@ void main() {
       expect(tester.widget<CheckboxListTile>(checkboxes.at(4)).value, isFalse);
 
       // Toggle interaction
-      await tester.tap(checkboxes.at(0));
-      await tester.pumpAndSettle();
-      await tester.tap(checkboxes.at(1));
-      await tester.pumpAndSettle();
-      await tester.tap(checkboxes.at(2));
-      await tester.pumpAndSettle();
-      await tester.tap(checkboxes.at(3));
-      await tester.pumpAndSettle();
-      await tester.tap(checkboxes.at(4));
-      await tester.pumpAndSettle();
+      for (int i = 0; i < 5; i++) {
+        await tester.ensureVisible(checkboxes.at(i));
+        await tester.pumpAndSettle();
+        await tester.tap(checkboxes.at(i));
+        await tester.pumpAndSettle();
+      }
 
       expect(tester.widget<CheckboxListTile>(checkboxes.at(0)).value, isFalse);
       expect(tester.widget<CheckboxListTile>(checkboxes.at(1)).value, isFalse);

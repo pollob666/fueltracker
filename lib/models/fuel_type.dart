@@ -41,8 +41,28 @@ class FuelType {
     return FuelType(
       id: map['id'],
       name: map['name'],
-      category: FuelCategory.values.firstWhere((e) => e.toString() == map['category']),
-      unit: FuelUnit.values.firstWhere((e) => e.toString() == map['unit']),
+      category: FuelCategory.values.firstWhere(
+        (e) => e.name == map['category'] || e.toString() == map['category'],
+        orElse: () => FuelCategory.gasoline,
+      ),
+      unit: FuelUnit.values.firstWhere(
+        (e) => e.name == map['unit'] || e.toString() == map['unit'],
+        orElse: () => FuelUnit.litre,
+      ),
+    );
+  }
+
+  FuelType copyWith({
+    int? id,
+    String? name,
+    FuelCategory? category,
+    FuelUnit? unit,
+  }) {
+    return FuelType(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      unit: unit ?? this.unit,
     );
   }
 }

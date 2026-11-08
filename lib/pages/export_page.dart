@@ -14,6 +14,7 @@ import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/services/backup_encryption_service.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/pdf_report_generator.dart';
+import 'package:fuel_tracker/services/unified_backup_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/services/webdav_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
@@ -42,6 +43,16 @@ class _ExportPageState extends State<ExportPage> {
   bool _exportAppSettings = false;
   bool _exportVehicleInformation = false;
   int _sequence = 1;
+
+  // Single JSON Export State
+  bool _jsonExportVehicles = true;
+  bool _jsonExportRefuels = true;
+  bool _jsonExportServices = true;
+  bool _jsonExportLocations = true;
+  bool _jsonExportExpenses = true;
+  bool _jsonExportSettings = true;
+  bool _jsonIncludeAttachments = true;
+  bool _exportingJson = false;
 
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
@@ -191,6 +202,121 @@ class _ExportPageState extends State<ExportPage> {
     final dateFormatter = DateFormat('yyyyMMddTHHmm');
     final formattedDate = dateFormatter.format(now);
     return '${prefix}_${formattedDate}_$_sequence';
+  }
+
+  Future<void> _exportSingleJsonViaSaf() async {
+    setState(() => _exportingJson = true);
+    try {
+      final payload = await UnifiedBackupService.createBackupPayload(
+        includeVehicles: _jsonExportVehicles,
+        includeRefuelRecords: _jsonExportRefuels,
+        includeServiceRecords: _jsonExportServices,
+        includeSavedLocations: _jsonExportLocations,
+        includeNonFuelExpenses: _jsonExportExpenses,
+        includeAppSettings: _jsonExportSettings,
+        includeAttachments: _jsonIncludeAttachments,
+      );
+      final jsonString = UnifiedBackupService.encodePayload(payload);
+      final uri = await UnifiedBackupService.saveBackupViaSaf(jsonString: jsonString);
+      if (uri != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Backup saved successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save backup: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportingJson = false);
+    }
+  }
+
+  Future<void> _shareSingleJson() async {
+    setState(() => _exportingJson = true);
+    try {
+      final payload = await UnifiedBackupService.createBackupPayload(
+        includeVehicles: _jsonExportVehicles,
+        includeRefuelRecords: _jsonExportRefuels,
+        includeServiceRecords: _jsonExportServices,
+        includeSavedLocations: _jsonExportLocations,
+        includeNonFuelExpenses: _jsonExportExpenses,
+        includeAppSettings: _jsonExportSettings,
+        includeAttachments: _jsonIncludeAttachments,
+      );
+      final jsonString = UnifiedBackupService.encodePayload(payload);
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.\-]'), '').substring(0, 15);
+      final file = File(p.join(tempDir.path, 'fueltracker_backup_$timestamp.json'));
+      await file.writeAsString(jsonString);
+
+      final box = context.findRenderObject() as RenderBox?;
+      final Rect? sharePositionOrigin = box != null && box.hasSize
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'FuelTracker Unified Backup',
+          sharePositionOrigin: sharePositionOrigin,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share backup: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportingJson = false);
+    }
+  }
+
+  Future<void> _uploadSingleJsonToWebDav() async {
+    final config = await WebDavService.loadSavedConfig();
+    if (config == null) {
+      _showWebDavSyncSheet();
+      return;
+    }
+
+    setState(() => _exportingJson = true);
+    try {
+      final payload = await UnifiedBackupService.createBackupPayload(
+        includeVehicles: _jsonExportVehicles,
+        includeRefuelRecords: _jsonExportRefuels,
+        includeServiceRecords: _jsonExportServices,
+        includeSavedLocations: _jsonExportLocations,
+        includeNonFuelExpenses: _jsonExportExpenses,
+        includeAppSettings: _jsonExportSettings,
+        includeAttachments: _jsonIncludeAttachments,
+      );
+      final jsonString = UnifiedBackupService.encodePayload(payload);
+      final timestamp = DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.\-]'), '').substring(0, 15);
+      final fileName = 'fueltracker_backup_$timestamp.json';
+
+      final success = await WebDavService.uploadBackup(
+        config: config,
+        fileName: fileName,
+        content: Uint8List.fromList(utf8.encode(jsonString)),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(success ? 'Uploaded backup to WebDAV!' : 'WebDAV upload failed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('WebDAV upload error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportingJson = false);
+    }
   }
 
   Future<void> _exportData() async {
@@ -1173,59 +1299,218 @@ class _ExportPageState extends State<ExportPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. CSV / JSON Data Backup Section
-              Text(localizations.selectDataToExport, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+              // 1. Unified Single JSON Data Backup Section (Primary)
+              Card(
+                elevation: 1.5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.6)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.cloud_sync, color: colorScheme.onPrimaryContainer, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Unified Data Backup',
+                                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.secondaryContainer,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'Single JSON',
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: colorScheme.onSecondaryContainer,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  'Save directly to Google Drive, Dropbox, or Device via Android SAF',
+                                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text('Select Content to Include (Defaults to All):', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      CheckboxListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: const Text('Vehicles & Fuel Types'),
+                        value: _jsonExportVehicles,
+                        onChanged: (v) => setState(() => _jsonExportVehicles = v ?? true),
+                      ),
+                      CheckboxListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: const Text('Refueling Logs'),
+                        value: _jsonExportRefuels,
+                        onChanged: (v) => setState(() => _jsonExportRefuels = v ?? true),
+                      ),
+                      CheckboxListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: const Text('Service & Maintenance Records'),
+                        value: _jsonExportServices,
+                        onChanged: (v) => setState(() => _jsonExportServices = v ?? true),
+                      ),
+                      CheckboxListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: const Text('Saved GPS Locations'),
+                        value: _jsonExportLocations,
+                        onChanged: (v) => setState(() => _jsonExportLocations = v ?? true),
+                      ),
+                      CheckboxListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: const Text('Non-Fuel Expenses'),
+                        value: _jsonExportExpenses,
+                        onChanged: (v) => setState(() => _jsonExportExpenses = v ?? true),
+                      ),
+                      CheckboxListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: const Text('App Settings & Preferences'),
+                        value: _jsonExportSettings,
+                        onChanged: (v) => setState(() => _jsonExportSettings = v ?? true),
+                      ),
+                      CheckboxListTile(
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        title: const Text('Include Photo Attachments (Base64)'),
+                        subtitle: const Text('Embedded receipts and odometer photos'),
+                        value: _jsonIncludeAttachments,
+                        onChanged: (v) => setState(() => _jsonIncludeAttachments = v ?? true),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_exportingJson)
+                        const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                      else ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _exportSingleJsonViaSaf,
+                            icon: const Icon(Icons.file_download, size: 18),
+                            label: const Text('Save to Phone / Cloud (Drive, Dropbox, Files)'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _shareSingleJson,
+                                icon: const Icon(Icons.share, size: 18),
+                                label: const Text('Share File'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _uploadSingleJsonToWebDav,
+                                icon: const Icon(Icons.cloud_upload_outlined, size: 18),
+                                label: const Text('WebDAV Upload'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Legacy CSV & Spreadsheet Exports Accordion
               Card(
                 elevation: 0.5,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                  side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Column(
+                child: Theme(
+                  data: theme.copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    title: const Text('Legacy & Spreadsheet Exports (CSV / Tables)'),
+                    subtitle: const Text('Export individual CSV files for Excel & spreadsheets'),
                     children: [
-                      CheckboxListTile(
-                        title: Text(localizations.exportRefuelingData),
-                        value: _exportRefuelingData,
-                        onChanged: (value) => setState(() => _exportRefuelingData = value!),
-                      ),
-                      CheckboxListTile(
-                        title: Text(localizations.exportServiceHistory),
-                        value: _exportServiceHistory,
-                        onChanged: (value) => setState(() => _exportServiceHistory = value!),
-                      ),
-                      CheckboxListTile(
-                        title: const Text('Export Saved Locations'),
-                        value: _exportSavedLocations,
-                        onChanged: (value) => setState(() => _exportSavedLocations = value!),
-                      ),
-                      CheckboxListTile(
-                        title: Text(localizations.exportAppSettings),
-                        value: _exportAppSettings,
-                        onChanged: (value) => setState(() => _exportAppSettings = value!),
-                      ),
-                      CheckboxListTile(
-                        title: Text(localizations.exportVehicleInformation),
-                        value: _exportVehicleInformation,
-                        onChanged: (value) => setState(() => _exportVehicleInformation = value!),
-                      ),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: ElevatedButton.icon(
-                          onPressed: _exporting ? null : _exportData,
-                          icon: const Icon(Icons.file_download, size: 18),
-                          label: Text(localizations.export),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Column(
+                          children: [
+                            CheckboxListTile(
+                              dense: true,
+                              title: Text(localizations.exportRefuelingData),
+                              value: _exportRefuelingData,
+                              onChanged: (value) => setState(() => _exportRefuelingData = value!),
+                            ),
+                            CheckboxListTile(
+                              dense: true,
+                              title: Text(localizations.exportServiceHistory),
+                              value: _exportServiceHistory,
+                              onChanged: (value) => setState(() => _exportServiceHistory = value!),
+                            ),
+                            CheckboxListTile(
+                              dense: true,
+                              title: const Text('Export Saved Locations'),
+                              value: _exportSavedLocations,
+                              onChanged: (value) => setState(() => _exportSavedLocations = value!),
+                            ),
+                            CheckboxListTile(
+                              dense: true,
+                              title: Text(localizations.exportAppSettings),
+                              value: _exportAppSettings,
+                              onChanged: (value) => setState(() => _exportAppSettings = value!),
+                            ),
+                            CheckboxListTile(
+                              dense: true,
+                              title: Text(localizations.exportVehicleInformation),
+                              value: _exportVehicleInformation,
+                              onChanged: (value) => setState(() => _exportVehicleInformation = value!),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: _exporting ? null : _exportData,
+                              icon: const Icon(Icons.table_chart, size: 18),
+                              label: const Text('Export Selected CSVs'),
+                            ),
+                            if (_message.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(_message, style: theme.textTheme.bodyMedium),
+                            ],
+                            const SizedBox(height: 12),
+                          ],
                         ),
                       ),
-                      if (_message.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(_message, style: theme.textTheme.bodyMedium),
-                        ),
-                      ],
                     ],
                   ),
                 ),

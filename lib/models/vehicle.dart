@@ -76,7 +76,10 @@ class Vehicle {
     return Vehicle(
       id: map['id'],
       name: map['name'],
-      type: VehicleType.values.firstWhere((e) => e.toString() == map['type']),
+      type: VehicleType.values.firstWhere(
+        (e) => e.name == map['type'] || e.toString() == map['type'],
+        orElse: () => VehicleType.carOrSedan,
+      ),
       primaryFuelTypeId: map['primaryFuelTypeId'],
       primaryFuelCapacity: map['primaryFuelCapacity'],
       secondaryFuelTypeId: map['secondaryFuelTypeId'],

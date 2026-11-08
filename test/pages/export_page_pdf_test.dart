@@ -95,8 +95,9 @@ void main() {
     // Verify Title
     expect(find.widgetWithText(AppBar, 'Export'), findsOneWidget);
 
-    // Verify CSV section is present
-    expect(find.byType(CheckboxListTile), findsNWidgets(5));
+    // Verify Unified Data Backup section is present
+    expect(find.text('Unified Data Backup'), findsOneWidget);
+    expect(find.byType(CheckboxListTile), findsWidgets);
 
     // Verify Printable PDF section is present
     expect(find.text('Printable Tax & Fleet PDF'), findsOneWidget);

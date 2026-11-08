@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
+import 'package:fuel_tracker/services/workmanager_backup_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
@@ -29,6 +30,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Locale? _currentLocale;
   late String _currentThemeSetting;
   late TimeOfDay _reminderTime;
+  bool _autoBackupEnabled = AppSettings.autoBackupEnabled;
+  int _autoBackupFrequencyDays = AppSettings.autoBackupFrequencyDays;
+  bool _autoBackupWifiOnly = AppSettings.autoBackupWifiOnly;
+  bool _autoBackupWebDavUpload = AppSettings.autoBackupWebDavUpload;
   final FuelTypeService _fuelTypeService = FuelTypeService();
   List<FuelType> _fuelTypes = [];
   final Map<String, TextEditingController> _priceControllers = {};
@@ -141,9 +146,23 @@ class _SettingsPageState extends State<SettingsPage> {
       AppSettings.reminderHour = _reminderTime.hour;
       AppSettings.reminderMinute = _reminderTime.minute;
 
+      AppSettings.autoBackupEnabled = _autoBackupEnabled;
+      AppSettings.autoBackupFrequencyDays = _autoBackupFrequencyDays;
+      AppSettings.autoBackupWifiOnly = _autoBackupWifiOnly;
+      AppSettings.autoBackupWebDavUpload = _autoBackupWebDavUpload;
+
       await AppSettings.saveSettings();
       if (reminderTimeChanged) {
         await NotificationService.instance.rescheduleAllReminders();
+      }
+
+      if (_autoBackupEnabled) {
+        await WorkManagerBackupService.schedulePeriodicBackup(
+          frequencyDays: _autoBackupFrequencyDays,
+          wifiOnly: _autoBackupWifiOnly,
+        );
+      } else {
+        await WorkManagerBackupService.cancelScheduledBackup();
       }
       if (mounted) {
         MyApp.setLocale(context, _currentLocale!);
@@ -334,6 +353,78 @@ class _SettingsPageState extends State<SettingsPage> {
                         MaterialPageRoute(builder: (context) => const SavedLocationsPage()),
                       );
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 0,
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.backup_outlined, color: theme.colorScheme.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Automated Background Backup',
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Periodically writes revolving backups to app storage & syncs to cloud without opening the app.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                          const Divider(height: 16),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Enable Auto-Backup'),
+                            value: _autoBackupEnabled,
+                            onChanged: (val) => setState(() => _autoBackupEnabled = val),
+                          ),
+                          if (_autoBackupEnabled) ...[
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Backup Frequency'),
+                              trailing: DropdownButton<int>(
+                                value: _autoBackupFrequencyDays,
+                                items: const [
+                                  DropdownMenuItem(value: 1, child: Text('Every 1 Day')),
+                                  DropdownMenuItem(value: 3, child: Text('Every 3 Days')),
+                                  DropdownMenuItem(value: 7, child: Text('Every 7 Days')),
+                                ],
+                                onChanged: (v) {
+                                  if (v != null) setState(() => _autoBackupFrequencyDays = v);
+                                },
+                              ),
+                            ),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Wi-Fi Only'),
+                              subtitle: const Text('Prevent backup transfers on metered mobile data'),
+                              value: _autoBackupWifiOnly,
+                              onChanged: (val) => setState(() => _autoBackupWifiOnly = val),
+                            ),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Upload to WebDAV Cloud'),
+                              subtitle: const Text('Upload backups to your configured WebDAV server'),
+                              value: _autoBackupWebDavUpload,
+                              onChanged: (val) => setState(() => _autoBackupWebDavUpload = val),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(AppLocalizations.of(context)!.defaultFuelPrices,

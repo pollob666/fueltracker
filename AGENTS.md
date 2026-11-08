@@ -67,6 +67,8 @@ fueltracker/
 *   **`lib/repositories/`**: Repository layer abstracting SQLite persistence (`VehicleRepository`, `FuelRecordRepository`) with reactive broadcast stream support.
 *   **`lib/providers/`**: Riverpod 2.x providers (`vehiclesProvider`, `activeVehicleProvider`, `fuelRecordsProvider`, `nonFuelExpensesProvider`, `tcoOverviewProvider`) delivering reactive asynchronous state updates across widgets.
 *   **`lib/database/database_helper.dart`**: Manages all database operations, including creating the database (schema v10 with `non_fuel_expenses` table, composite performance indexes, forward-compatible attachment/currency columns, foreign key enforcement, `saved_locations` table, and additive migrations), migrations, and record operations.
+*   **`lib/services/unified_backup_service.dart`**: Single-file JSON v2 schema serialization, validation summary generation (`BackupValidationSummary`), base64 receipt attachment embedding/extraction, SAF file picker integration, and atomic transactional restore with foreign key remapping.
+*   **`lib/services/workmanager_backup_service.dart`**: Headless background backup runner executing periodic backups via `workmanager`, revolving 7-archive local retention in app storage, and automated WebDAV cloud upload.
 *   **`lib/services/analytics_service.dart`**: Time-window filtering, 30-day price trend moving averages, interval station efficiency variance with N-1 attribution, and segregated driving condition telemetry.
 *   **`lib/services/pdf_report_generator.dart`**: High-resolution multi-page printable PDF generation for tax write-offs, audit logs, and fleet reports with executive KPI grids, itemized refuels, service history, auxiliary expenses, and verification signature blocks.
 *   **`lib/services/attachment_service.dart`**: Scoped attachment file manager handling persistent storage, copy-on-import, and deletion of receipt and odometer photos within the application sandbox.
@@ -102,6 +104,7 @@ The project is built with Flutter and relies on several key packages to provide 
 *   **`image_picker` & `google_mlkit_text_recognition`**: Used for capturing receipt/dispenser photos and performing on-device ML Kit OCR vision heuristics for automated form entry.
 *   **`encrypt` & `pointycastle`**: Cryptographic suites for PBKDF2-HMAC-SHA256 key derivation and AES-256-CBC authenticated client-side vault encryption.
 *   **`quick_actions` & `home_widget`**: Used for Android dynamic launcher quick actions and home screen glance telemetry widgets.
+*   **`workmanager`**: Used for headless Android background tasks executing automated periodic single-file JSON backups and WebDAV cloud uploads.
 *   **`google_mobile_ads`**: Used for displaying Google AdMob ads for monetization.
 
 ## 5. CI/CD and Release Process
@@ -148,9 +151,6 @@ The following is a roadmap of planned features to be implemented in the future. 
 *   **Overall Mileage:** The app will also provide an overall mileage calculation for multi-fuel vehicles.
 *   **Cost-Efficiency Tracking:** A new feature will be added to track and compare the cost-efficiency of different fuel types.
 
-### Cloud Data Backup Options
-
-*   Implement options to back up and restore data from cloud storage providers like Google Drive or Dropbox.
 
 ## 8. Development Environment & Workspace Invariants
 
@@ -160,7 +160,7 @@ The following is a roadmap of planned features to be implemented in the future. 
 *   **Java 17 Compilation Target:** `android/build.gradle` enforces `sourceCompatibility` and `targetCompatibility = JavaVersion.VERSION_17` across all `subprojects` via deferred `tasks.withType(JavaCompile).configureEach`, eliminating obsolete Java 8 source/target warnings emitted when compiling Flutter plugin subprojects under JDK 21.
 *   **Gradle Lifecycle & Subproject Configuration:** In root `build.gradle`, never use `subprojects { afterEvaluate { ... } }` to configure compiler options or plugins. Subprojects evaluated early via `evaluationDependsOn(":app")` cause `Cannot run Project.afterEvaluate(Closure) when the project is already evaluated.` Always configure compilation tasks deferredly using `tasks.withType(JavaCompile).configureEach` or `pluginManager.withPlugin`.
 *   **Dual Build Signing:** `android/app/build.gradle` is configured so that both `release` and `debug` build types use `signingConfigs.release` when `android/app/key.properties` is present. If `key.properties` is absent, `debug` builds gracefully fall back to default debug keystore signing, ensuring external checkouts build without errors while local and CI environments produce debug APKs matching the release signature.
-*   **R8 / ProGuard Configuration:** Release builds configure `proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'` with `android.enableR8.fullMode=false` in `gradle.properties` to retain reflective instantiations for `androidx.work` (`WorkDatabase`), `androidx.room`, `androidx.startup`, `google_mobile_ads`, `flutter_local_notifications`, and `Gson`.
+*   **R8 / ProGuard Configuration:** Release builds configure `proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'` with `android.enableR8.fullMode=false` in `gradle.properties` to retain reflective instantiations for `androidx.work` (`WorkDatabase`), `androidx.room`, `androidx.startup`, `google_mobile_ads`, `flutter_local_notifications`, `Gson`, and `google_mlkit_text_recognition`.
 *   **Artifact Naming Convention:** Android release and debug APK and App Bundle artifacts are generated with custom naming format `fueltracker-v<versionName>-<versionCode>-<yyyyMMdd-HHmm>-<variant>.apk` / `.aab` alongside default Gradle/Flutter names (`app-release.apk` / `app-debug.apk` / `app-release.aab`) to ensure both custom artifact archiving and standard Flutter CLI detection work concurrently.
 *   **CI/CD Signed-Commit Release Invariant:** Production release builds on `master` must strictly require two-tier verification: job-level filtering on maintainer email (`pollob666@gmail.com`) and automated cryptographic verification via GitHub API (`gh api`) validating `verification.verified == true` and `verification.reason == 'valid'` before artifacts are built or published.
 *   **Package Name:** The package is named `fuel_tracker` (with an underscore). Always use `package:fuel_tracker/...` for internal package imports, never `package:fueltracker/...`.

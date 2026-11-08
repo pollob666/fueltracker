@@ -46,5 +46,12 @@
 
 # Home Widget Provider
 -keep class com.pollob666.fueltracker.RefuelGlanceWidgetProvider { *; }
+-dontwarn com.pollob666.fueltracker.RefuelGlanceWidgetProvider
 -keep class es.antonborri.home_widget.** { *; }
+-dontwarn es.antonborri.home_widget.**
+
+# Google ML Kit Text Recognition
+-keep class com.google_mlkit_text_recognition.** { *; }
+-dontwarn com.google.mlkit.vision.text.**
+
 
