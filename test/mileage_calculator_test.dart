@@ -231,8 +231,8 @@ void main() {
       // Total cost: 4200 across 10 days -> 420/day
       expect(MileageCalculator.calculateDailyAverageCost(records), 420.0);
 
-      // Cost per km across all records: (2000 + 2200) / 200 = 21.0
-      expect(MileageCalculator.calculateCostPerKm(records), 21.0);
+      // Cost per km across post-baseline intervals: 2200 / 200 = 11.0 (CRIT-03 fix)
+      expect(MileageCalculator.calculateCostPerKm(records), 11.0);
     });
 
     test('calculates average refuel cadence correctly', () {
@@ -543,6 +543,105 @@ void main() {
         expect(pred.totalDte, closeTo(1000.0, 2.0));
         expect(pred.isDistanceTriggered, false);
         expect(pred.isAlertActive, false);
+      });
+    });
+
+    group('Baseline Fill and Cost-per-Distance (CRIT-01, CRIT-02, CRIT-03)', () {
+      test('2-record baseline calculates correct cost per km without baseline doubling', () {
+        final records = [
+          FuelRecord(
+            id: 1,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 130.0,
+            volume: 30.0,
+            odometer: 10000.0,
+            paidAmount: 3900.0,
+            date: DateTime(2026, 1, 1),
+            isFullTank: true,
+            drivingCondition: DrivingCondition.mixed,
+          ),
+          FuelRecord(
+            id: 2,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 130.0,
+            volume: 30.0,
+            odometer: 10420.0,
+            paidAmount: 3900.0,
+            date: DateTime(2026, 1, 8),
+            isFullTank: true,
+            drivingCondition: DrivingCondition.mixed,
+          ),
+        ];
+
+        final intervals = MileageCalculator.calculateIntervalResults(records);
+        expect(intervals.length, 2);
+        expect(intervals[0].isValidFullTank, false);
+        expect(intervals[0].consumedCost, 3900.0);
+        expect(intervals[1].isValidFullTank, true);
+        expect(intervals[1].distance, 420.0);
+        expect(intervals[1].consumedVolume, 30.0);
+        expect(intervals[1].consumedCost, 3900.0);
+        expect(intervals[1].mileage, 14.0); // 420 / 30
+
+        final costPerKm = MileageCalculator.calculateCostPerKm(records);
+        // Cost per km = 3900 / 420 = ~9.2857 BDT/km (NOT (3900+3900)/420 = 18.57 BDT/km)
+        expect(costPerKm, closeTo(9.2857, 0.001));
+
+        final conditionAvg = MileageCalculator.calculateConditionAverage(records, DrivingCondition.mixed);
+        expect(conditionAvg, 14.0);
+      });
+
+      test('partial fill accumulates cost into subsequent full tank interval', () {
+        final records = [
+          FuelRecord(
+            id: 1,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 40.0,
+            odometer: 1000.0,
+            paidAmount: 4000.0,
+            date: DateTime(2026, 1, 1),
+            isFullTank: true,
+          ),
+          FuelRecord(
+            id: 2,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 10.0,
+            odometer: 1200.0,
+            paidAmount: 1000.0,
+            date: DateTime(2026, 1, 4),
+            isFullTank: false, // partial fill
+          ),
+          FuelRecord(
+            id: 3,
+            vehicleId: 1,
+            fuelTypeId: 1,
+            rate: 100.0,
+            volume: 20.0,
+            odometer: 1600.0,
+            paidAmount: 2000.0,
+            date: DateTime(2026, 1, 8),
+            isFullTank: true, // full tank
+          ),
+        ];
+
+        final intervals = MileageCalculator.calculateIntervalResults(records);
+        expect(intervals[1].isPartial, true);
+        expect(intervals[1].consumedCost, 1000.0);
+        expect(intervals[2].isValidFullTank, true);
+        expect(intervals[2].distance, 600.0); // 1600 - 1000
+        expect(intervals[2].consumedVolume, 30.0); // 10 + 20
+        expect(intervals[2].consumedCost, 3000.0); // 1000 + 2000
+        expect(intervals[2].mileage, 20.0); // 600 / 30
+
+        final costPerKm = MileageCalculator.calculateCostPerKm(records);
+        // 3000 / 600 = 5.0
+        expect(costPerKm, 5.0);
       });
     });
   });

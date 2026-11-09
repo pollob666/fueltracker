@@ -51,6 +51,7 @@ class TcoOverviewSummary {
   final double totalServiceSpend;
   final double totalNonFuelSpend;
   final double totalDistance;
+  final double postBaselineFuelSpend;
   final List<MonthlyTcoDataPoint> monthlyData;
 
   const TcoOverviewSummary({
@@ -58,17 +59,23 @@ class TcoOverviewSummary {
     required this.totalServiceSpend,
     required this.totalNonFuelSpend,
     required this.totalDistance,
+    this.postBaselineFuelSpend = 0.0,
     required this.monthlyData,
   });
 
   double get totalSpend => totalFuelSpend + totalServiceSpend + totalNonFuelSpend;
-  double get allInclusiveCostPerKm => totalDistance > 0 ? totalSpend / totalDistance : 0.0;
+  double get allInclusiveCostPerKm {
+    if (totalDistance <= 0) return 0.0;
+    final effectiveFuel = postBaselineFuelSpend > 0 ? postBaselineFuelSpend : totalFuelSpend;
+    return (effectiveFuel + totalServiceSpend + totalNonFuelSpend) / totalDistance;
+  }
 
   static const empty = TcoOverviewSummary(
     totalFuelSpend: 0.0,
     totalServiceSpend: 0.0,
     totalNonFuelSpend: 0.0,
     totalDistance: 0.0,
+    postBaselineFuelSpend: 0.0,
     monthlyData: [],
   );
 }
@@ -101,12 +108,14 @@ final tcoOverviewProvider =
   for (final r in fuelRecords) {
     ensureMonth(r.date);
     final key = '${r.date.year.toString().padLeft(4, '0')}-${r.date.month.toString().padLeft(2, '0')}';
-    monthMap[key]!['fuel'] = monthMap[key]!['fuel']! + r.paidAmount;
-    totalFuelSpend += r.paidAmount;
+    final amount = r.basePaidAmount;
+    monthMap[key]!['fuel'] = monthMap[key]!['fuel']! + amount;
+    totalFuelSpend += amount;
   }
 
-  // Compute interval distances
+  // Compute interval distances & post-baseline fuel spend
   double totalDistance = 0.0;
+  double postBaselineFuelSpend = 0.0;
   if (fuelRecords.isNotEmpty) {
     final sorted = MileageCalculator.sortChronological(fuelRecords);
     final intervals = MileageCalculator.calculateIntervalResults(sorted);
@@ -117,6 +126,9 @@ final tcoOverviewProvider =
         final key = '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}';
         monthMap[key]!['distance'] = monthMap[key]!['distance']! + inv.distance;
         totalDistance += inv.distance;
+        if (inv.isValidFullTank && inv.consumedCost > 0) {
+          postBaselineFuelSpend += inv.consumedCost;
+        }
       }
     }
   }
@@ -159,6 +171,7 @@ final tcoOverviewProvider =
     totalServiceSpend: totalServiceSpend,
     totalNonFuelSpend: totalNonFuelSpend,
     totalDistance: totalDistance,
+    postBaselineFuelSpend: postBaselineFuelSpend,
     monthlyData: monthlyData,
   );
 });

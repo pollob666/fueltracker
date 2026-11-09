@@ -661,7 +661,45 @@ Because FuelTracker collects sensitive location telemetry, financial expenditure
 | [X] Multi-Currency Transaction Engine with Offline Conversion                                      |
 | [X] Adaptive Two-Pane Master-Detail Layout for Tablets & Foldables                                  |
 +----------------------------------------------------------------------------------------------------+
+| MILESTONE 5 (v3.5.0) - Testing Audit, Calculation Parity & UX Hardening                            |
+| [X] Post-Baseline Calculation Parity (Cost/km, Segregated Conditions, Grams CO2/km)               |
+| [X] Condition Delta Baseline Anchor Exclusion & Consumed Cost Accumulation (CRIT-01, CRIT-02)       |
+| [X] Backup Entity Remapping Parity (Maintenance Tasks & Service Items in copyMergeAll) (CRIT-04)   |
+| [X] Cascading Physical Attachment Cleanup on Vehicle & Entity Deletion (CRIT-05)                   |
+| [X] Sticky Form Bottom Navigation Action Bar & Safe Area Padding (IMP-01)                          |
+| [X] Dark Mode WCAG Contrast Compliance across Alert Banners & Scatter Charts (IMP-02)              |
+| [X] Dynamic Unit Parity across Dashboard Metrics & Telemetry Visualizations (IMP-03)               |
+| [X] Reactive Navigation Drawer Maintenance Task Hiding (hasEnabledRoutinesProvider) (IMP-04)       |
++----------------------------------------------------------------------------------------------------+
 ```
+
+---
+
+## 7. Post-Testing Hardening & Defect Resolutions (v3.5.0)
+
+Following end-to-end device testing with live Android instrumentation, critical calculation anomalies and UX edge cases were cataloged and resolved:
+
+### 7.1 Critical Calculation & Integrity Fixes
+1. **CRIT-01 & CRIT-02: Driving Condition Baseline Contamination & Running Averages**
+   - *Problem:* In `AnalyticsService.computeConditionDelta`, initial baseline fills (`distance == 0`) were included in condition groupings, distorting average efficiency. In `MileageCalculator.calculateConditionAverage`, records were filtered prior to computing intervals, causing invalid odometer jumps.
+   - *Fix:* Condition delta calculations now exclude baseline anchors (`isValidFullTank && distance > 0 && consumedVolume > 0`) and use accumulated `consumedCost`. `calculateConditionAverage` pre-computes interval results across the complete chronological dataset before segregating by condition tag.
+2. **CRIT-03: Baseline Fill Intensity Rate Doubling**
+   - *Problem:* Dividing cumulative spend by cumulative distance doubled cost-per-km because initial tank fills had zero recorded distance ($O_1 - O_0$).
+   - *Fix:* Cumulative metrics (`Total Spend`, `Total Volume`, `Total CO2`) retain all entries; distance-normalized rates (`Cost/km`, `TCO Cost/km`, `g CO2/km`) divide post-baseline consumption by post-baseline distance.
+3. **CRIT-04: Unified Backup Foreign Key Remapping in Copy-Merge**
+   - *Problem:* `UnifiedBackupService.copyMergeAll` remapped vehicle and fuel type IDs but left maintenance task and service item IDs referencing obsolete keys.
+   - *Fix:* Added `maintenanceTaskIdMap` and cascaded remapped IDs for `service_session_items`, `primaryFuelTypeId`, and `secondaryFuelTypeId`.
+4. **CRIT-05: Cascading Scoped Attachment Deletion**
+   - *Problem:* Cascade vehicle deletion deleted SQLite records but orphaned physical receipt images in app storage.
+   - *Fix:* Enhanced `DatabaseHelper.deleteVehicleCascade` to query `sqlite_master` for available tables, gather attachment file paths, and delete files via `AttachmentService.deleteAttachment` during transactions.
+
+### 7.2 UI/UX, Navigation & Contrast Enhancements
+1. **IMP-01: Persistent Sticky Action Bars**
+   - Moved `Save` and `Update` buttons in `AddDataPage` and `AddVehiclePage` to `Scaffold.bottomNavigationBar` within `SafeArea`, preventing keyboard occlusion and providing validation error snackbars.
+2. **IMP-02 & IMP-03: Dark Theme Contrast & Dynamic Unit Parity**
+   - Resolved hardcoded colors and units in `DashboardPage` and `StationEfficiencyScatterPlot`, ensuring full WCAG AA contrast and honoring per-vehicle measurement units (`km`, `mi`, `L`, `gal`, `kWh`, `baseCurrency`).
+3. **IMP-04: Reactive Drawer Routine Synchronization**
+   - Introduced `hasEnabledRoutinesProvider` to dynamically hide or show "Maintenance & Service" in the navigation drawer based on vehicle routine configurations.
 
 ---
 *Authored by the Principal Mobile Architect & Automotive Software Engineer for `pollob666/fueltracker`.*

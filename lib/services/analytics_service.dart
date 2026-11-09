@@ -266,10 +266,14 @@ class AnalyticsService {
     int mixedCount = 0;
 
     for (final interval in intervals) {
+      if (!interval.isValidFullTank || interval.distance <= 0 || interval.consumedVolume <= 0) {
+        continue;
+      }
+
       final record = interval.record;
       final distance = interval.distance;
       final volume = interval.consumedVolume;
-      final cost = record.paidAmount;
+      final cost = interval.consumedCost;
 
       switch (record.drivingCondition) {
         case DrivingCondition.city:

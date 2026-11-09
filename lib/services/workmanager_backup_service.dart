@@ -3,14 +3,12 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:fuel_tracker/services/unified_backup_service.dart';
 import 'package:fuel_tracker/services/webdav_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 @pragma('vm:entry-point')

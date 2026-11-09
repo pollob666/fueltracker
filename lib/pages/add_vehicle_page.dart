@@ -898,96 +898,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      _formKey.currentState!.save();
-                      final vehicle = Vehicle(
-                        id: widget.vehicle?.id,
-                        name: _name,
-                        type: _vehicleType,
-                        primaryFuelTypeId: _primaryFuelTypeId!,
-                        primaryFuelCapacity: _primaryFuelCapacity,
-                        secondaryFuelTypeId: _isDualFuel ? _secondaryFuelTypeId : null,
-                        secondaryFuelCapacity: _isDualFuel ? _secondaryFuelCapacity : null,
-                        tripMeterMode: _tripMeterMode,
-                        volumeReminderEnabled: _volumeReminderEnabled,
-                        volumeReminderValue: _volumeReminderValue,
-                        distanceReminderEnabled: _distanceReminderEnabled,
-                        distanceReminderValue: _distanceReminderValue,
-                        powertrainType: _powertrainType,
-                        batteryCapacityKwh: _batteryCapacityKwh,
-                        distanceUnit: _distanceUnit,
-                        fuelVolumeUnit: _fuelVolumeUnit,
-                        consumptionUnit: _consumptionUnit,
-                        baseCurrency: _baseCurrency.trim().isEmpty ? 'BDT' : _baseCurrency.trim().toUpperCase(),
-                      );
-                      final navigator = Navigator.of(context);
-                      if (widget.vehicle == null) {
-                        final id = await DatabaseHelper.instance.insertVehicle(vehicle);
-                        vehicle.id = id;
-                        final seededTasks = await DatabaseHelper.instance.getMaintenanceTasks(id);
-                        for (final userTask in _tasks) {
-                          if (userTask.taskKey != null) {
-                            final match = seededTasks.firstWhere((t) => t.taskKey == userTask.taskKey, orElse: () => userTask);
-                            if (match.id != null) {
-                              await DatabaseHelper.instance.updateMaintenanceTask(
-                                userTask.copyWith(id: match.id, vehicleId: id),
-                              );
-                            }
-                          } else {
-                            await DatabaseHelper.instance.insertMaintenanceTask(userTask.copyWith(vehicleId: id));
-                          }
-                        }
-                      } else {
-                        await DatabaseHelper.instance.updateVehicle(vehicle);
-                        for (final userTask in _tasks) {
-                          if (userTask.id != null) {
-                            await DatabaseHelper.instance.updateMaintenanceTask(userTask);
-                          } else {
-                            await DatabaseHelper.instance.insertMaintenanceTask(userTask.copyWith(vehicleId: vehicle.id!));
-                          }
-                        }
-                      }
-
-                      final allRecords = await DatabaseHelper.instance.getFuelRecords();
-                      final vehicleRecords =
-                          allRecords.where((r) => r.vehicleId == vehicle.id).toList();
-                      final prediction = MileageCalculator.calculateRefuelPrediction(
-                        vehicle: vehicle,
-                        records: vehicleRecords,
-                      );
-                      await NotificationService.instance.scheduleRefuelReminder(
-                        vehicle: vehicle,
-                        prediction: prediction,
-                      );
-
-                      double maxOdo = 0.0;
-                      if (vehicleRecords.isNotEmpty) {
-                        maxOdo = vehicleRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
-                      }
-                      final dailyAvg = MileageCalculator.calculateDailyAverageRun(vehicleRecords);
-                      final double rate = (dailyAvg > 0) ? dailyAvg : 20.0;
-                      final updatedTasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicle.id!);
-                      await NotificationService.instance.scheduleMaintenanceReminders(
-                        vehicle: vehicle,
-                        tasks: updatedTasks,
-                        currentOdo: maxOdo,
-                        dailyKmRate: rate,
-                      );
-
-                      if (mounted) {
-                        navigator.pop();
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    textStyle: theme.textTheme.titleLarge,
-                  ),
-                  child: Text(localizations.save),
-                ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -996,7 +907,120 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     ),
   ),
 ),
-bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
-);
+bottomNavigationBar: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  onPressed: _submitVehicle,
+                  child: Text(
+                    localizations.save,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            if (AppSettings.adsEnabled) const BannerAdWidget(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitVehicle() async {
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please correct the errors in the form.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    _formKey.currentState!.save();
+    final vehicle = Vehicle(
+      id: widget.vehicle?.id,
+      name: _name,
+      type: _vehicleType,
+      primaryFuelTypeId: _primaryFuelTypeId!,
+      primaryFuelCapacity: _primaryFuelCapacity,
+      secondaryFuelTypeId: _isDualFuel ? _secondaryFuelTypeId : null,
+      secondaryFuelCapacity: _isDualFuel ? _secondaryFuelCapacity : null,
+      tripMeterMode: _tripMeterMode,
+      volumeReminderEnabled: _volumeReminderEnabled,
+      volumeReminderValue: _volumeReminderValue,
+      distanceReminderEnabled: _distanceReminderEnabled,
+      distanceReminderValue: _distanceReminderValue,
+      powertrainType: _powertrainType,
+      batteryCapacityKwh: _batteryCapacityKwh,
+      distanceUnit: _distanceUnit,
+      fuelVolumeUnit: _fuelVolumeUnit,
+      consumptionUnit: _consumptionUnit,
+      baseCurrency: _baseCurrency.trim().isEmpty ? 'BDT' : _baseCurrency.trim().toUpperCase(),
+    );
+    final navigator = Navigator.of(context);
+    if (widget.vehicle == null) {
+      final id = await DatabaseHelper.instance.insertVehicle(vehicle);
+      vehicle.id = id;
+      final seededTasks = await DatabaseHelper.instance.getMaintenanceTasks(id);
+      for (final userTask in _tasks) {
+        if (userTask.taskKey != null) {
+          final match = seededTasks.firstWhere((t) => t.taskKey == userTask.taskKey, orElse: () => userTask);
+          if (match.id != null) {
+            await DatabaseHelper.instance.updateMaintenanceTask(
+              userTask.copyWith(id: match.id, vehicleId: id),
+            );
+          }
+        } else {
+          await DatabaseHelper.instance.insertMaintenanceTask(userTask.copyWith(vehicleId: id));
+        }
+      }
+    } else {
+      await DatabaseHelper.instance.updateVehicle(vehicle);
+      for (final userTask in _tasks) {
+        if (userTask.id != null) {
+          await DatabaseHelper.instance.updateMaintenanceTask(userTask);
+        } else {
+          await DatabaseHelper.instance.insertMaintenanceTask(userTask.copyWith(vehicleId: vehicle.id!));
+        }
+      }
+    }
+
+    final allRecords = await DatabaseHelper.instance.getFuelRecords();
+    final vehicleRecords =
+        allRecords.where((r) => r.vehicleId == vehicle.id).toList();
+    final prediction = MileageCalculator.calculateRefuelPrediction(
+      vehicle: vehicle,
+      records: vehicleRecords,
+    );
+    await NotificationService.instance.scheduleRefuelReminder(
+      vehicle: vehicle,
+      prediction: prediction,
+    );
+
+    double maxOdo = 0.0;
+    if (vehicleRecords.isNotEmpty) {
+      maxOdo = vehicleRecords.map((r) => r.odometer).reduce((a, b) => a > b ? a : b);
+    }
+    final dailyAvg = MileageCalculator.calculateDailyAverageRun(vehicleRecords);
+    final double rate = (dailyAvg > 0) ? dailyAvg : 20.0;
+    final updatedTasks = await DatabaseHelper.instance.getMaintenanceTasks(vehicle.id!);
+    await NotificationService.instance.scheduleMaintenanceReminders(
+      vehicle: vehicle,
+      tasks: updatedTasks,
+      currentOdo: maxOdo,
+      dailyKmRate: rate,
+    );
+
+    if (mounted) {
+      navigator.pop();
+    }
   }
 }

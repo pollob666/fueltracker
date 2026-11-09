@@ -44,6 +44,9 @@ class Vehicle {
   bool get hasElectricMotor => powertrainType == PowertrainType.bev ||
                               powertrainType == PowertrainType.phev ||
                               powertrainType == PowertrainType.hybrid;
+  bool get isTwoWheeler =>
+      type == VehicleType.motorcycle || type == VehicleType.scooterOrMoped;
+  bool get supportsTireTracking => !isTwoWheeler;
 
   Vehicle({
     this.id,

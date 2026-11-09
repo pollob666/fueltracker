@@ -3,7 +3,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
@@ -103,7 +102,7 @@ class ImportExecutionResult {
 
 class UnifiedBackupService {
   static const int currentSchemaVersion = 2;
-  static const String currentAppVersion = "3.3.0";
+  static const String currentAppVersion = "3.5.0";
 
   /// Generates a single, comprehensive JSON payload containing all selected tables.
   /// Unchecked categories are exported as empty arrays/objects.
@@ -261,7 +260,6 @@ class UnifiedBackupService {
 
     try {
       await db.transaction((txn) async {
-        final bool isOverwrite = conflictStrategy == ConflictResolutionStrategy.overwriteExisting;
         final bool isSkip = conflictStrategy == ConflictResolutionStrategy.skipExisting;
         final bool isCopy = conflictStrategy == ConflictResolutionStrategy.copyMergeAll;
 
@@ -272,6 +270,7 @@ class UnifiedBackupService {
         final Map<int, int> locationIdMap = {};
         final Map<int, int> fuelTypeIdMap = {};
         final Map<int, int> serviceSessionIdMap = {};
+        final Map<int, int> maintenanceTaskIdMap = {};
 
         // 1. Saved Locations
         if (selectedCategories.contains(ImportCategory.savedLocations)) {
@@ -317,6 +316,12 @@ class UnifiedBackupService {
               if (row['fuelTypeId'] != null && fuelTypeIdMap.containsKey(row['fuelTypeId'])) {
                 row['fuelTypeId'] = fuelTypeIdMap[row['fuelTypeId']];
               }
+              if (row['primaryFuelTypeId'] != null && fuelTypeIdMap.containsKey(row['primaryFuelTypeId'])) {
+                row['primaryFuelTypeId'] = fuelTypeIdMap[row['primaryFuelTypeId']];
+              }
+              if (row['secondaryFuelTypeId'] != null && fuelTypeIdMap.containsKey(row['secondaryFuelTypeId'])) {
+                row['secondaryFuelTypeId'] = fuelTypeIdMap[row['secondaryFuelTypeId']];
+              }
               final newId = await txn.insert('vehicles', row);
               if (oldId != null) vehicleIdMap[oldId] = newId;
             } else {
@@ -329,11 +334,13 @@ class UnifiedBackupService {
           for (final raw in tasks) {
             final row = Map<String, dynamic>.from(raw);
             if (isCopy) {
+              final oldId = row['id'] as int?;
               row.remove('id');
               if (row['vehicleId'] != null && vehicleIdMap.containsKey(row['vehicleId'])) {
                 row['vehicleId'] = vehicleIdMap[row['vehicleId']];
               }
-              await txn.insert('maintenance_tasks', row);
+              final newId = await txn.insert('maintenance_tasks', row);
+              if (oldId != null) maintenanceTaskIdMap[oldId] = newId;
             } else {
               await txn.insert('maintenance_tasks', row, conflictAlgorithm: algo);
             }
@@ -427,6 +434,9 @@ class UnifiedBackupService {
               row.remove('id');
               if (row['serviceSessionId'] != null && serviceSessionIdMap.containsKey(row['serviceSessionId'])) {
                 row['serviceSessionId'] = serviceSessionIdMap[row['serviceSessionId']];
+              }
+              if (row['taskId'] != null && maintenanceTaskIdMap.containsKey(row['taskId'])) {
+                row['taskId'] = maintenanceTaskIdMap[row['taskId']];
               }
               await txn.insert('service_session_items', row);
             } else {

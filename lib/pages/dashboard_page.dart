@@ -234,54 +234,56 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       }
     }
 
-    final tires = await DatabaseHelper.instance.getTiresForVehicle(vehicle.id!);
+    List<Tire> tires = [];
     String? tireAlert;
     final Map<String, Tire> posMap = {};
-    if (tires.isNotEmpty) {
-      final tireLogs = await DatabaseHelper.instance.getLatestTireLogsForVehicle(vehicle.id!);
-      final logMap = {for (final log in tireLogs) log.tireId: log};
+    if (vehicle.supportsTireTracking) {
+      tires = await DatabaseHelper.instance.getTiresForVehicle(vehicle.id!);
+      if (tires.isNotEmpty) {
+        final tireLogs = await DatabaseHelper.instance.getLatestTireLogsForVehicle(vehicle.id!);
+        final logMap = {for (final log in tireLogs) log.tireId: log};
 
-      for (final t in tires) {
-        final log = logMap[t.id];
-        if (log != null) {
-          posMap[log.position] = t;
+        for (final t in tires) {
+          final log = logMap[t.id];
+          if (log != null) {
+            posMap[log.position] = t;
+          }
         }
-      }
-      final isBike = vehicle.type == VehicleType.motorcycle || vehicle.type == VehicleType.scooterOrMoped;
-      final fallbackPositions = isBike ? ['Front', 'Rear'] : ['FL', 'FR', 'RL', 'RR'];
-      for (int i = 0; i < tires.length && i < fallbackPositions.length; i++) {
-        if (!posMap.containsKey(fallbackPositions[i])) {
-          posMap[fallbackPositions[i]] = tires[i];
+        const fallbackPositions = ['FL', 'FR', 'RL', 'RR'];
+        for (int i = 0; i < tires.length && i < fallbackPositions.length; i++) {
+          if (!posMap.containsKey(fallbackPositions[i])) {
+            posMap[fallbackPositions[i]] = tires[i];
+          }
         }
-      }
 
-      Tire? wornTire;
-      String? wornPos;
-      for (final tire in tires) {
-        final log = logMap[tire.id];
-        final currentTread = log?.treadDepthMm ?? tire.initialTreadDepthMm;
-        if (currentTread < 2.0) {
-          wornTire = tire;
-          wornPos = log?.position ?? 'Tire';
-          break;
+        Tire? wornTire;
+        String? wornPos;
+        for (final tire in tires) {
+          final log = logMap[tire.id];
+          final currentTread = log?.treadDepthMm ?? tire.initialTreadDepthMm;
+          if (currentTread < 2.0) {
+            wornTire = tire;
+            wornPos = log?.position ?? 'Tire';
+            break;
+          }
         }
-      }
 
-      final rotationLogs = tireLogs.where((l) => l.notes != null && l.notes!.toLowerCase().contains('rotat')).toList();
-      final double lastRotationOdo = rotationLogs.isNotEmpty
-          ? rotationLogs.map((l) => l.odometer).reduce((a, b) => a > b ? a : b)
-          : (tires.isNotEmpty
-              ? tires.map((t) => t.installedOdo).reduce((a, b) => a < b ? a : b)
-              : 0.0);
-      final bool rotationDue = TireCalculator.isRotationDue(
-        currentOdometer: maxOdo,
-        lastRotationOdometer: lastRotationOdo,
-      );
+        final rotationLogs = tireLogs.where((l) => l.notes != null && l.notes!.toLowerCase().contains('rotat')).toList();
+        final double lastRotationOdo = rotationLogs.isNotEmpty
+            ? rotationLogs.map((l) => l.odometer).reduce((a, b) => a > b ? a : b)
+            : (tires.isNotEmpty
+                ? tires.map((t) => t.installedOdo).reduce((a, b) => a < b ? a : b)
+                : 0.0);
+        final bool rotationDue = TireCalculator.isRotationDue(
+          currentOdometer: maxOdo,
+          lastRotationOdometer: lastRotationOdo,
+        );
 
-      if (wornTire != null) {
-        tireAlert = 'Tire ($wornPos) tread critically low (< 2.0 mm). Inspection recommended.';
-      } else if (rotationDue) {
-        tireAlert = 'Tire rotation recommended (> 10,000 km since last rotation).';
+        if (wornTire != null) {
+          tireAlert = 'Tire ($wornPos) tread critically low (< 2.0 mm). Inspection recommended.';
+        } else if (rotationDue) {
+          tireAlert = 'Tire rotation recommended (> 10,000 km since last rotation).';
+        }
       }
     }
 
@@ -642,7 +644,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           const SizedBox(height: 2),
                           Text(
                             prediction.isVolumeTriggered
-                                ? '≤ ${prediction.volumeThreshold.toStringAsFixed(1)} L'
+                                ? '≤ ${prediction.volumeThreshold.toStringAsFixed(1)} ${vehicle.fuelVolumeUnit.symbol}'
                                 : '${prediction.primaryFuelPercentage?.toStringAsFixed(0) ?? 0}% Full',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: prediction.isVolumeTriggered
@@ -690,8 +692,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           const SizedBox(height: 2),
                           Text(
                             prediction.isDistanceTriggered
-                                ? '≤ ${prediction.distanceThreshold.toInt()} km'
-                                : 'Threshold: ${prediction.distanceThreshold.toInt()} km',
+                                ? '≤ ${prediction.distanceThreshold.toInt()} ${vehicle.distanceUnit.symbol}'
+                                : 'Threshold: ${prediction.distanceThreshold.toInt()} ${vehicle.distanceUnit.symbol}',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: prediction.isDistanceTriggered
                                   ? colorScheme.error
@@ -767,13 +769,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final isDrop = anomaly.isDrop;
     final cardBgColor = isDrop
-        ? colorScheme.errorContainer.withValues(alpha: 0.7)
-        : Colors.green.shade50;
-    final cardBorderColor = isDrop ? colorScheme.error : Colors.green.shade600;
-    final accentColor = isDrop ? colorScheme.error : Colors.green.shade700;
-    final onCardColor = isDrop ? colorScheme.onErrorContainer : Colors.green.shade900;
+        ? colorScheme.errorContainer.withValues(alpha: isDark ? 0.4 : 0.7)
+        : (isDark ? Colors.green.shade900.withValues(alpha: 0.3) : Colors.green.shade50);
+    final cardBorderColor = isDrop ? colorScheme.error : (isDark ? Colors.green.shade400 : Colors.green.shade600);
+    final accentColor = isDrop ? colorScheme.error : (isDark ? Colors.green.shade400 : Colors.green.shade700);
+    final onCardColor = isDrop ? colorScheme.onErrorContainer : (isDark ? Colors.green.shade100 : Colors.green.shade900);
     final title = isDrop
         ? 'Mileage Drop Anomaly Detected'
         : 'Mileage Boost Detected';
@@ -834,7 +837,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Latest interval yielded ${anomaly.intervalMileage.toStringAsFixed(1)} km/L vs ${anomaly.runningAverage.toStringAsFixed(1)} km/L rolling avg ($pctStr).',
+              'Latest interval yielded ${anomaly.intervalMileage.toStringAsFixed(1)} ${vehicle.consumptionUnit.symbol} vs ${anomaly.runningAverage.toStringAsFixed(1)} ${vehicle.consumptionUnit.symbol} rolling avg ($pctStr).',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: onCardColor.withValues(alpha: 0.9),
               ),
@@ -984,7 +987,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       final primaryFuelType = _fuelTypeMap[selectedVehicle.primaryFuelTypeId];
       if (primaryFuelType != null) {
         final records = _filteredRecords.where((r) => r.fuelTypeId == primaryFuelType.id).toList();
-        final unit = primaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
+        final unit = primaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : selectedVehicle.consumptionUnit.symbol;
         mileageCards.add(Row(
           children: [
             _buildMileageCard(
@@ -1090,11 +1093,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ));
         }
 
+        final costUnit = '${selectedVehicle.baseCurrency}/${selectedVehicle.distanceUnit.symbol}';
         costCards.add(_buildCostCard(
             context,
             '${primaryFuelType.name} ${localizations.costPerKm}',
             calculateCostPerKm(records),
-            'BDT/km',
+            costUnit,
             colorScheme.primaryContainer,
             colorScheme.onPrimaryContainer,
             colorScheme.primary));
@@ -1104,7 +1108,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       if (secondaryFuelType != null) {
         final records = _filteredRecords.where((r) => r.fuelTypeId == secondaryFuelType.id).toList();
         if (records.isNotEmpty) {
-          final unit = secondaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : 'km/l';
+          final unit = secondaryFuelType.unit == FuelUnit.cubicMeter ? 'km/m³' : selectedVehicle.consumptionUnit.symbol;
           mileageCards.add(const SizedBox(height: 16));
           mileageCards.add(Row(
             children: [
@@ -1211,12 +1215,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ));
           }
 
+          final secCostUnit = '${selectedVehicle.baseCurrency}/${selectedVehicle.distanceUnit.symbol}';
           costCards.add(const SizedBox(width: 16));
           costCards.add(_buildCostCard(
               context,
               '${secondaryFuelType.name} ${localizations.costPerKm}',
               calculateCostPerKm(records),
-              'BDT/km',
+              secCostUnit,
               colorScheme.tertiaryContainer,
               colorScheme.onTertiaryContainer,
               colorScheme.tertiary));
@@ -1427,21 +1432,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   context,
                   label: localizations.volume,
                   value:
-                      '${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} litres',
+                      '${lastRecord != null ? lastRecord.volume.toStringAsFixed(2) : localizations.notAvailable} ${selectedVehicle?.fuelVolumeUnit.symbol ?? 'L'}',
                   icon: Icons.local_gas_station,
                 ),
                 _buildInfoTile(
                   context,
                   label: localizations.totalPrice,
                   value:
-                      '${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} BDT',
+                      '${lastRecord != null ? lastRecord.paidAmount.toStringAsFixed(2) : localizations.notAvailable} ${lastRecord?.currencyCode ?? selectedVehicle?.baseCurrency ?? 'BDT'}',
                   icon: Icons.monetization_on,
                 ),
                 _buildInfoTile(
                   context,
                   label: localizations.odometer,
                   value:
-                      '${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} km',
+                      '${lastRecord != null ? lastRecord.odometer.toStringAsFixed(2) : localizations.notAvailable} ${selectedVehicle?.distanceUnit.symbol ?? 'km'}',
                   icon: Icons.speed,
                 ),
                 _buildInfoTile(
@@ -1454,7 +1459,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   context,
                   label: localizations.fuelRate,
                   value:
-                      '${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} BDT/litre',
+                      '${lastRecord != null ? lastRecord.rate.toStringAsFixed(2) : localizations.notAvailable} ${lastRecord?.currencyCode ?? selectedVehicle?.baseCurrency ?? 'BDT'}/${selectedVehicle?.fuelVolumeUnit.symbol ?? 'L'}',
                   icon: Icons.price_change,
                 ),
               ],
@@ -1465,7 +1470,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
 
     Widget? tirePreviewCard;
-    if (selectedVehicle != null && _currentVehicleTires.isNotEmpty) {
+    if (selectedVehicle != null &&
+        selectedVehicle.supportsTireTracking &&
+        _currentVehicleTires.isNotEmpty) {
       tirePreviewCard = Card(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -1778,18 +1785,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget _buildMaintenanceWarningBanner(BuildContext context, Vehicle vehicle) {
     final localizations = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final hasOverdue = _dueMaintenanceTasks.any(
         (e) => e.value.status == MaintenanceStatus.overdue);
 
     final bgColor = hasOverdue
-        ? theme.colorScheme.errorContainer
-        : Colors.amber.shade100;
+        ? (isDark ? theme.colorScheme.errorContainer.withValues(alpha: 0.4) : theme.colorScheme.errorContainer)
+        : (isDark ? Colors.amber.shade900.withValues(alpha: 0.3) : Colors.amber.shade100);
     final fgColor = hasOverdue
         ? theme.colorScheme.onErrorContainer
-        : Colors.amber.shade900;
+        : (isDark ? Colors.amber.shade200 : Colors.amber.shade900);
     final borderColor = hasOverdue
         ? theme.colorScheme.error.withValues(alpha: 0.5)
-        : Colors.amber.shade600;
+        : (isDark ? Colors.amber.shade400 : Colors.amber.shade600);
 
     return Card(
       elevation: 0,
@@ -1853,7 +1861,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
                 if (_estimatedServiceCost != null && _estimatedServiceCost! > 0)
                   Text(
-                    localizations.estimatedCost('~${_estimatedServiceCost!.toStringAsFixed(0)} BDT'),
+                    localizations.estimatedCost('~${_estimatedServiceCost!.toStringAsFixed(0)} ${vehicle.baseCurrency}'),
                     style: theme.textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: fgColor,
@@ -1966,11 +1974,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildTireAlertBanner(BuildContext context, Vehicle vehicle) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isCritical = _tireAlertMessage?.contains('critically low') ?? false;
 
-    final bgColor = isCritical ? theme.colorScheme.errorContainer : Colors.amber.shade100;
-    final fgColor = isCritical ? theme.colorScheme.onErrorContainer : Colors.amber.shade900;
-    final borderColor = isCritical ? theme.colorScheme.error.withValues(alpha: 0.5) : Colors.amber.shade600;
+    final bgColor = isCritical
+        ? (isDark ? theme.colorScheme.errorContainer.withValues(alpha: 0.4) : theme.colorScheme.errorContainer)
+        : (isDark ? Colors.amber.shade900.withValues(alpha: 0.3) : Colors.amber.shade100);
+    final fgColor = isCritical
+        ? theme.colorScheme.onErrorContainer
+        : (isDark ? Colors.amber.shade200 : Colors.amber.shade900);
+    final borderColor = isCritical
+        ? theme.colorScheme.error.withValues(alpha: 0.5)
+        : (isDark ? Colors.amber.shade400 : Colors.amber.shade600);
 
     return Card(
       elevation: 0,

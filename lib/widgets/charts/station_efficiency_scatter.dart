@@ -74,7 +74,7 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'Interval economy vs ${runningAverage.toStringAsFixed(2)} km/L running average',
+                      'Interval economy vs ${runningAverage.toStringAsFixed(2)} $economyUnit running average',
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
@@ -92,7 +92,7 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                         child: Text(
                           '🟢 +$boostCount',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.green.shade800,
+                            color: theme.brightness == Brightness.dark ? Colors.green.shade300 : Colors.green.shade800,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -107,7 +107,7 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                         child: Text(
                           '⚠️ $suspectCount',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.amber.shade900,
+                            color: theme.brightness == Brightness.dark ? Colors.amber.shade200 : Colors.amber.shade900,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

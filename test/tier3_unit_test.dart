@@ -191,10 +191,10 @@ void main() {
         ),
       ];
 
-      // Total base cost = 12000 + 3000 = 15000. Delta distance = 500 km.
-      // Running cost per km = 15000 / 500 = 30.0
+      // Post-baseline cost = 3000 base. Delta distance = 500 km.
+      // Running cost per km = 3000 / 500 = 6.0 (CRIT-03 fix)
       final costPerKm = MileageCalculator.calculateCostPerKm(records);
-      expect(costPerKm, equals(30.0));
+      expect(costPerKm, equals(6.0));
     });
   });
 

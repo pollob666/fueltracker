@@ -11,6 +11,7 @@ import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/tire.dart';
 import 'package:fuel_tracker/models/tire_log.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
+import 'package:fuel_tracker/services/attachment_service.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -539,6 +540,24 @@ class DatabaseHelper {
 
   Future<int> deleteFuelRecord(int id) async {
     Database db = await instance.database;
+    try {
+      final records = await db.query(
+        'fuel_records',
+        columns: ['receiptImagePath', 'odometerImagePath'],
+        where: 'id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (records.isNotEmpty) {
+        final r = records.first;
+        if (r['receiptImagePath'] != null) {
+          await AttachmentService.deleteAttachment(r['receiptImagePath'] as String);
+        }
+        if (r['odometerImagePath'] != null) {
+          await AttachmentService.deleteAttachment(r['odometerImagePath'] as String);
+        }
+      }
+    } catch (_) {}
     return await db.delete('fuel_records', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -609,18 +628,89 @@ class DatabaseHelper {
 
   Future<void> deleteVehicleCascade(int vehicleId) async {
     Database db = await instance.database;
+    final List<String> pathsToDelete = [];
+
+    final existingTables = <String>{};
+    try {
+      final res = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+      for (final row in res) {
+        if (row['name'] != null) {
+          existingTables.add(row['name'] as String);
+        }
+      }
+    } catch (_) {}
+
+    if (existingTables.contains('fuel_records')) {
+      try {
+        final fuelRecords = await db.query(
+          'fuel_records',
+          columns: ['receiptImagePath', 'odometerImagePath'],
+          where: 'vehicleId = ?',
+          whereArgs: [vehicleId],
+        );
+        for (final row in fuelRecords) {
+          if (row['receiptImagePath'] != null) {
+            pathsToDelete.add(row['receiptImagePath'] as String);
+          }
+          if (row['odometerImagePath'] != null) {
+            pathsToDelete.add(row['odometerImagePath'] as String);
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (existingTables.contains('service_sessions')) {
+      try {
+        final serviceSessions = await db.query(
+          'service_sessions',
+          columns: ['invoiceImagePath'],
+          where: 'vehicleId = ?',
+          whereArgs: [vehicleId],
+        );
+        for (final row in serviceSessions) {
+          if (row['invoiceImagePath'] != null) {
+            pathsToDelete.add(row['invoiceImagePath'] as String);
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (existingTables.contains('non_fuel_expenses')) {
+      try {
+        final expenses = await db.query(
+          'non_fuel_expenses',
+          columns: ['receiptImagePath'],
+          where: 'vehicleId = ?',
+          whereArgs: [vehicleId],
+        );
+        for (final row in expenses) {
+          if (row['receiptImagePath'] != null) {
+            pathsToDelete.add(row['receiptImagePath'] as String);
+          }
+        }
+      } catch (_) {}
+    }
+
     await db.transaction((txn) async {
-      await txn.delete(
-        'fuel_records',
-        where: 'vehicleId = ?',
-        whereArgs: [vehicleId],
-      );
-      await txn.delete(
-        'vehicles',
-        where: 'id = ?',
-        whereArgs: [vehicleId],
-      );
+      if (existingTables.contains('service_sessions')) {
+        await txn.delete('service_sessions', where: 'vehicleId = ?', whereArgs: [vehicleId]);
+      }
+      if (existingTables.contains('non_fuel_expenses')) {
+        await txn.delete('non_fuel_expenses', where: 'vehicleId = ?', whereArgs: [vehicleId]);
+      }
+      if (existingTables.contains('tires')) {
+        await txn.delete('tires', where: 'vehicleId = ?', whereArgs: [vehicleId]);
+      }
+      if (existingTables.contains('maintenance_tasks')) {
+        await txn.delete('maintenance_tasks', where: 'vehicleId = ?', whereArgs: [vehicleId]);
+      }
+      await txn.delete('fuel_records', where: 'vehicleId = ?', whereArgs: [vehicleId]);
+      await txn.delete('vehicles', where: 'id = ?', whereArgs: [vehicleId]);
     });
+
+    for (final path in pathsToDelete) {
+      await AttachmentService.deleteAttachment(path);
+    }
   }
 
   // Maintenance Tasks CRUD methods
@@ -760,6 +850,18 @@ class DatabaseHelper {
 
   Future<int> deleteServiceSession(int sessionId) async {
     Database db = await instance.database;
+    try {
+      final sessions = await db.query(
+        'service_sessions',
+        columns: ['invoiceImagePath'],
+        where: 'id = ?',
+        whereArgs: [sessionId],
+        limit: 1,
+      );
+      if (sessions.isNotEmpty && sessions.first['invoiceImagePath'] != null) {
+        await AttachmentService.deleteAttachment(sessions.first['invoiceImagePath'] as String);
+      }
+    } catch (_) {}
     return await db.transaction((txn) async {
       await txn.delete(
         'service_session_items',
@@ -981,6 +1083,18 @@ class DatabaseHelper {
 
   Future<int> deleteNonFuelExpense(int id) async {
     Database db = await instance.database;
+    try {
+      final expenses = await db.query(
+        'non_fuel_expenses',
+        columns: ['receiptImagePath'],
+        where: 'id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (expenses.isNotEmpty && expenses.first['receiptImagePath'] != null) {
+        await AttachmentService.deleteAttachment(expenses.first['receiptImagePath'] as String);
+      }
+    } catch (_) {}
     return await db.delete(
       'non_fuel_expenses',
       where: 'id = ?',

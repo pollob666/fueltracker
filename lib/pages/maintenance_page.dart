@@ -43,7 +43,7 @@ class MaintenancePage extends StatefulWidget {
 }
 
 class _MaintenancePageState extends State<MaintenancePage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final VehicleService _vehicleService = VehicleService();
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
@@ -59,6 +59,24 @@ class _MaintenancePageState extends State<MaintenancePage>
   double _currentOdo = 0.0;
   double _dailyKmRate = 20.0;
   bool _isLoading = true;
+
+  Vehicle? get _currentVehicle =>
+      _vehicles.where((v) => v.id == _selectedVehicleId).firstOrNull;
+  bool get _showTiresTab =>
+      _currentVehicle == null || _currentVehicle!.supportsTireTracking;
+
+  void _syncTabController(bool supportsTires) {
+    final targetTabCount = supportsTires ? 3 : 2;
+    if (_tabController.length != targetTabCount) {
+      final oldController = _tabController;
+      _tabController = TabController(
+        length: targetTabCount,
+        vsync: this,
+        initialIndex: 0,
+      );
+      oldController.dispose();
+    }
+  }
 
   @override
   void initState() {
@@ -120,15 +138,21 @@ class _MaintenancePageState extends State<MaintenancePage>
     final tasks = await _dbHelper.getMaintenanceTasks(vehicleId);
     final sessions = await _dbHelper.getServiceSessions(vehicleId);
 
-    var tires = await _dbHelper.getTiresForVehicle(vehicleId);
-    if (tires.isEmpty) {
-      await _seedDefaultTires(vehicleId, maxOdo);
+    final currentVeh = _vehicles.where((v) => v.id == vehicleId).firstOrNull;
+    final supportsTires = currentVeh?.supportsTireTracking ?? true;
+
+    List<Tire> tires = [];
+    List<TireLog> tireLogs = [];
+    if (supportsTires) {
       tires = await _dbHelper.getTiresForVehicle(vehicleId);
+      if (tires.isEmpty) {
+        await _seedDefaultTires(vehicleId, maxOdo);
+        tires = await _dbHelper.getTiresForVehicle(vehicleId);
+      }
+      tireLogs = await _dbHelper.getLatestTireLogsForVehicle(vehicleId);
     }
-    final tireLogs = await _dbHelper.getLatestTireLogsForVehicle(vehicleId);
 
     RefuelPredictionResult? refuelPred;
-    final currentVeh = _vehicles.where((v) => v.id == vehicleId).firstOrNull;
     if (currentVeh != null && (currentVeh.volumeReminderEnabled || currentVeh.distanceReminderEnabled)) {
       refuelPred = MileageCalculator.calculateRefuelPrediction(
         vehicle: currentVeh,
@@ -137,20 +161,14 @@ class _MaintenancePageState extends State<MaintenancePage>
     }
 
     if (mounted) {
-      final isBike = currentVeh?.type == VehicleType.motorcycle || currentVeh?.type == VehicleType.scooterOrMoped;
-      String nextPos = _selectedTirePosition;
-      if (isBike && (nextPos == 'FL' || nextPos == 'FR' || nextPos == 'RL' || nextPos == 'RR')) {
-        nextPos = 'Front';
-      } else if (!isBike && (nextPos == 'Front' || nextPos == 'Rear')) {
-        nextPos = 'FL';
-      }
+      _syncTabController(supportsTires);
 
       setState(() {
         _tasks = tasks;
         _serviceSessions = sessions;
         _tires = tires;
         _tireLogs = tireLogs;
-        _selectedTirePosition = nextPos;
+        _selectedTirePosition = 'FL';
         _refuelPrediction = refuelPred;
         _currentOdo = maxOdo;
         _dailyKmRate = rate;
@@ -1333,6 +1351,7 @@ class _MaintenancePageState extends State<MaintenancePage>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final showTiresTab = _showTiresTab;
 
     return Scaffold(
       appBar: AppBar(
@@ -1356,10 +1375,11 @@ class _MaintenancePageState extends State<MaintenancePage>
               icon: const Icon(Icons.build_outlined, size: 20),
               text: l10n.tasksAndReminders,
             ),
-            const Tab(
-              icon: Icon(Icons.tire_repair, size: 20),
-              text: 'Tires & Wheels',
-            ),
+            if (showTiresTab)
+              const Tab(
+                icon: Icon(Icons.tire_repair, size: 20),
+                text: 'Tires & Wheels',
+              ),
             Tab(
               icon: const Icon(Icons.history, size: 20),
               text: l10n.serviceHistory,
@@ -1405,8 +1425,10 @@ class _MaintenancePageState extends State<MaintenancePage>
                                     }).toList(),
                                     onChanged: (id) {
                                       if (id != null && id != _selectedVehicleId) {
+                                        final nextVeh = _vehicles.where((v) => v.id == id).firstOrNull;
                                         setState(() {
                                           _selectedVehicleId = id;
+                                          _syncTabController(nextVeh?.supportsTireTracking ?? true);
                                         });
                                         _loadTasksForVehicle(id);
                                       }
@@ -1674,10 +1696,10 @@ class _MaintenancePageState extends State<MaintenancePage>
                           );
                         }(),
 
-                        // Tab 2: Tires & Wheels
-                        _buildTiresTab(context),
+                        // Tab 2: Tires & Wheels (only for 4-wheel vehicles)
+                        if (showTiresTab) _buildTiresTab(context),
 
-                        // Tab 3: Service History List
+                        // Tab 3 (or 2): Service History List
                         _serviceSessions.isEmpty
                             ? Center(
                                 child: Padding(

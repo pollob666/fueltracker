@@ -11,6 +11,7 @@ class IntervalResult {
   final FuelRecord record;
   final double distance;
   final double consumedVolume;
+  final double consumedCost;
   final double? mileage;
   final bool isValidFullTank;
   final bool isPartial;
@@ -20,6 +21,7 @@ class IntervalResult {
     required this.record,
     required this.distance,
     required this.consumedVolume,
+    required this.consumedCost,
     required this.mileage,
     required this.isValidFullTank,
     required this.isPartial,
@@ -54,11 +56,13 @@ class MileageCalculator {
     FuelRecord? baselineRecord;
     bool hasValidBaseline = false;
     double pendingPartialVolume = 0.0;
+    double pendingPartialCost = 0.0;
 
     for (final record in sorted) {
       if (record.missedPrevious) {
         // Gap in data: previous fills were missed. Discard pending partials and reset baseline.
         pendingPartialVolume = 0.0;
+        pendingPartialCost = 0.0;
         if (record.isFullTank) {
           baselineRecord = record;
           hasValidBaseline = true;
@@ -71,6 +75,7 @@ class MileageCalculator {
           record: record,
           distance: 0.0,
           consumedVolume: record.volume,
+          consumedCost: record.basePaidAmount,
           mileage: null,
           isValidFullTank: false,
           isPartial: !record.isFullTank,
@@ -84,10 +89,12 @@ class MileageCalculator {
           baselineRecord = record;
           hasValidBaseline = true;
           pendingPartialVolume = 0.0;
+          pendingPartialCost = 0.0;
           results.add(IntervalResult(
             record: record,
             distance: 0.0,
             consumedVolume: record.volume,
+            consumedCost: record.basePaidAmount,
             mileage: null,
             isValidFullTank: false,
             isPartial: false,
@@ -95,10 +102,12 @@ class MileageCalculator {
           ));
         } else {
           pendingPartialVolume += record.volume;
+          pendingPartialCost += record.basePaidAmount;
           results.add(IntervalResult(
             record: record,
             distance: 0.0,
             consumedVolume: record.volume,
+            consumedCost: record.basePaidAmount,
             mileage: null,
             isValidFullTank: false,
             isPartial: true,
@@ -110,12 +119,14 @@ class MileageCalculator {
 
       // We have a valid baseline
       if (!record.isFullTank) {
-        // Intermediate partial fill: accumulate volume
+        // Intermediate partial fill: accumulate volume and cost
         pendingPartialVolume += record.volume;
+        pendingPartialCost += record.basePaidAmount;
         results.add(IntervalResult(
           record: record,
           distance: 0.0,
           consumedVolume: record.volume,
+          consumedCost: record.basePaidAmount,
           mileage: null,
           isValidFullTank: false,
           isPartial: true,
@@ -134,10 +145,12 @@ class MileageCalculator {
           // Negative or zero distance (anomaly or odometer reset)
           baselineRecord = record;
           pendingPartialVolume = 0.0;
+          pendingPartialCost = 0.0;
           results.add(IntervalResult(
             record: record,
             distance: distance,
             consumedVolume: record.volume + pendingPartialVolume,
+            consumedCost: record.basePaidAmount + pendingPartialCost,
             mileage: null,
             isValidFullTank: false,
             isPartial: false,
@@ -145,6 +158,7 @@ class MileageCalculator {
           ));
         } else {
           final totalConsumedVolume = pendingPartialVolume + record.volume;
+          final totalConsumedCost = pendingPartialCost + record.basePaidAmount;
           final double? mileage = totalConsumedVolume > 0
               ? distance / totalConsumedVolume
               : null;
@@ -153,6 +167,7 @@ class MileageCalculator {
             record: record,
             distance: distance,
             consumedVolume: totalConsumedVolume,
+            consumedCost: totalConsumedCost,
             mileage: mileage,
             isValidFullTank: true,
             isPartial: false,
@@ -161,6 +176,7 @@ class MileageCalculator {
 
           // Reset baseline for the next cycle
           pendingPartialVolume = 0.0;
+          pendingPartialCost = 0.0;
           baselineRecord = record;
         }
       }
@@ -205,16 +221,33 @@ class MileageCalculator {
     return 0.0;
   }
 
-  /// Calculates average cost per distance unit across all records.
+  /// Calculates average cost per distance unit across all eligible intervals (post-baseline).
   static double calculateCostPerKm(List<FuelRecord> records) {
     if (records.length < 2) return 0.0;
 
-    final sorted = sortChronological(records);
-    final double totalCost = sorted.map((r) => r.basePaidAmount).reduce((a, b) => a + b);
-    final double totalDistance = sorted.last.odometer - sorted.first.odometer;
+    final intervals = calculateIntervalResults(records);
+    double totalDistance = 0.0;
+    double totalConsumedCost = 0.0;
 
-    if (totalDistance <= 0) return 0.0;
-    return totalCost / totalDistance;
+    for (final item in intervals) {
+      if (item.isValidFullTank && item.distance > 0 && item.consumedCost > 0) {
+        totalDistance += item.distance;
+        totalConsumedCost += item.consumedCost;
+      }
+    }
+
+    if (totalDistance > 0 && totalConsumedCost > 0) {
+      return totalConsumedCost / totalDistance;
+    }
+
+    // Fallback if no complete full-to-full cycle yet:
+    final sorted = sortChronological(records);
+    final totalDistanceAll = sorted.last.odometer - sorted.first.odometer;
+    if (totalDistanceAll <= 0) return 0.0;
+    final postBaselineCost = sorted.skip(1).map((r) => r.basePaidAmount).fold(0.0, (a, b) => a + b);
+    return postBaselineCost > 0
+        ? postBaselineCost / totalDistanceAll
+        : sorted.map((r) => r.basePaidAmount).reduce((a, b) => a + b) / totalDistanceAll;
   }
 
   /// Calculates average distance traveled per day between first and last record.
@@ -256,8 +289,24 @@ class MileageCalculator {
 
   /// Calculates weighted running average for records matching a specific driving condition.
   static double calculateConditionAverage(List<FuelRecord> records, DrivingCondition condition) {
-    final filtered = records.where((r) => r.drivingCondition == condition).toList();
-    return calculateWeightedRunningAverage(filtered);
+    if (records.length < 2) return 0.0;
+
+    final intervals = calculateIntervalResults(records);
+    double condDistance = 0.0;
+    double condVolume = 0.0;
+
+    for (final item in intervals) {
+      if (item.isValidFullTank &&
+          item.record.drivingCondition == condition &&
+          item.distance > 0 &&
+          item.consumedVolume > 0) {
+        condDistance += item.distance;
+        condVolume += item.consumedVolume;
+      }
+    }
+
+    if (condVolume <= 0) return 0.0;
+    return condDistance / condVolume;
   }
 
   /// Calculates predictive fuel level and range forecasting for a given vehicle.
@@ -539,18 +588,41 @@ class MileageCalculator {
       totalVolume += record.volume;
     }
 
+    double postBaselineCo2 = 0.0;
     if (records.isNotEmpty) {
       final sorted = sortChronological(records);
       final intervals = calculateIntervalResults(sorted);
       for (final interval in intervals) {
-        totalDistance += interval.distance;
+        if (interval.isValidFullTank && interval.distance > 0) {
+          totalDistance += interval.distance;
+          final fuelType = fuelTypeMap?[interval.record.fuelTypeId];
+          double factor = 2.31;
+          if (fuelType != null) {
+            switch (fuelType.category) {
+              case FuelCategory.diesel:
+                factor = 2.68;
+                break;
+              case FuelCategory.gas:
+                factor = fuelType.name.toLowerCase().contains('lpg') ? 1.51 : 2.75;
+                break;
+              case FuelCategory.gasoline:
+                factor = 2.31;
+                break;
+              case FuelCategory.electricity:
+                factor = 0.0;
+                break;
+            }
+          }
+          postBaselineCo2 += interval.consumedVolume * factor;
+        }
       }
     }
 
     double? gramsPerKm;
     String ecoRating = 'N/A';
     if (totalDistance > 0) {
-      gramsPerKm = (totalCo2 * 1000.0) / totalDistance;
+      final effectiveCo2 = postBaselineCo2 > 0 ? postBaselineCo2 : totalCo2;
+      gramsPerKm = (effectiveCo2 * 1000.0) / totalDistance;
       if (gramsPerKm < 120) {
         ecoRating = 'A+';
       } else if (gramsPerKm < 160) {

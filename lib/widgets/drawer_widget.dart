@@ -3,6 +3,7 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/pages/add_data_page.dart';
@@ -15,16 +16,17 @@ import 'package:fuel_tracker/pages/maintenance_page.dart';
 import 'package:fuel_tracker/pages/manage_vehicles_page.dart';
 import 'package:fuel_tracker/pages/saved_locations_page.dart';
 import 'package:fuel_tracker/pages/settings_page.dart';
+import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/utils/shared_axis_page_route.dart';
 
-class MyDrawer extends StatefulWidget {
+class MyDrawer extends ConsumerStatefulWidget {
   const MyDrawer({super.key});
 
   @override
-  State<MyDrawer> createState() => _MyDrawerState();
+  ConsumerState<MyDrawer> createState() => _MyDrawerState();
 }
 
-class _MyDrawerState extends State<MyDrawer> {
+class _MyDrawerState extends ConsumerState<MyDrawer> {
   int _selectedIndex = 0;
   bool _hasAnyRoutine = false;
 
@@ -47,6 +49,7 @@ class _MyDrawerState extends State<MyDrawer> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final hasRoutine = ref.watch(hasEnabledRoutinesProvider).value ?? _hasAnyRoutine;
 
     return Drawer(
       backgroundColor: colorScheme.surface,
@@ -146,7 +149,7 @@ class _MyDrawerState extends State<MyDrawer> {
                       builder: (context) => const ManageVehiclesPage()));
             },
           ),
-          if (_hasAnyRoutine)
+          if (hasRoutine)
             ListTile(
               leading: const Icon(Icons.build_outlined),
               title: Text(AppLocalizations.of(context)!.maintenance),

@@ -2,6 +2,7 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/repositories/vehicle_repository.dart';
 
@@ -89,4 +90,9 @@ final activeVehicleProvider = Provider<Vehicle?>((ref) {
     },
     orElse: () => null,
   );
+});
+
+final hasEnabledRoutinesProvider = FutureProvider<bool>((ref) async {
+  ref.watch(vehiclesProvider);
+  return await DatabaseHelper.instance.hasAnyEnabledRoutine();
 });

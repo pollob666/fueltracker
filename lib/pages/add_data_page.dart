@@ -1231,208 +1231,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     },
                   ),
                   _buildAttachmentCard(context),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        final double enteredOdometer =
-                            double.parse(_odometerController.text);
-                        final double finalVolume =
-                            double.tryParse(_volumeController.text) ?? _volume;
-                        final double? tripDist =
-                            _tripDistanceController.text.isNotEmpty
-                                ? double.tryParse(_tripDistanceController.text)
-                                : null;
-                        final double? secTripDist =
-                            _secondaryTripDistanceController.text.isNotEmpty
-                                ? double.tryParse(
-                                    _secondaryTripDistanceController.text)
-                                : null;
-
-                        if (_isEditing) {
-                          final allRecords =
-                              await DatabaseHelper.instance.getFuelRecords();
-                          final otherVehicleRecords = allRecords
-                              .where((r) =>
-                                  r.vehicleId == _selectedVehicleId &&
-                                  r.id != widget.recordToEdit!.id)
-                              .toList();
-                          otherVehicleRecords
-                              .sort((a, b) => a.date.compareTo(b.date));
-
-                          final prevRecords = otherVehicleRecords
-                              .where((r) => r.date.isBefore(_selectedDate))
-                              .toList();
-                          final nextRecords = otherVehicleRecords
-                              .where((r) => r.date.isAfter(_selectedDate))
-                              .toList();
-
-                          final double? prevOdo = prevRecords.isNotEmpty
-                              ? prevRecords.last.odometer
-                              : null;
-                          final double? nextOdo = nextRecords.isNotEmpty
-                              ? nextRecords.first.odometer
-                              : null;
-
-                          String? warningMessage;
-                          if (prevOdo != null && enteredOdometer < prevOdo) {
-                            warningMessage =
-                                'Entered odometer (${enteredOdometer.toStringAsFixed(2)}) is lower than previous record (${prevOdo.toStringAsFixed(2)}). Continue?';
-                          } else if (nextOdo != null &&
-                              enteredOdometer > nextOdo) {
-                            warningMessage =
-                                'Entered odometer (${enteredOdometer.toStringAsFixed(2)}) is higher than subsequent record (${nextOdo.toStringAsFixed(2)}). Continue?';
-                          }
-
-                          if (warningMessage != null) {
-                            if (!context.mounted) return;
-                            final bool? proceed = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: Text(AppLocalizations.of(ctx)!
-                                    .odometerWarningTitle),
-                                content: Text(warningMessage!),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(false),
-                                    child:
-                                        Text(AppLocalizations.of(ctx)!.cancel),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(true),
-                                    child:
-                                        Text(AppLocalizations.of(ctx)!.confirm),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (proceed != true) return;
-                          }
-
-                          final updatedRecord = widget.recordToEdit!.copyWith(
-                            date: _selectedDate,
-                            odometer: enteredOdometer,
-                            fuelTypeId: _selectedFuelTypeId!,
-                            vehicleId: _selectedVehicleId!,
-                            rate: double.parse(_rateController.text),
-                            volume: finalVolume,
-                            paidAmount:
-                                double.parse(_paidAmountController.text),
-                            isFullTank: _isElectricSession ? true : _isFullTank,
-                            missedPrevious: _isElectricSession ? false : _missedPrevious,
-                            tripDistance: tripDist,
-                            secondaryTripDistance: secTripDist,
-                            drivingCondition: _drivingCondition,
-                            locationId: _selectedLocation?.id,
-                            latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
-                            longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
-                            receiptImagePath: _receiptImagePath,
-                            odometerImagePath: _odometerImagePath,
-                            currencyCode: _currencyCode,
-                            exchangeRateToBase: double.tryParse(_exchangeRateController.text) ?? 1.0,
-                            energyKwh: _isElectricSession ? finalVolume : null,
-                            socStart: _isElectricSession ? double.tryParse(_socStartController.text) : null,
-                            socEnd: _isElectricSession ? double.tryParse(_socEndController.text) : null,
-                            chargingPowerKw: _isElectricSession ? double.tryParse(_chargingPowerController.text) : null,
-                            chargeType: _isElectricSession ? _chargeType : null,
-                          );
-
-                          await ref
-                              .read(fuelRecordRepositoryProvider)
-                              .updateFuelRecord(updatedRecord);
-                          await _rescheduleReminderForVehicle(_selectedVehicleId!);
-                          await _clearFormDraft();
-                          if (!context.mounted) return;
-                          Navigator.of(context).pop(true);
-                        } else {
-                          final allRecords =
-                              await DatabaseHelper.instance.getFuelRecords();
-                          final vehicleRecords = allRecords
-                              .where((r) => r.vehicleId == _selectedVehicleId)
-                              .toList();
-                          if (vehicleRecords.isNotEmpty) {
-                            vehicleRecords
-                                .sort((a, b) => a.date.compareTo(b.date));
-                            final latestOdometer = vehicleRecords.last.odometer;
-                            if (enteredOdometer <= latestOdometer) {
-                              if (!context.mounted) return;
-                              final bool? proceed = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(AppLocalizations.of(ctx)!
-                                      .odometerWarningTitle),
-                                  content: Text(AppLocalizations.of(ctx)!
-                                      .odometerWarningMessage(
-                                    enteredOdometer.toStringAsFixed(2),
-                                    latestOdometer.toStringAsFixed(2),
-                                  )),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(false),
-                                      child:
-                                          Text(AppLocalizations.of(ctx)!.cancel),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(true),
-                                      child:
-                                          Text(AppLocalizations.of(ctx)!.confirm),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (proceed != true) return;
-                            }
-                          }
-
-                          await _saveLastValues();
-                          FuelRecord record = FuelRecord(
-                            date: _selectedDate,
-                            odometer: enteredOdometer,
-                            fuelTypeId: _selectedFuelTypeId!,
-                            vehicleId: _selectedVehicleId!,
-                            rate: double.parse(_rateController.text),
-                            volume: finalVolume,
-                            paidAmount:
-                                double.parse(_paidAmountController.text),
-                            isFullTank: _isElectricSession ? true : _isFullTank,
-                            missedPrevious: _isElectricSession ? false : _missedPrevious,
-                            tripDistance: tripDist,
-                            secondaryTripDistance: secTripDist,
-                            drivingCondition: _drivingCondition,
-                            locationId: _selectedLocation?.id,
-                            latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
-                            longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
-                            receiptImagePath: _receiptImagePath,
-                            odometerImagePath: _odometerImagePath,
-                            currencyCode: _currencyCode,
-                            exchangeRateToBase: double.tryParse(_exchangeRateController.text) ?? 1.0,
-                            energyKwh: _isElectricSession ? finalVolume : null,
-                            socStart: _isElectricSession ? double.tryParse(_socStartController.text) : null,
-                            socEnd: _isElectricSession ? double.tryParse(_socEndController.text) : null,
-                            chargingPowerKw: _isElectricSession ? double.tryParse(_chargingPowerController.text) : null,
-                            chargeType: _isElectricSession ? _chargeType : null,
-                          );
-                          await ref
-                              .read(fuelRecordRepositoryProvider)
-                              .insertFuelRecord(record);
-                          await _rescheduleReminderForVehicle(_selectedVehicleId!);
-                          await _clearFormDraft();
-                          if (AppSettings.adsEnabled) {
-                            _interstitialAdService.showAd();
-                          }
-                          if (!context.mounted) return;
-                          Navigator.of(context).pop(true);
-                        }
-                      }
-                    },
-                    child: Text(_isEditing
-                        ? 'Update'
-                        : AppLocalizations.of(context)!.save),
-                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -1441,7 +1240,202 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
       ),
     ),
   ),
-  bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
-);
+  bottomNavigationBar: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  onPressed: _submitRecord,
+                  child: Text(
+                    _isEditing ? 'Update' : AppLocalizations.of(context)!.save,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            if (AppSettings.adsEnabled) const BannerAdWidget(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitRecord() async {
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please correct the errors in the form.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final double enteredOdometer = double.parse(_odometerController.text);
+    final double finalVolume = double.tryParse(_volumeController.text) ?? _volume;
+    final double? tripDist = _tripDistanceController.text.isNotEmpty
+        ? double.tryParse(_tripDistanceController.text)
+        : null;
+    final double? secTripDist = _secondaryTripDistanceController.text.isNotEmpty
+        ? double.tryParse(_secondaryTripDistanceController.text)
+        : null;
+
+    if (_isEditing) {
+      final allRecords = await DatabaseHelper.instance.getFuelRecords();
+      final otherVehicleRecords = allRecords
+          .where((r) =>
+              r.vehicleId == _selectedVehicleId &&
+              r.id != widget.recordToEdit!.id)
+          .toList();
+      otherVehicleRecords.sort((a, b) => a.date.compareTo(b.date));
+
+      final prevRecords =
+          otherVehicleRecords.where((r) => r.date.isBefore(_selectedDate)).toList();
+      final nextRecords =
+          otherVehicleRecords.where((r) => r.date.isAfter(_selectedDate)).toList();
+
+      final double? prevOdo =
+          prevRecords.isNotEmpty ? prevRecords.last.odometer : null;
+      final double? nextOdo =
+          nextRecords.isNotEmpty ? nextRecords.first.odometer : null;
+
+      String? warningMessage;
+      if (prevOdo != null && enteredOdometer < prevOdo) {
+        warningMessage =
+            'Entered odometer (${enteredOdometer.toStringAsFixed(2)}) is lower than previous record (${prevOdo.toStringAsFixed(2)}). Continue?';
+      } else if (nextOdo != null && enteredOdometer > nextOdo) {
+        warningMessage =
+            'Entered odometer (${enteredOdometer.toStringAsFixed(2)}) is higher than subsequent record (${nextOdo.toStringAsFixed(2)}). Continue?';
+      }
+
+      if (warningMessage != null) {
+        if (!context.mounted) return;
+        final bool? proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(AppLocalizations.of(ctx)!.odometerWarningTitle),
+            content: Text(warningMessage!),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(AppLocalizations.of(ctx)!.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(AppLocalizations.of(ctx)!.confirm),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+      }
+
+      final updatedRecord = widget.recordToEdit!.copyWith(
+        date: _selectedDate,
+        odometer: enteredOdometer,
+        fuelTypeId: _selectedFuelTypeId!,
+        vehicleId: _selectedVehicleId!,
+        rate: double.parse(_rateController.text),
+        volume: finalVolume,
+        paidAmount: double.parse(_paidAmountController.text),
+        isFullTank: _isElectricSession ? true : _isFullTank,
+        missedPrevious: _isElectricSession ? false : _missedPrevious,
+        tripDistance: tripDist,
+        secondaryTripDistance: secTripDist,
+        drivingCondition: _drivingCondition,
+        locationId: _selectedLocation?.id,
+        latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
+        longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
+        receiptImagePath: _receiptImagePath,
+        odometerImagePath: _odometerImagePath,
+        currencyCode: _currencyCode,
+        exchangeRateToBase: double.tryParse(_exchangeRateController.text) ?? 1.0,
+        energyKwh: _isElectricSession ? finalVolume : null,
+        socStart: _isElectricSession ? double.tryParse(_socStartController.text) : null,
+        socEnd: _isElectricSession ? double.tryParse(_socEndController.text) : null,
+        chargingPowerKw: _isElectricSession ? double.tryParse(_chargingPowerController.text) : null,
+        chargeType: _isElectricSession ? _chargeType : null,
+      );
+
+      await ref.read(fuelRecordRepositoryProvider).updateFuelRecord(updatedRecord);
+      await _rescheduleReminderForVehicle(_selectedVehicleId!);
+      await _clearFormDraft();
+      if (!context.mounted) return;
+      Navigator.of(context).pop(true);
+    } else {
+      final allRecords = await DatabaseHelper.instance.getFuelRecords();
+      final vehicleRecords =
+          allRecords.where((r) => r.vehicleId == _selectedVehicleId).toList();
+      if (vehicleRecords.isNotEmpty) {
+        vehicleRecords.sort((a, b) => a.date.compareTo(b.date));
+        final latestOdometer = vehicleRecords.last.odometer;
+        if (enteredOdometer <= latestOdometer) {
+          if (!context.mounted) return;
+          final bool? proceed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(AppLocalizations.of(ctx)!.odometerWarningTitle),
+              content: Text(AppLocalizations.of(ctx)!.odometerWarningMessage(
+                enteredOdometer.toStringAsFixed(2),
+                latestOdometer.toStringAsFixed(2),
+              )),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(AppLocalizations.of(ctx)!.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(AppLocalizations.of(ctx)!.confirm),
+                ),
+              ],
+            ),
+          );
+          if (proceed != true) return;
+        }
+      }
+
+      await _saveLastValues();
+      FuelRecord record = FuelRecord(
+        date: _selectedDate,
+        odometer: enteredOdometer,
+        fuelTypeId: _selectedFuelTypeId!,
+        vehicleId: _selectedVehicleId!,
+        rate: double.parse(_rateController.text),
+        volume: finalVolume,
+        paidAmount: double.parse(_paidAmountController.text),
+        isFullTank: _isElectricSession ? true : _isFullTank,
+        missedPrevious: _isElectricSession ? false : _missedPrevious,
+        tripDistance: tripDist,
+        secondaryTripDistance: secTripDist,
+        drivingCondition: _drivingCondition,
+        locationId: _selectedLocation?.id,
+        latitude: _capturedPosition?.latitude ?? _selectedLocation?.latitude,
+        longitude: _capturedPosition?.longitude ?? _selectedLocation?.longitude,
+        receiptImagePath: _receiptImagePath,
+        odometerImagePath: _odometerImagePath,
+        currencyCode: _currencyCode,
+        exchangeRateToBase: double.tryParse(_exchangeRateController.text) ?? 1.0,
+        energyKwh: _isElectricSession ? finalVolume : null,
+        socStart: _isElectricSession ? double.tryParse(_socStartController.text) : null,
+        socEnd: _isElectricSession ? double.tryParse(_socEndController.text) : null,
+        chargingPowerKw: _isElectricSession ? double.tryParse(_chargingPowerController.text) : null,
+        chargeType: _isElectricSession ? _chargeType : null,
+      );
+      await ref.read(fuelRecordRepositoryProvider).insertFuelRecord(record);
+      await _rescheduleReminderForVehicle(_selectedVehicleId!);
+      await _clearFormDraft();
+      if (AppSettings.adsEnabled) {
+        _interstitialAdService.showAd();
+      }
+      if (!context.mounted) return;
+      Navigator.of(context).pop(true);
+    }
   }
 }

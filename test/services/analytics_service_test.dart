@@ -167,7 +167,7 @@ void main() {
 
       expect(summary.city.recordCount, 1);
       expect(summary.highway.recordCount, 1);
-      expect(summary.mixed.recordCount, 2);
+      expect(summary.mixed.recordCount, 1); // Anchor record excluded from interval analytics (CRIT-01 fix)
 
       expect(summary.city.totalVolume, 32.0);
       expect(summary.highway.totalVolume, 35.0);
@@ -190,18 +190,18 @@ void main() {
         fuelTypeMap: fuelTypeMap,
       );
 
-      // Total volume: 30 + 32 + 35 + 33 = 130 L
+      // Total cumulative volume: 30 + 32 + 35 + 33 = 130 L
       // Factor for gasoline: 2.31 kg/L
       // 130 * 2.31 = 300.3 kg CO2
       expect(footprint.totalVolume, 130.0);
       expect(footprint.totalCo2Kg, closeTo(300.3, 0.01));
 
-      // Distance: 400 + 400 + 500 = 1300 km
+      // Post-baseline interval distance: 400 + 400 + 500 = 1300 km
       expect(footprint.totalDistance, 1300.0);
 
-      // Grams per km: 300.3 * 1000 / 1300 = 231 g/km (Class C)
-      expect(footprint.gramsCo2PerKm, closeTo(231.0, 0.1));
-      expect(footprint.ecoRating, 'C');
+      // Grams per km over post-baseline intervals: (100 L consumed * 2.31 kg/L * 1000) / 1300 km = 177.69 g/km (Class B)
+      expect(footprint.gramsCo2PerKm, closeTo(177.69, 0.1));
+      expect(footprint.ecoRating, 'B');
 
       // Tree offset: 300.3 / 22 = ceil(13.65) = 14 trees
       expect(footprint.treeOffsetCount, 14);
