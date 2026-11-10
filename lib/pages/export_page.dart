@@ -693,7 +693,7 @@ class _ExportPageState extends State<ExportPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Your data is protected with AES-256-CBC and PBKDF2 key derivation. Choose a strong master password.',
+                      'Your data is protected with AES-256-GCM and PBKDF2 key derivation (600,000 rounds). Choose a strong master password.',
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(height: 16),
@@ -790,14 +790,16 @@ class _ExportPageState extends State<ExportPage> {
   }
 
   Future<void> _restoreFromFile(File file) async {
-    final fileContent = await file.readAsString();
-    EncryptedBackupBundle bundle;
+    Uint8List fileBytes;
     try {
-      bundle = EncryptedBackupBundle.fromJson(fileContent);
+      fileBytes = await file.readAsBytes();
+      if (fileBytes.isEmpty) {
+        throw const BackupCorruptHeaderException('The selected backup file is empty.');
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid backup archive: $e')),
+          SnackBar(content: Text('Failed to read backup file: $e')),
         );
       }
       return;
@@ -855,10 +857,24 @@ class _ExportPageState extends State<ExportPage> {
 
     Map<String, dynamic> payload;
     try {
-      payload = BackupEncryptionService.decryptBackup(
-        bundle: bundle,
+      payload = await BackupEncryptionService.decryptBackup(
+        backup: fileBytes,
         password: enteredPassword,
       );
+    } on BackupAuthenticationException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+      return;
+    } on BackupDecryptionException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+      return;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1744,7 +1760,7 @@ class _ExportPageState extends State<ExportPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Full-fidelity zero-knowledge backups protected with PBKDF2 (100,000 rounds) and AES-256-CBC. Includes vehicle records, service logs, receipts, and odometer photos.',
+                        'Full-fidelity zero-knowledge backups protected with PBKDF2 (600,000 rounds) and AES-256-GCM. Includes vehicle records, service logs, receipts, and odometer photos.',
                         style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 18),
