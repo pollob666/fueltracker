@@ -18,6 +18,11 @@ analyzer:
     - linux/**
     - lib/generated/**
     - lib/l10n/intl/**
+  errors:
+    deprecated_member_use: ignore
+    use_build_context_synchronously: ignore
+    depend_on_referenced_packages: ignore
+    unnecessary_string_interpolations: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:

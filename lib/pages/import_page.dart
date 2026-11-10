@@ -11,7 +11,6 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
-import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
@@ -38,8 +37,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   String? _fileName;
   int _fileSizeBytes = 0;
 
-  // Single JSON State
+  // Single JSON / ZIP State
   bool _isJsonBackup = false;
+  bool _isZipBackup = false;
+  String _progressStatus = '';
   BackupValidationSummary? _validationSummary;
   Map<String, dynamic>? _jsonPayload;
   final Set<ImportCategory> _selectedCategories = {
@@ -63,7 +64,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<void> _pickFile() async {
     final PlatformFile? file = await FilePicker.pickFile(
       type: FileType.custom,
-      allowedExtensions: ['json', 'csv'],
+      allowedExtensions: ['json', 'csv', 'zip'],
       dialogTitle: 'Select FuelTracker Backup or CSV',
     );
 
@@ -84,11 +85,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     try {
       final file = File(_filePath!);
-      final content = await file.readAsString();
+      final lower = _filePath!.toLowerCase();
 
-      if (_filePath!.toLowerCase().endsWith('.json')) {
+      if (lower.endsWith('.zip')) {
+        await _handleZipFile(file);
+      } else if (lower.endsWith('.json')) {
+        final content = await file.readAsString();
         _handleJsonContent(content);
       } else {
+        final content = await file.readAsString();
         _handleCsvContent(content);
       }
     } catch (e) {
@@ -99,11 +104,51 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
   }
 
+  Future<void> _handleZipFile(File file) async {
+    try {
+      final summary = await UnifiedBackupService.validateBackupArchive(file);
+      if (summary.isValid) {
+        setState(() {
+          _isJsonBackup = true;
+          _isZipBackup = true;
+          _validationSummary = summary;
+          _jsonPayload = null;
+          _previewData = [];
+        });
+      } else {
+        setState(() {
+          _isJsonBackup = false;
+          _isZipBackup = false;
+          _validationSummary = null;
+          _jsonPayload = null;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(summary.errorMessage ?? 'Invalid ZIP backup.')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isJsonBackup = false;
+        _isZipBackup = false;
+        _validationSummary = null;
+        _jsonPayload = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to read ZIP backup: $e')),
+        );
+      }
+    }
+  }
+
   void _handleJsonContent(String content) {
     final summary = UnifiedBackupService.validateBackupPayload(content);
     if (summary.isValid) {
       setState(() {
         _isJsonBackup = true;
+        _isZipBackup = false;
         _validationSummary = summary;
         _jsonPayload = jsonDecode(content) as Map<String, dynamic>;
         _previewData = [];
@@ -111,6 +156,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     } else {
       setState(() {
         _isJsonBackup = false;
+        _isZipBackup = false;
         _validationSummary = null;
         _jsonPayload = null;
       });
@@ -128,6 +174,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       if (csvTable.isNotEmpty) {
         setState(() {
           _isJsonBackup = false;
+          _isZipBackup = false;
           _validationSummary = null;
           _jsonPayload = null;
           _previewData = csvTable;
@@ -147,16 +194,33 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   Future<void> _startJsonImport() async {
-    if (_jsonPayload == null) return;
+    if (!_isZipBackup && _jsonPayload == null) return;
 
-    setState(() => _importing = true);
+    setState(() {
+      _importing = true;
+      _progressStatus = 'Preparing import...';
+    });
 
     try {
-      final result = await UnifiedBackupService.executeImport(
-        payload: _jsonPayload!,
-        selectedCategories: _selectedCategories,
-        conflictStrategy: _conflictStrategy,
-      );
+      final ImportExecutionResult result;
+      if (_isZipBackup) {
+        result = await UnifiedBackupService.executeImportFromArchive(
+          archiveFile: File(_filePath!),
+          selectedCategories: _selectedCategories,
+          conflictStrategy: _conflictStrategy,
+          onProgress: (current, total, status) {
+            if (mounted) {
+              setState(() => _progressStatus = status);
+            }
+          },
+        );
+      } else {
+        result = await UnifiedBackupService.executeImport(
+          payload: _jsonPayload!,
+          selectedCategories: _selectedCategories,
+          conflictStrategy: _conflictStrategy,
+        );
+      }
 
       if (!mounted) return;
 
@@ -308,12 +372,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     int locationCol = _findColumnIndex(headers, [
       'Location Name', 'Location', 'location', 'Station', 'station',
     ]);
-    int latCol = _findColumnIndex(headers, [
-      'Latitude', 'latitude', 'lat',
-    ]);
-    int lngCol = _findColumnIndex(headers, [
-      'Longitude', 'longitude', 'lng',
-    ]);
 
     if (dateCol == -1 || odoCol == -1 || vehicleCol == -1 || fuelTypeCol == -1 ||
         rateCol == -1 || volumeCol == -1 || paidCol == -1) {
@@ -415,7 +473,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         vehicleId: vehicle.id!,
         date: date,
         odometer: odo,
-        fuelTypeId: fuelType!.id!,
+        fuelTypeId: fuelType.id!,
         rate: rate,
         volume: volume,
         paidAmount: paid,
@@ -448,9 +506,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final vehicleCol = _findColumnIndex(headers, ['Vehicle', 'vehicle']);
     final workshopCol = _findColumnIndex(headers, ['Workshop', 'workshop']);
     final totalCostCol = _findColumnIndex(headers, ['Total Cost', 'totalCost']);
-    final taskCol = _findColumnIndex(headers, ['Task', 'task']);
-    final brandCol = _findColumnIndex(headers, ['Brand / Spec', 'brand']);
-    final itemCostCol = _findColumnIndex(headers, ['Item Cost', 'itemCost']);
     final notesCol = _findColumnIndex(headers, ['Notes', 'notes']);
 
     int importedCount = 0;
@@ -841,7 +896,26 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
                 // Primary Import Button
                 if (_importing)
-                  const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          if (_progressStatus.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _progressStatus,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  )
                 else
                   SizedBox(
                     width: double.infinity,

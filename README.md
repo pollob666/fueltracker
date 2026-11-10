@@ -1,6 +1,6 @@
 # Fuel Tracker
 
-[![Build and Release APK](https://github.com/pollob666/fuel-tracker/actions/workflows/release.yml/badge.svg)](https://github.com/pollob666/fuel-tracker/actions/workflows/release.yml)
+[![Build and Release APK](https://github.com/pollob666/fueltracker/actions/workflows/release.yml/badge.svg)](https://github.com/pollob666/fueltracker/actions/workflows/release.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Fuel Consumption tracker by **[pollob666](https://github.com/pollob666)**
@@ -9,47 +9,69 @@ A Flutter-based mobile application to help users track their vehicle's fuel cons
 
 ## Download
 
-You can download the latest version of the application from the [GitHub Releases](https://github.com/pollob666/fuel-tracker/releases) page.
+You can download the latest version of the application from the [GitHub Releases](https://github.com/pollob666/fueltracker/releases) page.
 
-## Key Features:
+## Key Features
 
-*   **Tire Life, Tread Depth & Rotation Tracker:** Dedicated Tires tab in Maintenance for 4-wheel vehicles (hidden for Motorcycles & Scooters), interactive 4-wheel chassis schematic, remaining life forecasting based on $\text{mm} / 1000\text{ km}$ wear degradation, remaining legal distance projection (1.6mm legal threshold), rotation presets (FWD, RWD, Directional), and automated dashboard rotation reminder banners.
-*   **Multi-Currency & International Unit Engine:** Per-vehicle configuration with global fallback in `AppSettings` for Distance (`km`, `mi`), Fuel Volume (`L`, `gal US`, `gal UK`, `kWh`), Economy Metric (`km/L`, `L/100km`, `MPG US`, `MPG UK`, `km/kWh`), and multi-currency normalization with exchange rate conversions (`exchangeRateToBase`) ensuring consistent Total Cost of Ownership across mixed currencies.
-*   **Alternative Powertrain & EV Charging:** Architectural support for ICE, Hybrid, PHEV, and BEV with native `Electricity` fuel type, refuel form morphing (Start/End SoC %, charging speed kW, charging tiers), and zero tailpipe CO2 emission modeling.
-*   **Adaptive Master-Detail & Tablet Layout ($\ge 720\text{ dp}$):** Material 3 `NavigationRail` with persistent side navigation on wide displays, dual-pane Master-Detail layout (Left: Vehicle selector, telemetry, alerts, running averages; Right: Trends, daily averages, last refuel details, live tire chassis schematic), and responsive width-constrained form layouts.
-*   **Fuel Record Management:** Full CRUD lifecycle support—add, view, edit, and safely delete fuel records directly from the records table with soft anomaly confirmations.
-*   **Multi-Vehicle Support:** Add and manage multiple vehicles, each with specific fuel types and capacities, and set a default vehicle for quick data entry.
-*   **Immersive User Experience:** Graphical and welcoming prompts for first-time users to guide them through adding their first vehicle and getting started with the app.
-*   **Mileage Calculation:** Robust Full-to-Full calculation engine with support for partial fills, missed fill-ups, weighted running average ($\frac{\sum \Delta O}{\sum V}$ avoiding Simpson's Paradox skew), post-baseline per-distance intensity rates ($\frac{C_{\text{post}}}{\sum \Delta O_{\text{post}}}$, condition-segregated $\text{km/L}$, and $\text{g CO}_2/\text{km}$ eliminating initial baseline fill doubling), and bi-fuel trip distance recording.
-*   **Predictive Refuel Reminders & Range Forecasting:** Dual independent reminders per vehicle (Primary Fuel Volume threshold slider and Combined Distance-to-Empty threshold slider), intelligent Material 3 dashboard card with remaining fuel and range gauges, and scheduled 09:00 AM local Android notifications (`flutter_local_notifications`).
-*   **Periodic Maintenance & Service Reminders:** Optional per-task maintenance tracking (Engine Oil, Oil Filter, Air Filter, General Servicing) configured in vehicle settings, visual health progress cards, dual-mode completion (one-tap quick resets or detailed multi-task visit logging with item-level oil ("Mobil") and spare part brand tracking), full history CRUD (Edit/Delete via Bottom Sheet), unified Tasks & Reminders screen, conditional dashboard alert cards with [Do It] and [Mark Done] quick actions, dynamic reactive navigation drawer hiding (`hasEnabledRoutinesProvider`), CSV export/import parity, and scheduled push notifications.
-*   **Unified Location Management & Anomaly Flagging:** Always-on GPS capture on refueling and maintenance logging with 80-meter proximity clustering, station naming, and multi-station disambiguation. Automated mileage drop ($>15\%$) and boost ($>15\%$) anomaly detection against weighted historical running averages, interactive attribution candidate diagnostics, return warning badges (Amber ⚠️ Suspect Quality) and recognition badges (Green 🟢 High Efficiency), dedicated Saved Locations manager with unnamed toggle, and full CSV export/import parity.
-*   **Advanced Trip Meter & Driving Condition Analytics:** Configurable per-vehicle trip meter mode (None, Single Trip A, Dual Trip A/B), one-tap odometer auto-sync ($O = O_{\text{prev}} + \text{Trip}$), real-time non-blocking discrepancy warning chips ($|\Delta O - \text{Trip}| > 1.0\text{ km}$), driving condition tagging (City, Highway, Mixed), and condition-segregated mileage cards on the dashboard.
-*   **Odometer Anomaly Safeguard:** Real-time soft confirmation dialog preventing accidental entries when odometer readings are less than or equal to previous records.
-*   **Visual Analytics, Interactive Telemetry & Sparklines:** Dedicated visual telemetry dashboard powered by `fl_chart` with selectable time windows (`1 Month`, `3 Months`, `6 Months`, `1 Year`, `All Time`, and `[Custom Range]` date picker). Features multi-series fuel price fluctuation line charts with 30-day moving average smoothing and interactive spot tap-to-inspect bottom sheets (with direct one-tap jump to edit records), interval station efficiency variance scatter analysis with ±15% anomaly threshold bands and N-1 station attribution, driving condition consumption and cost segregation (City vs Highway vs Mixed), carbon footprint calculation with eco-ratings and tree sapling offset equivalents, and embedded 64dp mini sparkline preview cards on both the Dashboard and wide-screen Tablet right pane.
-*   **Material 3 Shared Axis Transitions & Motion:** Smooth, hardware-accelerated `SharedAxisPageRoute` transitions (`animations: ^2.0.11`) delivering fluid lateral sliding and scaling between the Dashboard, Refuel Entry, History, Analytics, and Maintenance screens.
-*   **Accessible Screen Reader Semantics:** Comprehensive WCAG 2.1 AA screen reader accessibility with explicit `Semantics(label: ..., button: true)` tags wrapping icon buttons, anomaly badges, and progress gauges.
-*   **Customizable Gas Category Measurement Units:** Global category fallback in `AppSettings` and per-fuel-type customization for GAS fuel types (CNG, LPG), supporting Cubic Meters (`m³`), Gasoline Gallon Equivalent (`GGE`), or Litres (`L`) with automatic form label morphing and calculation parity.
-*   **Ad-Free In-App Purchase (IAP) Architecture:** Official Play Store / App Store in-app purchase integration (`in_app_purchase: ^3.3.1`) featuring a reactive Riverpod state notifier (`isAdRemovedProvider`), persistent license storage in `SharedPreferences`, automatic suppression of banner and interstitial video ads, and a built-in development sandbox bypass for offline testing.
-*   **Redesigned History & Timeline Cards:** Overhauled `AllDataPage` with ergonomic Material 3 timeline cards, dynamic text search across station names and notes, date filter chips (All Dates, This Month, Last 3 Months, Custom Range), road condition selector chips, and a dual-view mode switcher toggling between timeline cards and classic tabular view.
-*   **Non-Fuel Expenses & Total Cost of Ownership (TCO):** Track all non-fuel vehicle expenses (Tolls, Parking, Car Wash, Insurance, Taxes, Fines, Other) with dedicated logging sheets, category chips, and odometer stamps. Visual analytics dashboard renders monthly stacked bar charts decomposing total ownership costs into Fuel, Service, and Non-Fuel expenditures alongside true all-inclusive cost-per-kilometer metrics ($\frac{\text{Fuel} + \text{Service} + \text{NonFuel}}{\sum \Delta O}$).
-*   **Printable PDF Tax & Fleet Expense Reports:** Compile audit-ready, high-resolution A4 PDF expense reports formatted for tax write-offs, employer reimbursement, and fleet management logs using `pdf` and `printing`. Reports include executive vehicle summary cards, total ownership cost KPI breakdowns, itemized refueling logs with station attribution, maintenance service history, non-fuel expense breakdowns, and formal driver/auditor verification signature sign-off blocks. Direct preview/print spooling and native share sheet dispatch are supported directly from the Export center.
-*   **Scoped Attachments & ML Kit OCR Vision:** Capture and attach photos of fuel dispenser LCDs, paper cash receipts, and odometer instrument clusters using `image_picker` and on-device text recognition with `google_mlkit_text_recognition`. An intelligent regex parser automatically extracts volume (L), unit price (rate), total paid amount, and odometer readings from photo previews with one-tap auto-fill into refueling forms. Attached receipts are safely persisted in app-scoped sandbox storage with interactive full-screen pinch-to-zoom inspection (`ImageLightboxDialog`).
-*   **Unified Single-File Backup & Android SAF Cloud Integration:** Single consolidated JSON backup format encapsulating vehicles, fuel types, refuel logs, service records, saved locations, non-fuel expenses, settings, and base64-encoded receipt photo attachments. Directly leverages Android's Storage Access Framework (`DocumentsUI`) to export to or import from Google Drive, Dropbox, Nextcloud, or device storage without proprietary cloud SDKs or paid plugins.
-*   **Automated Background Backup (WorkManager):** Headless background backup runner powered by `workmanager` executing periodic backups (configurable frequency: 1, 3, or 7 days, optional Wi-Fi only constraint). Maintains a revolving retention window of the latest 7 local backups in app storage and automatically uploads to configured WebDAV cloud endpoints.
-*   **Redesigned Validation Summary Import:** Executive validation dashboard analyzing incoming JSON backups prior to import (displaying vehicle count and names, refuel logs, maintenance sessions, expenses, locations, and settings readiness). Includes granular category checkboxes for selective restoration and transactional conflict resolution strategies: Overwrite Existing (default), Skip Existing, or Copy / Merge All with relational foreign key remapping.
-*   **Client-Side Encrypted Backups & WebDAV Cloud Sync:** Secure zero-knowledge backup archives (`.ftbackup`) encrypted client-side using authenticated AES-256-CBC and PBKDF2-HMAC-SHA256 key derivation (100,000 rounds with cryptographically secure random salt and IV). Archives encapsulate complete SQLite relational databases, app settings, and base64-encoded receipt/odometer photo attachments. Built-in WebDAV client enables direct automated connectivity, directory discovery (PROPFIND XML), and backup push/pull to self-hosted Nextcloud, ownCloud, or custom WebDAV endpoints.
-*   **Android Quick Actions & Home Screen Glance Widgets:** Instant interaction via Android dynamic launcher shortcuts (`quick_actions`) launching directly into "Log Refuel", "Log Service", or "Analytics" from the home screen icon. Native home screen Glance widget (`home_widget` & Kotlin `AppWidgetProvider`) displays real-time active vehicle telemetry, remaining fuel gauge, distance-to-empty (DTE) projections, odometer reading, and last refuel date with one-tap app launch.
-*   **Reactive State Architecture & Riverpod:** Reactive state management powered by `flutter_riverpod` with clean repository abstractions (`VehicleRepository`, `FuelRecordRepository`), decoupling database transactions from presentation and enabling broadcast stream auto-refreshing across dashboards.
-*   **Resilient CSV Import/Export & Dry-Run Inspector:** Pre-import dry-run preview modal bottom sheet with SHA-256 fingerprint duplicate detection, conflict resolution strategies (Skip, Overwrite, Merge), and complete attribute parity (Secondary Trip Distance, Driving Condition, Location Name, Coordinates).
-*   **Ergonomic Refuel Form & Dynamic System UI:** Fluid edge-to-edge system navigation (`SystemUiMode.edgeToEdge`) preserving Android 12+ Material 3 Monet dynamic color palettes, persistent sticky bottom navigation action bars (`bottomNavigationBar` inside `SafeArea`) with validation error feedback, bidirectional calculation lock toggles (Lock Rate, Lock Volume, Lock Paid Amount), and smooth auto-progression focus navigation.
-*   **Data Import/Export & Modern Sharing:** Import and export fuel data and service records in CSV and JSON formats with modern Android Scoped Storage compatibility and system share sheet integration (`share_plus`). Supports optional custom export directories, iPad popover origin safety, full attributes (`Full Tank`, `Missed Previous`, `Trip Distance`, part/oil brands, workshop, cost) with backward compatibility for legacy records, and auto-generated timestamped filenames with sequence numbering.
-*   **Dynamic Theming:** Adapts its color scheme to the user's system-level theme on Android for a personalized look and feel. Users can also manually switch between Light, Dark, and System themes.
-*   **Localization:** Supports multiple languages through the `intl` package.
-*   **Automated CI/CD:** A GitHub Actions workflow automatically builds and releases signed release and debug APKs whenever signed commits by the maintainer are pushed to the `master` branch.
-*   **Vehicle Management & Cascade Safeguards:** A dedicated page to list, edit, set a default vehicle, and safely delete vehicles. Deletion is safeguarded by atomic database transactions that cascade delete associated child records and permanently clean up scoped physical image files (`AttachmentService`), dynamic record-count confirmation dialogs, single-vehicle deletion protection, and automatic fallback for active default vehicles.
-*   **Default Fuel Prices:** Set default fuel prices for each fuel type in the settings, which are auto-filled on the “Add Fuel Data” page.
-*   **Redesigned Dashboard:** A modern and intuitive dashboard with stylized cards for better visual impact.
+*   **Full-to-Full Mileage Engine:** Precise consumption calculation supporting partial fills, missed fill-ups, and weighted running averages (`sum(ΔO) / sum(V)`) preventing Simpson's paradox skew.
+*   **Predictive Refuel & Maintenance Reminders:** Dual refuel alerts (fuel volume and DTE range) and scheduled service reminders with Android 13/14 notification permissions (`POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM` with inexact fallback) and reboot/timezone persistence.
+*   **Tire Life, Tread Depth & Rotation Tracker:** Interactive 4-wheel chassis schematic, `mm / 1000 km` wear degradation forecasting, 1.6mm legal limit projection, and rotation presets.
+*   **Interactive Telemetry & Visual Analytics:** Fuel price trend charts with 30-day moving average smoothing, station efficiency variance scatter plots with ±15% anomaly threshold bands, and driving condition consumption breakdowns powered by `fl_chart`.
+*   **Scoped OCR Receipt & Cluster Vision:** On-device text recognition with Google ML Kit, normalizing Bengali numerals (০-৯) to ASCII digits (0-9) and parsing localized comma/period thousand and decimal separators with auto-fill into refueling forms.
+*   **Non-Fuel Expenses & Total Cost of Ownership (TCO):** Multi-category non-fuel expense logging (tolls, parking, maintenance, insurance, taxes) with monthly stacked cost breakdowns and printable audit-ready A4 PDF reports.
+*   **Encrypted Backups & Automated Cloud Sync:** Streamed container backups (`.zip` v2 with O(1) memory), client-side AES-256-GCM / PBKDF2 encryption (`.ftbackup`), and automated periodic WebDAV background sync via WorkManager.
+*   **Multi-Currency, EV & International Units:** Architectural support for ICE, Hybrid, and EV (kWh/SoC), international units (km/mi, L/gal, km/L, MPG, km/kWh), and multi-currency normalization with baseline exchange rate conversions.
+
+> For the comprehensive, detailed directory of all implemented features and technical specifications, see **[docs/features.md](docs/features.md)**.
+
+## Screenshots
+
+| Dashboard | Refuel Entry | Analytics & Trends | Maintenance & Tires |
+|:---:|:---:|:---:|:---:|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Refuel Entry](docs/screenshots/refuel_entry.png) | ![Analytics & Trends](docs/screenshots/analytics_trends.png) | ![Maintenance & Tires](docs/screenshots/maintenance_tires.png) |
+
+| Receipt OCR | History Timeline | Non-Fuel Expenses | Tablet Master-Detail |
+|:---:|:---:|:---:|:---:|
+| ![Receipt OCR](docs/screenshots/receipt_ocr.png) | ![History Timeline](docs/screenshots/history_timeline.png) | ![Non-Fuel Expenses](docs/screenshots/non_fuel_expenses.png) | ![Tablet Master-Detail](docs/screenshots/tablet_master_detail.png) |
+
+### Screenshot Capture Checklist
+- [ ] **Dashboard:** Primary vehicle telemetry summary cards, remaining fuel gauge, DTE projection, and recent refuel history.
+- [ ] **Refuel Form:** Bidirectional calculation lock toggles, fuel type selector, station auto-suggestion, and trip discrepancy alert chip.
+- [ ] **Receipt OCR Modal:** Camera viewfinder preview, live text bounding boxes, and extracted metrics auto-fill banner.
+- [ ] **Telemetry & Analytics:** Fuel price fluctuation line charts (30-day moving average), station efficiency scatter plot (±15% anomaly bands), and driving condition split.
+- [ ] **Maintenance & Tires:** 4-wheel interactive chassis schematic, tread depth wear rate progress, and service schedule checklist.
+- [ ] **Non-Fuel Expenses & TCO:** Monthly stacked expenditure breakdown bar chart (Fuel, Service, Non-Fuel) and all-inclusive cost/km telemetry.
+- [ ] **All Data History:** Material 3 timeline cards, date filter chips, station text search, and tabular view switcher.
+- [ ] **Tablet / Foldable Dual-Pane View:** Master-detail split layout (NavigationRail, left vehicle selector, right telemetry and charts) on displays >= 720 dp.
+- [ ] **Dark Mode Monet Theme:** Material You wallpaper dynamic color theming across light and dark palettes.
+
+## Build from Source
+
+### Prerequisites
+*   **Flutter SDK:** Version `3.47.9` (channel `stable`, Dart `3.13.7` / SDK `>=3.13.0 <4.0.0`)
+*   **Java Development Kit (JDK):** Version `17` (Eclipse Temurin recommended)
+*   **Android SDK:** Platform API 34+ with Android build-tools
+
+### Build Steps
+
+```bash
+# 1. Clone repository
+git clone https://github.com/pollob666/fueltracker.git
+cd fueltracker
+
+# 2. Install dependencies
+flutter pub get
+
+# 3. Verify static analysis and run unit/widget test suite
+flutter analyze
+flutter test
+
+# 4. Build Android debug APK
+flutter build apk --debug
+
+# 5. Build Android release APK (requires android/app/key.properties)
+flutter build apk --release
+```
 
 ## Future Development Plan
 
