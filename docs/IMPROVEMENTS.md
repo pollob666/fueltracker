@@ -228,16 +228,35 @@ Vehicle expense logs are essential for business tax write-offs, fleet expense re
   - Itemized Maintenance Table: Date, Odometer, Workshop Name, Tasks Executed, Parts/Oil Brand ("Mobil"), Incurred Cost.
 - **Export Options:** Direct native print spooling (`Printing.layoutPdf`) or PDF document sharing (`SharePlus`).
 
-##### B. Resilient Single-File JSON Import/Export Pipeline (v2 Schema) & Native Cloud SAF
+##### B. Scalable Streaming Backup Pipeline (ZIP Container v2 & Legacy JSON v1) & Native Cloud SAF
+- **Scalable Streaming ZIP Backup Container (`format_version: 2`):**
+  Eliminates mobile Out-Of-Memory (OOM) risks by avoiding Base64 encoding. Writes a compliant ZIP archive containing `data.json` plus individual entries at `attachments/<id>.<ext>`.
+  - **Memory Efficiency:** Attachment files are streamed chunk-by-chunk (64 KB buffers) directly into the ZIP archive with $O(1)$ peak heap memory.
+  - **Isolate Offloading:** Backup creation, file streaming, and archive extraction execute in background isolates (`Isolate.spawn`) with real-time UI progress reporting.
+  - **Integrity Verification:** Uses standard IEEE 802.3 CRC-32 checksums for every entry. Corrupted or truncated archives throw typed `BackupCorruptArchiveException`.
+  - **Legacy Compatibility:** Full backwards-compatible reading and restoration of legacy single-file JSON backups (format version 1 with Base64 attachments).
 - **JSON Unified Single-File Backup Schema (`schema_version: 2`):**
-  Eliminates multi-file export complexity by consolidating all application tables, relations, settings, and optional photo attachments into a single portable `.json` file:
+  Consolidates all application tables, relations, settings, and metadata into `data.json`:
   ```json
   {
+    "format_version": 2,
+    "format": "fueltracker_zip_backup",
     "schema_version": 2,
-    "app_version": "3.3.0",
-    "export_timestamp": "2026-11-08T12:00:00Z",
-    "device_info": "Motorola Moto G60",
+    "app_version": "3.5.0",
+    "export_timestamp": "2026-11-10T12:00:00Z",
+    "device_info": "Android",
     "vehicles": [...],
+    "fuel_types": [...],
+    "fuel_records": [...],
+    "maintenance_tasks": [...],
+    "service_sessions": [...],
+    "service_session_items": [...],
+    "saved_locations": [...],
+    "non_fuel_expenses": [...],
+    "app_settings": {...},
+    "attachment_files": ["receipt_101.jpg", "odometer_201.jpg"]
+  }
+  ```
     "fuel_types": [...],
     "fuel_records": [...],
     "maintenance_tasks": [...],

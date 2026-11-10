@@ -53,6 +53,7 @@ class _ExportPageState extends State<ExportPage> {
   bool _jsonExportSettings = true;
   bool _jsonIncludeAttachments = true;
   bool _exportingJson = false;
+  String _jsonExportProgress = '';
 
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
@@ -205,23 +206,51 @@ class _ExportPageState extends State<ExportPage> {
   }
 
   Future<void> _exportSingleJsonViaSaf() async {
-    setState(() => _exportingJson = true);
+    setState(() {
+      _exportingJson = true;
+      _jsonExportProgress = 'Preparing backup archive...';
+    });
     try {
-      final payload = await UnifiedBackupService.createBackupPayload(
-        includeVehicles: _jsonExportVehicles,
-        includeRefuelRecords: _jsonExportRefuels,
-        includeServiceRecords: _jsonExportServices,
-        includeSavedLocations: _jsonExportLocations,
-        includeNonFuelExpenses: _jsonExportExpenses,
-        includeAppSettings: _jsonExportSettings,
-        includeAttachments: _jsonIncludeAttachments,
-      );
-      final jsonString = UnifiedBackupService.encodePayload(payload);
-      final uri = await UnifiedBackupService.saveBackupViaSaf(jsonString: jsonString);
-      if (uri != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Backup saved successfully!')),
+      if (_jsonIncludeAttachments) {
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.\-]'), '').substring(0, 15);
+        final zipFile = File(p.join(tempDir.path, 'fueltracker_backup_$timestamp.zip'));
+        await UnifiedBackupService.exportBackupZip(
+          targetZipFile: zipFile,
+          includeVehicles: _jsonExportVehicles,
+          includeRefuelRecords: _jsonExportRefuels,
+          includeServiceRecords: _jsonExportServices,
+          includeSavedLocations: _jsonExportLocations,
+          includeNonFuelExpenses: _jsonExportExpenses,
+          includeAppSettings: _jsonExportSettings,
+          includeAttachments: true,
+          onProgress: (current, total, status) {
+            if (mounted) setState(() => _jsonExportProgress = status);
+          },
         );
+        final uri = await UnifiedBackupService.saveBackupZipViaSaf(zipFile: zipFile);
+        if (uri != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Backup archive saved successfully!')),
+          );
+        }
+      } else {
+        final payload = await UnifiedBackupService.createBackupPayload(
+          includeVehicles: _jsonExportVehicles,
+          includeRefuelRecords: _jsonExportRefuels,
+          includeServiceRecords: _jsonExportServices,
+          includeSavedLocations: _jsonExportLocations,
+          includeNonFuelExpenses: _jsonExportExpenses,
+          includeAppSettings: _jsonExportSettings,
+          includeAttachments: false,
+        );
+        final jsonString = UnifiedBackupService.encodePayload(payload);
+        final uri = await UnifiedBackupService.saveBackupViaSaf(jsonString: jsonString);
+        if (uri != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Backup saved successfully!')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -230,27 +259,54 @@ class _ExportPageState extends State<ExportPage> {
         );
       }
     } finally {
-      if (mounted) setState(() => _exportingJson = false);
+      if (mounted) {
+        setState(() {
+          _exportingJson = false;
+          _jsonExportProgress = '';
+        });
+      }
     }
   }
 
   Future<void> _shareSingleJson() async {
-    setState(() => _exportingJson = true);
+    setState(() {
+      _exportingJson = true;
+      _jsonExportProgress = 'Preparing backup archive...';
+    });
     try {
-      final payload = await UnifiedBackupService.createBackupPayload(
-        includeVehicles: _jsonExportVehicles,
-        includeRefuelRecords: _jsonExportRefuels,
-        includeServiceRecords: _jsonExportServices,
-        includeSavedLocations: _jsonExportLocations,
-        includeNonFuelExpenses: _jsonExportExpenses,
-        includeAppSettings: _jsonExportSettings,
-        includeAttachments: _jsonIncludeAttachments,
-      );
-      final jsonString = UnifiedBackupService.encodePayload(payload);
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.\-]'), '').substring(0, 15);
-      final file = File(p.join(tempDir.path, 'fueltracker_backup_$timestamp.json'));
-      await file.writeAsString(jsonString);
+      final File exportFile;
+
+      if (_jsonIncludeAttachments) {
+        exportFile = File(p.join(tempDir.path, 'fueltracker_backup_$timestamp.zip'));
+        await UnifiedBackupService.exportBackupZip(
+          targetZipFile: exportFile,
+          includeVehicles: _jsonExportVehicles,
+          includeRefuelRecords: _jsonExportRefuels,
+          includeServiceRecords: _jsonExportServices,
+          includeSavedLocations: _jsonExportLocations,
+          includeNonFuelExpenses: _jsonExportExpenses,
+          includeAppSettings: _jsonExportSettings,
+          includeAttachments: true,
+          onProgress: (current, total, status) {
+            if (mounted) setState(() => _jsonExportProgress = status);
+          },
+        );
+      } else {
+        final payload = await UnifiedBackupService.createBackupPayload(
+          includeVehicles: _jsonExportVehicles,
+          includeRefuelRecords: _jsonExportRefuels,
+          includeServiceRecords: _jsonExportServices,
+          includeSavedLocations: _jsonExportLocations,
+          includeNonFuelExpenses: _jsonExportExpenses,
+          includeAppSettings: _jsonExportSettings,
+          includeAttachments: false,
+        );
+        final jsonString = UnifiedBackupService.encodePayload(payload);
+        exportFile = File(p.join(tempDir.path, 'fueltracker_backup_$timestamp.json'));
+        await exportFile.writeAsString(jsonString);
+      }
 
       final box = context.findRenderObject() as RenderBox?;
       final Rect? sharePositionOrigin = box != null && box.hasSize
@@ -259,8 +315,8 @@ class _ExportPageState extends State<ExportPage> {
 
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(file.path)],
-          text: 'FuelTracker Unified Backup',
+          files: [XFile(exportFile.path)],
+          text: _jsonIncludeAttachments ? 'FuelTracker Backup Archive (.zip)' : 'FuelTracker Backup (.json)',
           sharePositionOrigin: sharePositionOrigin,
         ),
       );
@@ -271,7 +327,12 @@ class _ExportPageState extends State<ExportPage> {
         );
       }
     } finally {
-      if (mounted) setState(() => _exportingJson = false);
+      if (mounted) {
+        setState(() {
+          _exportingJson = false;
+          _jsonExportProgress = '';
+        });
+      }
     }
   }
 
@@ -1422,14 +1483,33 @@ class _ExportPageState extends State<ExportPage> {
                       CheckboxListTile(
                         dense: true,
                         visualDensity: VisualDensity.compact,
-                        title: const Text('Include Photo Attachments (Base64)'),
-                        subtitle: const Text('Embedded receipts and odometer photos'),
+                        title: const Text('Include Photo Attachments (Streamed ZIP)'),
+                        subtitle: const Text('Streamed entries without Base64 memory overhead'),
                         value: _jsonIncludeAttachments,
                         onChanged: (v) => setState(() => _jsonIncludeAttachments = v ?? true),
                       ),
                       const SizedBox(height: 12),
                       if (_exportingJson)
-                        const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                if (_jsonExportProgress.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _jsonExportProgress,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        )
                       else ...[
                         SizedBox(
                           width: double.infinity,
