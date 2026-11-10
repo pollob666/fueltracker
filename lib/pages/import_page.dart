@@ -11,7 +11,6 @@ import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
-import 'package:fuel_tracker/models/maintenance_task.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
@@ -373,12 +372,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     int locationCol = _findColumnIndex(headers, [
       'Location Name', 'Location', 'location', 'Station', 'station',
     ]);
-    int latCol = _findColumnIndex(headers, [
-      'Latitude', 'latitude', 'lat',
-    ]);
-    int lngCol = _findColumnIndex(headers, [
-      'Longitude', 'longitude', 'lng',
-    ]);
 
     if (dateCol == -1 || odoCol == -1 || vehicleCol == -1 || fuelTypeCol == -1 ||
         rateCol == -1 || volumeCol == -1 || paidCol == -1) {
@@ -480,7 +473,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         vehicleId: vehicle.id!,
         date: date,
         odometer: odo,
-        fuelTypeId: fuelType!.id!,
+        fuelTypeId: fuelType.id!,
         rate: rate,
         volume: volume,
         paidAmount: paid,
@@ -513,9 +506,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final vehicleCol = _findColumnIndex(headers, ['Vehicle', 'vehicle']);
     final workshopCol = _findColumnIndex(headers, ['Workshop', 'workshop']);
     final totalCostCol = _findColumnIndex(headers, ['Total Cost', 'totalCost']);
-    final taskCol = _findColumnIndex(headers, ['Task', 'task']);
-    final brandCol = _findColumnIndex(headers, ['Brand / Spec', 'brand']);
-    final itemCostCol = _findColumnIndex(headers, ['Item Cost', 'itemCost']);
     final notesCol = _findColumnIndex(headers, ['Notes', 'notes']);
 
     int importedCount = 0;
