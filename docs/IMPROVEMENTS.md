@@ -94,7 +94,7 @@ The matrix below organizes all planned modernization initiatives by impact, engi
 | **HST-01** | **Card/List View, Date Filters & Search in History**| High | M | v3.2.0 | **Tier 2** | `AllDataPage`, Search Filters |
 | **TCO-01** | **Multi-Category Non-Fuel Expense Tracker** | High | M | v3.2.0 | **Tier 2** | DB, Models, `DashboardPage` |
 | **SEC-01** | **Client-Side Encrypted Automated Cloud Backups** | High | L | v3.3.0 | **Tier 2** | Storage, WebDAV, Google Drive |
-| **OCR-01** | **Receipt & Odometer OCR Vision Pipeline** | High | L | v3.3.0 | **Tier 2** | `AddDataPage`, ML Kit, Camera |
+| **OCR-01** | **Receipt & Odometer OCR Vision Pipeline (Bengali & Localized Separators)** | High | L | v3.3.0 | **Tier 2 (✅ Done)** | `AddDataPage`, ML Kit, Camera |
 | **WGT-01** | **App Shortcuts & Home Screen Quick-Fill Widget** | Med | M | v3.3.0 | **Tier 2** | Android Native, `home_widget` |
 | **INT-01** | **Multi-Currency & International Unit Engine** | Med | M | v3.4.0 | **Tier 3 (✅ Done)** | AppSettings, Calculator, UI |
 | **FLT-01** | **Tire Life, Tread Depth & Rotation Tracker** | Med | M | v3.4.0 | **Tier 3 (✅ Done)** | Maintenance, DB, UI |
