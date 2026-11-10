@@ -273,7 +273,7 @@ Vehicle expense logs are essential for business tax write-offs, fleet expense re
   - `Copy / Merge All`: Assigns new unique IDs and appends all records without overwriting.
 
 ##### C. Client-Side Encryption & Automated Background Backups (WorkManager)
-- **Security:** AES-256-CBC authenticated encryption with PBKDF2-HMAC-SHA256 (100,000 iterations, 16-byte random salt, 16-byte random IV) for password-protected `.ftbackup` archives.
+- **Security:** AES-256-GCM authenticated container format (V2, 12-byte nonce, 16-byte tag, 40-byte binary header with `FTBK` magic authenticated as AAD) with PBKDF2-HMAC-SHA256 (600,000 iterations in isolate, 16-byte random salt) for password-protected `.ftbackup` archives, with legacy V1 AES-256-CBC backwards compatibility.
 - **Automated Headless Backups with WorkManager:**
   - Scheduled background execution via `workmanager: ^0.10.10` running periodically (Daily, Every 3 Days, Weekly).
   - Headless dual-destination execution:
