@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tier 3 internationalization engine supporting mixed currencies, distance, and volume metrics.
 - Tire life, tread depth degradation, and rotation tracking for 4-wheel vehicles.
 - Alternative powertrain and EV charging support (Start/End SoC %, kW charging speeds).
-- Tablet adaptive master-detail layout with persistent `NavigationRail` for screens $\ge 720\text{ dp}$.
+- Tablet adaptive master-detail layout with persistent `NavigationRail` for screens >= 720 dp.
 - Single-file JSON unified backup schema (v3.5.0) with Android Storage Access Framework (SAF) integration and WorkManager periodic backup automation.
 - Client-side AES-256-CBC encrypted backups (`.ftbackup`) with PBKDF2-HMAC-SHA256 key derivation.
 - Pure Dart WebDAV client for automated cloud backup synchronization.

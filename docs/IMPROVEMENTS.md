@@ -7,9 +7,9 @@
 An exhaustive technical, architectural, and user experience audit was conducted across the `pollob666/fueltracker` repository. The codebase represents a mature, privacy-first Flutter mobile utility with strong mathematical foundations for fuel accounting. However, scaling the application toward commercial fleet utility, advanced visual analytics, multimodal input (OCR), and robust multi-device synchronization requires addressing core architectural bottlenecks.
 
 ### 1.1 Current State Overview & Core Strengths
-- **Robust Mathematical Engine:** `MileageCalculator` (`lib/utils/mileage_calculator.dart`) implements an uncompromising Full-to-Full calculation algorithm. It mathematically resolves partial refuel sequences, baseline resets on missed fills, and weighted running averages ($\frac{\sum \Delta O}{\sum V}$), completely eliminating Simpson's Paradox skew.
+- **Robust Mathematical Engine:** `MileageCalculator` (`lib/utils/mileage_calculator.dart`) implements an uncompromising Full-to-Full calculation algorithm. It mathematically resolves partial refuel sequences, baseline resets on missed fills, and weighted running averages (`sum(ΔO) / sum(V)`), completely eliminating Simpson's Paradox skew.
 - **Relational Integrity & Safety Guards:** The SQLite database (`DatabaseHelper.dart`, schema version 8) strictly enforces `PRAGMA foreign_keys = ON;`. High-risk entity deletions (such as vehicles or saved locations) execute within atomic transactions that cascade or detach child foreign keys, preventing orphaned data or database corruption.
-- **Proactive Maintenance & Anomaly Detection:** The platform features hybrid predictive maintenance forecasting (combining daily odometer run rates with calendar time limits) and an anomaly detection engine that flags $>15\%$ mileage drops/boosts with attribution diagnostics.
+- **Proactive Maintenance & Anomaly Detection:** The platform features hybrid predictive maintenance forecasting (combining daily odometer run rates with calendar time limits) and an anomaly detection engine that flags > 15% mileage drops/boosts with attribution diagnostics.
 - **Privacy & Native Scoped Storage Parity:** The app requires zero account sign-up and operates 100% offline. File exports stage cleanly into application cache directories and dispatch via the native OS share sheet (`share_plus`), adhering to modern Android 11+ (API 30+) scoped storage requirements without legacy storage permissions.
 
 ### 1.2 Identified Architectural & UX Gaps
@@ -39,7 +39,7 @@ An exhaustive technical, architectural, and user experience audit was conducted 
    - **Redundant SQLite I/O:** Every tab switch and page navigation re-executes heavy multi-table joins and full-record list sorts, resulting in frame drops on older hardware.
 
 2. **Database Engine & Persistence Gaps:**
-   - **Absence of Database Indexes:** In schema v8, tables `fuel_records`, `service_sessions`, and `saved_locations` have primary and foreign keys, but lack secondary indexes on frequently filtered/sorted fields (`vehicleId`, `date`, `odometer`, `latitude`, `longitude`). As records exceed 1,000 entries, queries execute linear $O(N)$ full table scans.
+   - **Absence of Database Indexes:** In schema v8, tables `fuel_records`, `service_sessions`, and `saved_locations` have primary and foreign keys, but lack secondary indexes on frequently filtered/sorted fields (`vehicleId`, `date`, `odometer`, `latitude`, `longitude`). As records exceed 1,000 entries, queries execute linear O(N) full table scans.
    - **Lack of Reactive Query Streams:** SQLite operations are purely one-shot futures. The app cannot observe live database table streams.
 
 3. **Data Pipeline, Export & Cloud Backup Limitations:**
@@ -130,7 +130,7 @@ Currently, `DashboardPage` only displays numeric summary cards (`Running Average
 ##### A. Multi-Series Fuel Price Fluctuation Over Time
 - **Chart Type:** `LineChart`.
 - **X-Axis:** Refuel Date (Time scale formatted as `MMM yyyy` or `dd MMM`).
-- **Y-Axis:** Price per unit of volume (e.g., $ rate/L).
+- **Y-Axis:** Price per unit of volume (e.g., `$` rate/L).
 - **Features:** 
   - Dual line series for bi-fuel vehicles (e.g., Octane vs CNG).
   - 30-day moving average trendline overlay to smooth out micro-fluctuations.
@@ -138,8 +138,8 @@ Currently, `DashboardPage` only displays numeric summary cards (`Running Average
 
 ##### B. Rolling Mileage vs. Fuel Station Efficiency
 - **Chart Type:** Combined Scatter Plot & Station Variance Bar Chart.
-- **Metric:** Compares interval efficiency ($E_{\text{interval}}$) of each fill against the all-time vehicle average ($E_{\text{running}}$), color-coded by station flag status (Amber for Suspect Quality, Green for High Efficiency, Neutral for Normal).
-- **Insight:** Highlights stations consistently delivering $>10\%$ below running average.
+- **Metric:** Compares interval efficiency (`E_interval`) of each fill against the all-time vehicle average (`E_running`), color-coded by station flag status (Amber for Suspect Quality, Green for High Efficiency, Neutral for Normal).
+- **Insight:** Highlights stations consistently delivering > 10% below running average.
 
 ##### C. Total Cost of Ownership (TCO) Monthly/Annual Breakdown
 - **Chart Type:** Stacked `BarChart`.
@@ -149,18 +149,20 @@ Currently, `DashboardPage` only displays numeric summary cards (`Running Average
   - Segment 2 (Secondary Fuel Cost, if bi-fuel)
   - Segment 3 (Periodic Maintenance & Parts: Engine Oil, Filters, Servicing)
   - Segment 4 (Non-Fuel Expenses: Tolls, Parking, Insurance, Taxes)
-- **Top Summary:** Total Cost per Kilometer ($\text{TCO} / \text{Total Distance}$).
+- **Top Summary:** Total Cost per Kilometer (`TCO / Total Distance`).
 
 ##### D. Carbon Footprint & Environmental Impact
-- **Metric:** Computed $\text{CO}_2$ emissions ($kg$) based on fuel volume and standardized emission coefficients:
-  $$\text{CO}_{2\text{ Gasoline}} = V_{\text{litres}} \times 2.31\text{ kg/L}$$
-  $$\text{CO}_{2\text{ Diesel}} = V_{\text{litres}} \times 2.68\text{ kg/L}$$
-  $$\text{CO}_{2\text{ CNG}} = V_{\text{m}^3} \times 2.75\text{ kg/m}^3$$
-  $$\text{CO}_{2\text{ LPG}} = V_{\text{litres}} \times 1.51\text{ kg/L}$$
-- **UI:** Visual gauge displaying monthly emissions with comparison to vehicle class averages ($g\text{ CO}_2/\text{km}$).
+- **Metric:** Computed CO2 emissions (`kg`) based on fuel volume and standardized emission coefficients:
+  ```
+  CO2 Gasoline = V_litres * 2.31 kg/L
+  CO2 Diesel   = V_litres * 2.68 kg/L
+  CO2 CNG      = V_m3 * 2.75 kg/m^3
+  CO2 LPG      = V_litres * 1.51 kg/L
+  ```
+- **UI:** Visual gauge displaying monthly emissions with comparison to vehicle class averages (`g CO2/km`).
 
 ##### E. Driving Condition Impact Analytics
-- **Chart Type:** Grouped Bar / Radar Chart showing consumption rates ($L/100\text{km}$ or $km/L$) segregated by City, Highway, and Mixed conditions.
+- **Chart Type:** Grouped Bar / Radar Chart showing consumption rates (`L/100km` or `km/L`) segregated by City, Highway, and Mixed conditions.
 - **Insight:** Exact monetary cost penalty of heavy city traffic vs highway cruising.
 
 #### UI/UX Flow & Screen Mockup Description
@@ -231,7 +233,7 @@ Vehicle expense logs are essential for business tax write-offs, fleet expense re
 ##### B. Scalable Streaming Backup Pipeline (ZIP Container v2 & Legacy JSON v1) & Native Cloud SAF
 - **Scalable Streaming ZIP Backup Container (`format_version: 2`):**
   Eliminates mobile Out-Of-Memory (OOM) risks by avoiding Base64 encoding. Writes a compliant ZIP archive containing `data.json` plus individual entries at `attachments/<id>.<ext>`.
-  - **Memory Efficiency:** Attachment files are streamed chunk-by-chunk (64 KB buffers) directly into the ZIP archive with $O(1)$ peak heap memory.
+  - **Memory Efficiency:** Attachment files are streamed chunk-by-chunk (64 KB buffers) directly into the ZIP archive with O(1) peak heap memory.
   - **Isolate Offloading:** Backup creation, file streaming, and archive extraction execute in background isolates (`Isolate.spawn`) with real-time UI progress reporting.
   - **Integrity Verification:** Uses standard IEEE 802.3 CRC-32 checksums for every entry. Corrupted or truncated archives throw typed `BackupCorruptArchiveException`.
   - **Legacy Compatibility:** Full backwards-compatible reading and restoration of legacy single-file JSON backups (format version 1 with Base64 attachments).
@@ -371,7 +373,7 @@ Manual entry of odometer numbers, price rates, volume, and total amounts while s
     ```dart
     final volRegex = RegExp(r'([0-9]{1,4}\.[0-9]{2})\s*(?:L|Ltr|Gal|m3)', caseSensitive: false);
     ```
-  - **Price / Rate Recognition:** Extracts currency blocks and unit rates ($/L):
+  - **Price / Rate Recognition:** Extracts currency blocks and unit rates (`$` / L):
     ```dart
     final rateRegex = RegExp(r'(?:Rate|Price|Unit)[\s:]*([0-9]{1,4}\.[0-9]{2})', caseSensitive: false);
     final totalRegex = RegExp(r'(?:Total|Paid|Amount|Net)[\s:]*([0-9]{1,5}\.[0-9]{2})', caseSensitive: false);
@@ -389,7 +391,7 @@ Manual entry of odometer numbers, price rates, volume, and total amounts while s
 - [ ] Implement `OcrVisionService` with regex heuristics for dispensers, odometers, and paper slips.
 - [ ] Build `ReceiptCameraModal` widget with interactive bounding box tap selection.
 - [ ] Add thumbnail previews in `AddDataPage` and `AllDataPage` with full-screen zoomable lightbox.
-- [ ] **Acceptance Criteria:** Successfully extracts volume and total cost from standard pump displays with $\ge 85\%$ accuracy in varying daylight/night lighting conditions; gracefully handles non-receipt images without crashing.
+- [ ] **Acceptance Criteria:** Successfully extracts volume and total cost from standard pump displays with >= 85% accuracy in varying daylight/night lighting conditions; gracefully handles non-receipt images without crashing.
 
 ---
 
@@ -420,9 +422,9 @@ The application is used frequently on the road. The existing interface suffers f
 ##### B. Bidirectional Refuel Form UX with Calculation Locks
 - **Problem:** Currently, entering `Rate` and `Paid Amount` calculates `Volume`. Entering `Volume` and `Rate` calculates `Paid Amount`. If the user has `Volume` and `Paid Amount` from a receipt, they cannot automatically derive `Rate`.
 - **Solution:** Add an explicit **Calculation Target Toggle** (Lock Mode):
-  - `[Lock Volume]`: User inputs Rate & Paid $\rightarrow$ Volume auto-calculates.
-  - `[Lock Paid Amount]`: User inputs Volume & Rate $\rightarrow$ Paid auto-calculates.
-  - `[Lock Rate / Unit Price]`: User inputs Volume & Paid $\rightarrow$ Rate auto-calculates.
+  - `[Lock Volume]`: User inputs Rate & Paid -> Volume auto-calculates.
+  - `[Lock Paid Amount]`: User inputs Volume & Rate -> Paid auto-calculates.
+  - `[Lock Rate / Unit Price]`: User inputs Volume & Paid -> Rate auto-calculates.
 - **Form Keyboard Auto-Progression:**
   Configure all numeric inputs with `textInputAction: TextInputAction.next` and automatic `FocusNode.requestFocus()` progression, allowing users to enter data rapidly with one hand.
 
@@ -438,10 +440,10 @@ The application is used frequently on the road. The existing interface suffers f
   - Quick action button `[+]` launching directly into the refuel log.
 
 ##### D. Redesigned History View (`AllDataPage`)
-- **Card-List View by Default:** Replace the rigid horizontal `DataTable` with an ergonomic card-based timeline on mobile devices ($<600\text{dp}$ width).
+- **Card-List View by Default:** Replace the rigid horizontal `DataTable` with an ergonomic card-based timeline on mobile devices (< 600 dp width).
 - **Timeline Card Anatomy:**
   - Header: Refueling date, days elapsed badge, and station name.
-  - Central Stat: Large odometer reading, accompanied by interval mileage badge ($\text{km/L}$) highlighted in soft green/amber depending on performance.
+  - Central Stat: Large odometer reading, accompanied by interval mileage badge (`km/L`) highlighted in soft green/amber depending on performance.
   - Sub-Metrics: Volume dispensed, price rate, total paid amount, driving condition icon (`🏙️`, `🛣️`, `🔄`).
   - Action Strip: Quick Edit, Delete, and View Receipt buttons.
 - **Filter & Search Bar:** Top expandable search bar supporting:
@@ -450,7 +452,7 @@ The application is used frequently on the road. The existing interface suffers f
   - Fuel type selector chips for bi-fuel vehicles.
 
 ##### E. Tablet, Foldable & Desktop Adaptive Layouts
-- Use `LayoutBuilder` to detect screen width $>720\text{dp}$.
+- Use `LayoutBuilder` to detect screen width > 720 dp.
 - Render an adaptive **Master-Detail Two-Pane Layout**:
   - Left Pane (40% width): Vehicle selector, timeline history list, and quick action FAB.
   - Right Pane (60% width): Persistent record details, interactive telemetry graphs, and maintenance status cards.
@@ -461,7 +463,7 @@ The application is used frequently on the road. The existing interface suffers f
 - [ ] Implement locked calculation modes in `AddDataPage`.
 - [ ] Add `quick_actions` and configure dynamic launcher shortcuts.
 - [ ] Rebuild `AllDataPage` with adaptive Card-List layout, search bar, and filter chips.
-- [ ] **Acceptance Criteria:** Single-handed data entry takes $<15$ seconds at the pump; system status bar remains visible; desktop/tablet displays clean two-pane layout without horizontal table clipping.
+- [ ] **Acceptance Criteria:** Single-handed data entry takes < 15 seconds at the pump; system status bar remains visible; desktop/tablet displays clean two-pane layout without horizontal table clipping.
 
 ---
 
@@ -476,28 +478,30 @@ Modern vehicles increasingly utilize alternative powertrains (BEVs, PHEVs) and r
 - **Vehicle Powertrain Classification:**
   Extend `VehicleType` or add `PowertrainType`: `ice` (Internal Combustion), `bev` (Battery Electric Vehicle), `phev` (Plug-in Hybrid), `hybrid` (HEV).
 - **Energy Metric Models:**
-  - Battery capacity in kilowatt-hours ($kWh$).
+  - Battery capacity in kilowatt-hours (`kWh`).
   - Charging events log:
     - Odometer reading.
-    - Starting State of Charge ($SoC_{\text{start}} \%$) $\rightarrow$ Ending State of Charge ($SoC_{\text{end}} \%$).
-    - Energy added ($kWh$) and charging power rate ($kW$).
+    - Starting State of Charge (`SoC_start %`) -> Ending State of Charge (`SoC_end %`).
+    - Energy added (`kWh`) and charging power rate (`kW`).
     - Charging tier: AC Level 1, AC Level 2 (Home Wallbox), or DC Fast Charging.
     - Total charging session cost.
-- **Efficiency Metric:** Automatically computes $kWh/100\text{km}$ or $km/kWh$ (equivalent to $km/L$), alongside cost per kilometer.
+- **Efficiency Metric:** Automatically computes `kWh/100km` or `km/kWh` (equivalent to `km/L`), alongside cost per kilometer.
 - **Battery Degradation Tracker:** Tracks nominal usable capacity over lifetime odometer mileage.
 
 ##### B. Comprehensive Tire Life, Tread Wear & Rotation Tracker
 - **Data Models:**
-  - SQLite table `tires`: Tracks brand, model, size, DOT manufacture code, purchase date, and initial tread depth ($mm$).
+  - SQLite table `tires`: Tracks brand, model, size, DOT manufacture code, purchase date, and initial tread depth (`mm`).
   - SQLite table `tire_logs`: Tracks individual axle positions (`FL`, `FR`, `RL`, `RR`), tread depth measurements across outer/center/inner grooves, and rotation timestamps.
 - **Predictive Rotation Reminders:** Recommends tire rotation every 8,000–10,000 km based on vehicle drive type (FWD, RWD, AWD).
-- **Tread Life Forecast:** Projects remaining tire life in kilometers before reaching the legal wear limit ($1.6\text{ mm}$ or $2/32"$).
+- **Tread Life Forecast:** Projects remaining tire life in kilometers before reaching the legal wear limit (`1.6 mm` or `2/32"`).
 
 ##### C. Multi-Currency & International Travel Engine
 - **Foreign Currency Refueling:**
   Allows entering refuel expenses in foreign currencies (e.g., EUR, INR, USD, BDT) while traveling across borders.
 - **Conversion Math:** Stores transaction currency code, exchange rate to vehicle base currency, and converted base cost:
-  $$\text{Cost}_{\text{base}} = \text{Cost}_{\text{foreign}} \times \text{ExchangeRate}$$
+  ```
+  Cost_base = Cost_foreign * ExchangeRate
+  ```
 - **Exchange Rate Sources:** User-specified rate or optional offline cached ECB/central bank exchange rates.
 
 ---
@@ -703,7 +707,7 @@ Following end-to-end device testing with live Android instrumentation, critical 
    - *Problem:* In `AnalyticsService.computeConditionDelta`, initial baseline fills (`distance == 0`) were included in condition groupings, distorting average efficiency. In `MileageCalculator.calculateConditionAverage`, records were filtered prior to computing intervals, causing invalid odometer jumps.
    - *Fix:* Condition delta calculations now exclude baseline anchors (`isValidFullTank && distance > 0 && consumedVolume > 0`) and use accumulated `consumedCost`. `calculateConditionAverage` pre-computes interval results across the complete chronological dataset before segregating by condition tag.
 2. **CRIT-03: Baseline Fill Intensity Rate Doubling**
-   - *Problem:* Dividing cumulative spend by cumulative distance doubled cost-per-km because initial tank fills had zero recorded distance ($O_1 - O_0$).
+   - *Problem:* Dividing cumulative spend by cumulative distance doubled cost-per-km because initial tank fills had zero recorded distance (`O_1 - O_0`).
    - *Fix:* Cumulative metrics (`Total Spend`, `Total Volume`, `Total CO2`) retain all entries; distance-normalized rates (`Cost/km`, `TCO Cost/km`, `g CO2/km`) divide post-baseline consumption by post-baseline distance.
 3. **CRIT-04: Unified Backup Foreign Key Remapping in Copy-Merge**
    - *Problem:* `UnifiedBackupService.copyMergeAll` remapped vehicle and fuel type IDs but left maintenance task and service item IDs referencing obsolete keys.
