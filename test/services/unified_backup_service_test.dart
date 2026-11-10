@@ -2,9 +2,12 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/services/unified_backup_service.dart';
+import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -353,6 +356,253 @@ void main() {
 
       final expenses = await DatabaseHelper.instance.getNonFuelExpenses();
       expect(expenses.length, equals(1));
+    });
+  });
+
+  group('Scalable Streaming ZIP Backup Tests', () {
+    late Database testDb;
+    late Directory tempTestDir;
+
+    setUp(() async {
+      tempTestDir = await Directory.systemTemp.createTemp('zip_backup_test_');
+      testDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: 10,
+        onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON;'),
+        onCreate: (db, version) async => await DatabaseHelper.instance.createTablesForTesting(db),
+      );
+      DatabaseHelper.setDatabaseForTesting(testDb);
+    });
+
+    tearDown(() async {
+      DatabaseHelper.setDatabaseForTesting(null);
+      await testDb.close();
+      if (await tempTestDir.exists()) {
+        await tempTestDir.delete(recursive: true);
+      }
+    });
+
+    test('round-trip export and import with 200 synthetic attachments streams file-by-file', () async {
+      // 1. Populate DB with test vehicle and fuel record
+      final db = await DatabaseHelper.instance.database;
+      await db.insert('fuel_types', {'id': 1, 'name': 'Octane', 'category': 'petrol', 'unit': 'L'});
+      await db.insert('vehicles', {
+        'id': 1,
+        'name': 'Corolla Hybrid',
+        'type': 'carOrSedan',
+        'primaryFuelTypeId': 1,
+        'tripMeterMode': 'none',
+      });
+      await db.insert('fuel_records', {
+        'id': 101,
+        'vehicleId': 1,
+        'odometer': 45000.0,
+        'date': '2026-11-10T10:00:00.000',
+        'fuelTypeId': 1,
+        'rate': 130.0,
+        'volume': 35.0,
+        'paidAmount': 4550.0,
+        'isFullTank': 1,
+        'missedPrevious': 0,
+        'drivingCondition': 'city',
+      });
+
+      // 2. Generate 200 small synthetic attachments on disk
+      final sourceAttachDir = Directory(p.join(tempTestDir.path, 'source_attachments'));
+      await sourceAttachDir.create(recursive: true);
+      for (int i = 0; i < 200; i++) {
+        final f = File(p.join(sourceAttachDir.path, 'receipt_$i.jpg'));
+        await f.writeAsBytes(utf8.encode('PHOTO_BYTES_${i}_${"X" * 64}'));
+      }
+
+      final zipFile = File(p.join(tempTestDir.path, 'backup.zip'));
+      final progressEvents = <int>[];
+
+      // 3. Export to streamed ZIP container with progress reporting
+      await UnifiedBackupService.exportBackupZip(
+        targetZipFile: zipFile,
+        customAttachmentsDir: sourceAttachDir.path,
+        includeAttachments: true,
+        runInIsolate: true,
+        onProgress: (current, total, status) {
+          progressEvents.add(current);
+        },
+      );
+
+      expect(await zipFile.exists(), isTrue);
+      expect(await zipFile.length(), greaterThan(0));
+      expect(progressEvents, isNotEmpty);
+      expect(progressEvents.last, equals(200));
+
+      // 4. Validate backup archive summary
+      final summary = await UnifiedBackupService.validateBackupArchive(zipFile);
+      expect(summary.isValid, isTrue);
+      expect(summary.formatVersion, equals(2));
+      expect(summary.schemaVersion, equals(UnifiedBackupService.currentSchemaVersion));
+      expect(summary.vehicleCount, equals(1));
+      expect(summary.vehicleNames, contains('Corolla Hybrid'));
+      expect(summary.refuelCount, equals(1));
+      expect(summary.attachmentCount, equals(200));
+
+      // 5. Clean DB and import into a clean target attachments directory
+      await db.delete('fuel_records');
+      await db.delete('vehicles');
+      expect(await DatabaseHelper.instance.getVehicles(), isEmpty);
+
+      final targetAttachDir = Directory(p.join(tempTestDir.path, 'target_attachments'));
+      await targetAttachDir.create(recursive: true);
+
+      final importProgressEvents = <int>[];
+      final importResult = await UnifiedBackupService.executeImportFromArchive(
+        archiveFile: zipFile,
+        selectedCategories: {
+          ImportCategory.vehicles,
+          ImportCategory.fuelRecords,
+          ImportCategory.attachments,
+        },
+        conflictStrategy: ConflictResolutionStrategy.overwriteExisting,
+        customAttachmentsDir: targetAttachDir.path,
+        runInIsolate: true,
+        onProgress: (current, total, status) {
+          importProgressEvents.add(current);
+        },
+      );
+
+      expect(importResult.success, isTrue, reason: importResult.message);
+      expect(importResult.importedVehicles, equals(1));
+      expect(importResult.importedRefuels, equals(1));
+      expect(importResult.importedAttachments, equals(200));
+      expect(importProgressEvents, isNotEmpty);
+      expect(importProgressEvents.last, equals(200));
+
+      // 6. Assert DB records and all 200 files restored accurately
+      final restoredVehicles = await DatabaseHelper.instance.getVehicles();
+      expect(restoredVehicles.length, equals(1));
+      expect(restoredVehicles.first.name, equals('Corolla Hybrid'));
+
+      final restoredFiles = targetAttachDir.listSync().whereType<File>().toList();
+      expect(restoredFiles.length, equals(200));
+
+      // Verify sample file content matches original bytes
+      final sampleRestored = File(p.join(targetAttachDir.path, 'receipt_77.jpg'));
+      expect(await sampleRestored.exists(), isTrue);
+      expect(await sampleRestored.readAsString(), equals('PHOTO_BYTES_77_${"X" * 64}'));
+    });
+
+    test('imports legacy JSON backup format and handles Base64 attachments transparently', () async {
+      final legacyBackup = {
+        'format_version': 1,
+        'schema_version': 2,
+        'app_version': '3.4.0',
+        'vehicles': [
+          {'id': 5, 'name': 'Legacy Sedan', 'type': 'carOrSedan', 'primaryFuelTypeId': 1, 'tripMeterMode': 'none'},
+        ],
+        'fuel_types': [
+          {'id': 1, 'name': 'Octane', 'category': 'petrol', 'unit': 'L'},
+        ],
+        'fuel_records': [
+          {
+            'id': 505,
+            'vehicleId': 5,
+            'odometer': 30000.0,
+            'date': '2026-11-09T10:00:00.000',
+            'fuelTypeId': 1,
+            'rate': 125.0,
+            'volume': 25.0,
+            'paidAmount': 3125.0,
+            'isFullTank': 1,
+            'missedPrevious': 0,
+            'drivingCondition': 'city',
+          },
+        ],
+        'attachments': {
+          'legacy_photo.jpg': base64Encode(utf8.encode('LEGACY_BASE64_ATTACHMENT_BYTES')),
+        },
+      };
+
+      final legacyFile = File(p.join(tempTestDir.path, 'legacy_backup.json'));
+      await legacyFile.writeAsString(jsonEncode(legacyBackup));
+
+      final summary = await UnifiedBackupService.validateBackupArchive(legacyFile);
+      expect(summary.isValid, isTrue);
+      expect(summary.formatVersion, equals(1));
+      expect(summary.vehicleCount, equals(1));
+      expect(summary.vehicleNames, contains('Legacy Sedan'));
+      expect(summary.attachmentCount, equals(1));
+
+      final importResult = await UnifiedBackupService.executeImportFromArchive(
+        archiveFile: legacyFile,
+        selectedCategories: {
+          ImportCategory.vehicles,
+          ImportCategory.fuelRecords,
+        },
+        conflictStrategy: ConflictResolutionStrategy.overwriteExisting,
+      );
+
+      expect(importResult.success, isTrue);
+      expect(importResult.importedVehicles, equals(1));
+      expect(importResult.importedRefuels, equals(1));
+
+      final vehicles = await DatabaseHelper.instance.getVehicles();
+      expect(vehicles.first.name, equals('Legacy Sedan'));
+    });
+
+    test('corrupted zip throws typed BackupCorruptArchiveException', () async {
+      // 1. Truncated ZIP (< 22 bytes)
+      final truncatedFile = File(p.join(tempTestDir.path, 'truncated.zip'));
+      await truncatedFile.writeAsBytes([0x50, 0x4B, 0x03, 0x04, 0x00]);
+
+      expect(
+        () async => await UnifiedBackupService.validateBackupArchive(truncatedFile),
+        throwsA(isA<BackupCorruptArchiveException>()),
+      );
+
+      // 2. Corrupted header signature
+      final garbageFile = File(p.join(tempTestDir.path, 'garbage.zip'));
+      await garbageFile.writeAsBytes(List<int>.generate(100, (i) => i % 256));
+
+      expect(
+        () async => await UnifiedBackupService.validateBackupArchive(garbageFile),
+        throwsA(isA<BackupCorruptArchiveException>()),
+      );
+
+      // 3. Valid zip structure but missing data.json
+      final missingDataZip = File(p.join(tempTestDir.path, 'missing_data.zip'));
+      final writer = await StreamingZipWriter.open(missingDataZip);
+      await writer.addBytes('some_other_file.txt', utf8.encode('test'));
+      await writer.close();
+
+      expect(
+        () async => await UnifiedBackupService.validateBackupArchive(missingDataZip),
+        throwsA(isA<BackupCorruptArchiveException>()),
+      );
+
+      // 4. Tampered attachment CRC in ZIP throws typed error during extraction
+      final tamperedZip = File(p.join(tempTestDir.path, 'tampered.zip'));
+      final tWriter = await StreamingZipWriter.open(tamperedZip);
+      await tWriter.addBytes('data.json', utf8.encode('{"format_version": 2, "schema_version": 2}'));
+      await tWriter.addBytes('attachments/photo.jpg', utf8.encode('ORIGINAL_DATA_CHUNK'));
+      await tWriter.close();
+
+      // Mutate one byte inside the photo data stream
+      final bytes = await tamperedZip.readAsBytes();
+      final targetData = utf8.encode('ORIGINAL_DATA_CHUNK');
+      final index = bytes.indexOf(targetData[0]);
+      final mutated = Uint8List.fromList(bytes);
+      mutated[index + 3] ^= 0xFF;
+      await tamperedZip.writeAsBytes(mutated);
+
+      final outDir = Directory(p.join(tempTestDir.path, 'tamper_out'))..createSync();
+      expect(
+        () async => await UnifiedBackupService.executeImportFromArchive(
+          archiveFile: tamperedZip,
+          selectedCategories: {ImportCategory.attachments},
+          conflictStrategy: ConflictResolutionStrategy.overwriteExisting,
+          customAttachmentsDir: outDir.path,
+          runInIsolate: false,
+        ),
+        throwsA(isA<BackupCorruptArchiveException>()),
+      );
     });
   });
 }
