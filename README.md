@@ -1,6 +1,6 @@
 # Fuel Tracker
 
-[![Build and Release APK](https://github.com/pollob666/fuel-tracker/actions/workflows/release.yml/badge.svg)](https://github.com/pollob666/fuel-tracker/actions/workflows/release.yml)
+[![Build and Release APK](https://github.com/pollob666/fueltracker/actions/workflows/release.yml/badge.svg)](https://github.com/pollob666/fueltracker/actions/workflows/release.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Fuel Consumption tracker by **[pollob666](https://github.com/pollob666)**
@@ -9,7 +9,7 @@ A Flutter-based mobile application to help users track their vehicle's fuel cons
 
 ## Download
 
-You can download the latest version of the application from the [GitHub Releases](https://github.com/pollob666/fuel-tracker/releases) page.
+You can download the latest version of the application from the [GitHub Releases](https://github.com/pollob666/fueltracker/releases) page.
 
 ## Key Features:
 

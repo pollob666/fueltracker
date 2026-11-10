@@ -55,6 +55,8 @@ app.*.map.json
 key.properties
 **/android/app/key.properties
 **/android/key.properties
+local.properties
+android/local.properties
 
 # Exported data files
 *.csv
