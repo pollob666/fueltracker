@@ -34,6 +34,11 @@ class DatabaseHelper {
     await _createTables(db);
   }
 
+  @visibleForTesting
+  Future<void> onUpgradeForTesting(Database db, int oldVersion, int newVersion) async {
+    await _onUpgrade(db, oldVersion, newVersion);
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();

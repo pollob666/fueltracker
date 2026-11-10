@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary
 
-FuelTracker (`v3.5.0+1`) was subjected to an end-to-end mobile user-testing campaign on physical Android 17 hardware via `adb`, paired with a white-box code and mathematical audit against [README.md](file:///home/andalib/src/fueltracker/README.md), [AGENTS.md](file:///home/andalib/src/fueltracker/AGENTS.md), and [IMPROVEMENTS.md](file:///home/andalib/src/fueltracker/IMPROVEMENTS.md).
+FuelTracker (`v3.5.0+1`) was subjected to an end-to-end mobile user-testing campaign on physical Android 17 hardware via `adb`, paired with a white-box code and mathematical audit against [README.md](file:///home/andalib/src/fueltracker/README.md), [AGENTS.md](file:///home/andalib/src/fueltracker/docs/AGENTS.md), and [IMPROVEMENTS.md](file:///home/andalib/src/fueltracker/docs/IMPROVEMENTS.md).
 
 Across **26 captured high-resolution hardware screenshots**, the application demonstrated zero fatal exceptions, zero `RenderFlex` layout overflows under $1.6\times$ accessibility font scaling, smooth Material 3 `NavigationRail` master-detail adaptation at $\ge 720\text{ dp}$, and accurate Full-to-Full running average mileage ($\frac{\sum \Delta O}{\sum V} = 14.00\text{ km/L}$).
 
