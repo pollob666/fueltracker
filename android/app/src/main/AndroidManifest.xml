@@ -3,6 +3,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Exact alarms: SCHEDULE_EXACT_ALARM is used for refuel & maintenance reminders.
+         USE_EXACT_ALARM is omitted intentionally because Google Play policy restricts
+         it exclusively to alarm clocks and timers. If SCHEDULE_EXACT_ALARM is denied
+         on Android 14+, the app safely falls back to inexact scheduling. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -57,6 +61,21 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/refuel_glance_info" />
+        </receiver>
+
+        <!-- flutter_local_notifications receivers for scheduled alarms and reboot rescheduling -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
         </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
