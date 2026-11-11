@@ -64,6 +64,8 @@ flutter build apk --debug
 flutter build apk --release
 ```
 
+GitHub Actions CI and release workflows use Node.js 24-compatible action versions for caching, Gradle setup, and artifact transfer.
+
 ## Future Development Plan
 
 The following is a roadmap of planned features to be implemented in future releases:

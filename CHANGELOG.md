@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated GitHub Actions cache, Gradle setup, and artifact actions to Node.js 24-compatible releases to avoid the Node.js 20 deprecation warning.
+
 ## [3.7.0+3] - 2026-11-09
 ### Fixed
 - Post-baseline volume and cost calculation skews across intervals.
