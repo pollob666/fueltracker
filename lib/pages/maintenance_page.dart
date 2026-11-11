@@ -1399,23 +1399,68 @@ class _MaintenancePageState extends ConsumerState<MaintenancePage>
             onPressed: _selectedVehicleId != null ? () => _openTaskDialog() : null,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(
-              icon: const Icon(Icons.build_outlined, size: 20),
-              text: l10n.tasksAndReminders,
-            ),
-            if (showTiresTab)
-              const Tab(
-                icon: Icon(Icons.tire_repair, size: 20),
-                text: 'Tires & Wheels',
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              border: Border(
+                top: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+                bottom: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  width: 1,
+                ),
               ),
-            Tab(
-              icon: const Icon(Icons.history, size: 20),
-              text: l10n.serviceHistory,
             ),
-          ],
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: TabBar(
+              controller: _tabController,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              indicator: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+              ),
+              dividerColor: Colors.transparent,
+              labelColor: theme.colorScheme.primary,
+              unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+              labelStyle: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: [
+                Tab(
+                  height: 44,
+                  icon: const Icon(Icons.build_outlined, size: 18),
+                  text: l10n.tasksAndReminders,
+                  iconMargin: const EdgeInsets.only(bottom: 2),
+                ),
+                if (showTiresTab)
+                  const Tab(
+                    height: 44,
+                    icon: Icon(Icons.tire_repair, size: 18),
+                    text: 'Tires & Wheels',
+                    iconMargin: EdgeInsets.only(bottom: 2),
+                  ),
+                Tab(
+                  height: 44,
+                  icon: const Icon(Icons.history, size: 18),
+                  text: l10n.serviceHistory,
+                  iconMargin: const EdgeInsets.only(bottom: 2),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       drawer: const MyDrawer(),

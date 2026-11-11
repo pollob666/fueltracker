@@ -451,6 +451,8 @@ class _SavedLocationsPageState extends State<SavedLocationsPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final unnamedCount = _allLocations.where((l) => !l.isNamed).length;
 
     return Scaffold(
@@ -463,15 +465,79 @@ class _SavedLocationsPageState extends State<SavedLocationsPage>
             onPressed: () => _showAddOrEditDialog(),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'All Named'),
-            Tab(text: '🟢 High Efficiency'),
-            Tab(text: '⚠️ Suspect Quality'),
-            Tab(text: 'Workshops'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainer,
+              border: Border(
+                top: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+                bottom: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+              indicator: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+              ),
+              dividerColor: Colors.transparent,
+              labelColor: colorScheme.primary,
+              unselectedLabelColor: colorScheme.onSurfaceVariant,
+              labelStyle: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(
+                  height: 36,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('All Named'),
+                  ),
+                ),
+                Tab(
+                  height: 36,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('🟢 High Efficiency'),
+                  ),
+                ),
+                Tab(
+                  height: 36,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('⚠️ Suspect Quality'),
+                  ),
+                ),
+                Tab(
+                  height: 36,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('Workshops'),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: _isLoading
@@ -481,7 +547,7 @@ class _SavedLocationsPageState extends State<SavedLocationsPage>
                 // Top control bar with "Show Unnamed Locations" toggle
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -493,7 +559,7 @@ class _SavedLocationsPageState extends State<SavedLocationsPage>
                         children: [
                           Text(
                             'Show Unnamed ($unnamedCount)',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
                           ),
                           const SizedBox(width: 4),
                           Switch(

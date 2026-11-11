@@ -1593,9 +1593,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isTablet && selectedVehicle != null
-            ? '${localizations.appTitle} - ${selectedVehicle.name}'
-            : localizations.appTitle),
+        titleSpacing: 8,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            isTablet && selectedVehicle != null
+                ? '${localizations.appTitle} - ${selectedVehicle.name}'
+                : localizations.appTitle,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.screenshot_outlined),

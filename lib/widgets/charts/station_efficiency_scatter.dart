@@ -64,56 +64,63 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Station Efficiency Variance',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Interval economy vs ${runningAverage.toStringAsFixed(2)} $economyUnit running average',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Station Efficiency Variance',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Interval economy vs ${runningAverage.toStringAsFixed(2)} $economyUnit running average',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
-                Row(
-                  children: [
-                    if (boostCount > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        margin: const EdgeInsets.only(right: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '🟢 +$boostCount',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.brightness == Brightness.dark ? Colors.green.shade300 : Colors.green.shade800,
-                            fontWeight: FontWeight.bold,
+                if (boostCount > 0 || suspectCount > 0) ...[
+                  const SizedBox(width: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (boostCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '🟢 +$boostCount',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.brightness == Brightness.dark ? Colors.green.shade300 : Colors.green.shade800,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                    if (suspectCount > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '⚠️ $suspectCount',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.brightness == Brightness.dark ? Colors.amber.shade200 : Colors.amber.shade900,
-                            fontWeight: FontWeight.bold,
+                      if (suspectCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '⚠️ $suspectCount',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.brightness == Brightness.dark ? Colors.amber.shade200 : Colors.amber.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 16),
@@ -145,6 +152,9 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                         showTitles: true,
                         reservedSize: 42,
                         getTitlesWidget: (value, meta) {
+                          if (value == meta.max || value == meta.min) {
+                            return const SizedBox.shrink();
+                          }
                           return Text(
                             value.toStringAsFixed(1),
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -161,6 +171,9 @@ class StationEfficiencyScatterWidget extends StatelessWidget {
                         reservedSize: 24,
                         interval: (points.length / 4).clamp(1.0, double.infinity),
                         getTitlesWidget: (value, meta) {
+                          if (value != value.toInt().toDouble()) {
+                            return const SizedBox.shrink();
+                          }
                           final idx = value.toInt();
                           if (idx < 0 || idx >= points.length) {
                             return const SizedBox.shrink();

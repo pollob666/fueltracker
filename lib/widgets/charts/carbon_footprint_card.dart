@@ -63,28 +63,35 @@ class CarbonFootprintCardWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Text('🌱', style: TextStyle(fontSize: 20)),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Carbon Footprint',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('🌱', style: TextStyle(fontSize: 20)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Carbon Footprint',
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Estimated emissions based on fuel volume consumed',
+                              style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Estimated emissions based on fuel volume consumed',
-                          style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-                if (result.ecoRating != 'N/A')
+                if (result.ecoRating != 'N/A') ...[
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -101,6 +108,7 @@ class CarbonFootprintCardWidget extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 16),
@@ -196,7 +204,9 @@ class CarbonFootprintCardWidget extends StatelessWidget {
                       'Requires approximately ${result.treeOffsetCount} tree sapling${result.treeOffsetCount == 1 ? '' : 's'} (growing 1 year) to offset these emissions.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 11,
-                        color: Colors.green.shade900,
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.green.shade300
+                            : Colors.green.shade900,
                       ),
                     ),
                   ),

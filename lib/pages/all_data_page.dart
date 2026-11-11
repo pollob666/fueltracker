@@ -473,6 +473,24 @@ class _AllDataPageState extends ConsumerState<AllDataPage> {
               style: ButtonStyle(
                 visualDensity: VisualDensity.compact,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return theme.colorScheme.onPrimary;
+                  }
+                  return theme.colorScheme.onPrimary.withValues(alpha: 0.65);
+                }),
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return theme.colorScheme.onPrimary.withValues(alpha: 0.22);
+                  }
+                  return theme.colorScheme.onPrimary.withValues(alpha: 0.08);
+                }),
+                side: WidgetStateProperty.all(
+                  BorderSide(
+                    color: theme.colorScheme.onPrimary.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
               ),
             ),
           ),

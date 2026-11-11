@@ -152,22 +152,28 @@ class PriceTrendChartWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Fuel Price Trends',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Rate per volume with 30-day moving average',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Fuel Price Trends',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Rate per volume with 30-day moving average',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
-                Wrap(spacing: 8, children: legendItems),
+                if (legendItems.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Wrap(spacing: 8, children: legendItems),
+                ],
               ],
             ),
             const SizedBox(height: 16),
@@ -195,6 +201,9 @@ class PriceTrendChartWidget extends StatelessWidget {
                         showTitles: true,
                         reservedSize: 46,
                         getTitlesWidget: (value, meta) {
+                          if (value == meta.max || value == meta.min) {
+                            return const SizedBox.shrink();
+                          }
                           final sym = currencySymbol ?? '';
                           return Text(
                             '$sym${value.toStringAsFixed(1)}',

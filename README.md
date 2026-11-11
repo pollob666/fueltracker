@@ -36,17 +36,6 @@ You can download the latest version of the application from the [GitHub Releases
 |:---:|:---:|:---:|:---:|
 | ![Receipt OCR](docs/screenshots/receipt_ocr.png) | ![History Timeline](docs/screenshots/history_timeline.png) | ![Non-Fuel Expenses](docs/screenshots/non_fuel_expenses.png) | ![Long Screenshot](docs/screenshots/long_screenshot.png) |
 
-### Screenshot Capture Checklist
-- [x] **Dashboard:** Primary vehicle telemetry summary cards, remaining fuel gauge, DTE projection, and recent refuel history.
-- [x] **Refuel Form:** Bidirectional calculation lock toggles, fuel type selector, station auto-suggestion, and trip discrepancy alert chip.
-- [x] **Receipt OCR Modal:** Camera viewfinder preview, live text bounding boxes, and extracted metrics auto-fill banner.
-- [x] **Telemetry & Analytics:** Fuel price fluctuation line charts (30-day moving average), station efficiency scatter plot (±15% anomaly bands), and driving condition split.
-- [x] **Maintenance & Tires:** 4-wheel interactive chassis schematic, tread depth wear rate progress, and service schedule checklist.
-- [x] **Non-Fuel Expenses & TCO:** Monthly stacked expenditure breakdown bar chart (Fuel, Service, Non-Fuel) and all-inclusive cost/km telemetry.
-- [x] **All Data History:** Material 3 timeline cards, date filter chips, station text search, and tabular view switcher.
-- [x] **Long Screenshot & System Share:** High-resolution unclipped screen composite generation and direct system share sheet dispatch.
-- [x] **Dark Mode Monet Theme:** Material You wallpaper dynamic color theming across light and dark palettes.
-
 ## Build from Source
 
 ### Prerequisites

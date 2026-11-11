@@ -1,36 +1,36 @@
-# GitHub Actions workflow for building and releasing Flutter APKs.
-#
-# This workflow is triggered on every push to the 'master' branch.
-# It verifies that the commit is cryptographically signed and authored/committed
-# by 'pollob666@gmail.com'. It automatically increments the version number based
-# on conventional commit messages, builds a signed release APK, and creates a
-# new GitHub Release with the file.
-# The version bump is only committed if the build and release are successful.
-#
+# Build and publish APKs only when pubspec.yaml version changes on master.
 name: Build and Release APK
 
 on:
   push:
     branches:
       - master
+    paths:
+      - pubspec.yaml
+
+# Queue release runs so tags and release uploads cannot race.
+concurrency:
+  group: fueltracker-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  calculate-version:
-    if: "!contains(github.event.head_commit.message, 'ci: Bump version') && (github.event.head_commit.author.email == 'pollob666@gmail.com' || github.event.head_commit.committer.email == 'pollob666@gmail.com')"
+  detect-version-change:
+    if: github.event.head_commit.author.email == 'pollob666@gmail.com' || github.event.head_commit.committer.email == 'pollob666@gmail.com'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
-      new_version: ${{ steps.version-increment.outputs.new_version }}
-      new_version_name: ${{ steps.version-increment.outputs.new_version_name }}
-      new_build_number: ${{ steps.version-increment.outputs.new_build_number }}
+      version: ${{ steps.version.outputs.version }}
+      version_name: ${{ steps.version.outputs.version_name }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      changed: ${{ steps.version.outputs.changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0 # Fetches all history for version bumping.
+          fetch-depth: 0
 
-      - name: Verify Signed Commit
+      - name: Verify signed commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -39,71 +39,78 @@ jobs:
           REASON=$(echo "$COMMIT_DATA" | jq -r '.commit.verification.reason')
           AUTHOR_EMAIL=$(echo "$COMMIT_DATA" | jq -r '.commit.author.email' | tr '[:upper:]' '[:lower:]')
           COMMITTER_EMAIL=$(echo "$COMMIT_DATA" | jq -r '.commit.committer.email' | tr '[:upper:]' '[:lower:]')
-
-          echo "Commit: ${{ github.sha }}"
-          echo "Signature Status: verified=$VERIFIED, reason=$REASON"
-          echo "Author: $AUTHOR_EMAIL, Committer: $COMMITTER_EMAIL"
-
           if [[ "$VERIFIED" != "true" || "$REASON" != "valid" ]]; then
-            echo "::error::Commit ${{ github.sha }} signature is invalid or unverified (status: $VERIFIED, reason: $REASON)."
+            echo "::error::Commit signature is invalid or unverified (verified=$VERIFIED, reason=$REASON)."
             exit 1
           fi
-
           if [[ "$AUTHOR_EMAIL" != "pollob666@gmail.com" && "$COMMITTER_EMAIL" != "pollob666@gmail.com" ]]; then
-            echo "::error::Commit ${{ github.sha }} is not authored or committed by pollob666@gmail.com."
+            echo "::error::Commit is not authored or committed by pollob666@gmail.com."
             exit 1
           fi
 
-          echo "Cryptographic signature and identity verified for pollob666@gmail.com."
-
-      - name: Determine Version Increment
-        id: version-increment-type
+      - name: Detect version change
+        id: version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$COMMIT_MSG" == *"majorUpdate"* || "$COMMIT_MSG" == *"BREAKING CHANGE"* || "$COMMIT_MSG" == *"refactor:"* || "$COMMIT_MSG" == *"refactor("* ]]; then
-            echo "increment=major" >> $GITHUB_OUTPUT
-          elif [[ "$COMMIT_MSG" == *"feat:"* || "$COMMIT_MSG" == *"feat("* ]]; then
-            echo "increment=minor" >> $GITHUB_OUTPUT
+          VERSION=$(sed -n 's/^version: *//p' pubspec.yaml | head -n 1)
+          if [[ ! "$VERSION" =~ ^((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))\+((0|[1-9][0-9]*))$ ]]; then
+            echo "::error::Expected pubspec version in MAJOR.MINOR.PATCH+BUILD format; got '$VERSION'."
+            exit 1
+          fi
+          VERSION_NAME="${BASH_REMATCH[1]}"
+          MAJOR="${BASH_REMATCH[2]}"
+          MINOR="${BASH_REMATCH[3]}"
+          PATCH="${BASH_REMATCH[4]}"
+          BUILD_NUMBER="${BASH_REMATCH[5]}"
+
+          if [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+            PREVIOUS_VERSION=""
           else
-            echo "increment=patch" >> $GITHUB_OUTPUT
+            PREVIOUS_VERSION=$(git show "$BEFORE_SHA:pubspec.yaml" 2>/dev/null | sed -n 's/^version: *//p' | head -n 1 || true)
           fi
-
-      - name: Calculate New Version
-        id: version-increment
-        run: |
-          # FIX: Added ^ to match only the version at the start of the line
-          CURRENT_VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //')
-          VERSION_PART=$(echo $CURRENT_VERSION | cut -d'+' -f1)
-          BUILD_PART=$(echo $CURRENT_VERSION | cut -d'+' -f2)
-          MAJOR=$(echo $VERSION_PART | cut -d'.' -f1)
-          MINOR=$(echo $VERSION_PART | cut -d'.' -f2)
-          PATCH=$(echo $VERSION_PART | cut -d'.' -f3)
-          BUMP_TYPE=${{ steps.version-increment-type.outputs.increment }}
-          if [[ "$BUMP_TYPE" == "major" ]]; then
-            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0; BUILD_PART=1
-          elif [[ "$BUMP_TYPE" == "minor" ]]; then
-            MINOR=$((MINOR + 1)); PATCH=0; BUILD_PART=1
-          else # patch
-            PATCH=$((PATCH + 1)); BUILD_PART=$((BUILD_PART + 1))
+          if [[ "$VERSION" == "$PREVIOUS_VERSION" ]]; then
+            echo "Version unchanged ($VERSION); skipping release."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            if [[ -n "$PREVIOUS_VERSION" ]]; then
+              if [[ ! "$PREVIOUS_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\+(0|[1-9][0-9]*)$ ]]; then
+                echo "::error::Previous pubspec version '$PREVIOUS_VERSION' is invalid."
+                exit 1
+              fi
+              PREVIOUS_MAJOR="${BASH_REMATCH[1]}"
+              PREVIOUS_MINOR="${BASH_REMATCH[2]}"
+              PREVIOUS_PATCH="${BASH_REMATCH[3]}"
+              PREVIOUS_BUILD="${BASH_REMATCH[4]}"
+              VERSION_INCREASED=false
+              if (( MAJOR > PREVIOUS_MAJOR )); then
+                VERSION_INCREASED=true
+              elif (( MAJOR == PREVIOUS_MAJOR && MINOR > PREVIOUS_MINOR )); then
+                VERSION_INCREASED=true
+              elif (( MAJOR == PREVIOUS_MAJOR && MINOR == PREVIOUS_MINOR && PATCH > PREVIOUS_PATCH )); then
+                VERSION_INCREASED=true
+              elif (( MAJOR == PREVIOUS_MAJOR && MINOR == PREVIOUS_MINOR && PATCH == PREVIOUS_PATCH && BUILD_NUMBER > PREVIOUS_BUILD )); then
+                VERSION_INCREASED=true
+              fi
+              if [[ "$VERSION_INCREASED" != true ]]; then
+                echo "::error::Version must increase from '$PREVIOUS_VERSION' to '$VERSION'."
+                exit 1
+              fi
+            fi
+            echo "Version changed: '${PREVIOUS_VERSION:-<none>}' -> '$VERSION'."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-          NEW_VERSION_NAME="$MAJOR.$MINOR.$PATCH"
-          NEW_BUILD_NUMBER="$BUILD_PART"
-          NEW_VERSION="$NEW_VERSION_NAME+$NEW_BUILD_NUMBER"
-          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "new_version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
-          echo "new_build_number=${NEW_BUILD_NUMBER}" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
   build:
-    needs: calculate-version
+    needs: detect-version-change
+    if: needs.detect-version-change.outputs.changed == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
-      - name: Update pubspec.yaml for build
-        run: |
-          # FIX: Added ^ to ensure we only replace the root version key
-          sed -i "s/^version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -152,54 +159,41 @@ jobs:
           echo "storePassword=$STORE_PASSWORD" >> android/app/key.properties
 
       - name: Build signed release APK
-        run: |
-          flutter build apk --release \
-            --build-name ${{ needs.calculate-version.outputs.new_version_name }} \
-            --build-number ${{ needs.calculate-version.outputs.new_build_number }}
+        run: flutter build apk --release --build-name '${{ needs.detect-version-change.outputs.version_name }}' --build-number '${{ needs.detect-version-change.outputs.build_number }}'
 
       - name: Build signed debug APK
-        run: |
-          flutter build apk --debug \
-            --build-name ${{ needs.calculate-version.outputs.new_version_name }} \
-            --build-number ${{ needs.calculate-version.outputs.new_build_number }}
+        run: flutter build apk --debug --build-name '${{ needs.detect-version-change.outputs.version_name }}' --build-number '${{ needs.detect-version-change.outputs.build_number }}'
 
-      - name: Locate and stage APK artifacts
-        id: stage_apks
+      - name: Stage APKs
         run: |
-          TIMESTAMP=$(date +%Y%m%d-%H%M)
           mkdir -p staged-apks
-
-          # Locate Release APK
-          RELEASE_APK=$(find build/app/outputs/flutter-apk -name "fueltracker-v*-release.apk" | head -n 1)
-          if [ -n "$RELEASE_APK" ]; then
-            cp "$RELEASE_APK" staged-apks/
-          elif [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
-            cp build/app/outputs/flutter-apk/app-release.apk "staged-apks/fueltracker-v${{ needs.calculate-version.outputs.new_version_name }}-${{ needs.calculate-version.outputs.new_build_number }}-${TIMESTAMP}-release.apk"
-          fi
-
-          # Locate Debug APK
-          DEBUG_APK=$(find build/app/outputs/flutter-apk -name "fueltracker-v*-debug.apk" | head -n 1)
-          if [ -n "$DEBUG_APK" ]; then
-            cp "$DEBUG_APK" staged-apks/
-          elif [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
-            cp build/app/outputs/flutter-apk/app-debug.apk "staged-apks/fueltracker-v${{ needs.calculate-version.outputs.new_version_name }}-${{ needs.calculate-version.outputs.new_build_number }}-${TIMESTAMP}-debug.apk"
-          fi
-
-          echo "Staged APKs:"
+          cp build/app/outputs/flutter-apk/fueltracker-v*-release.apk staged-apks/
+          cp build/app/outputs/flutter-apk/fueltracker-v*-debug.apk staged-apks/
           ls -la staged-apks/
 
-      - name: Upload APK Artifacts
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
           name: apk-artifacts
           path: staged-apks/*.apk
 
   create-release:
-    needs: [build, calculate-version]
+    needs: [detect-version-change, build]
+    if: needs.detect-version-change.outputs.changed == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - name: Reject existing release tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: v${{ needs.detect-version-change.outputs.version }}
+        run: |
+          if gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Git tag '$RELEASE_TAG' already exists; increment pubspec.yaml version before releasing."
+            exit 1
+          fi
+
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
@@ -209,35 +203,12 @@ jobs:
       - name: Create Release and Upload Artifacts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.calculate-version.outputs.new_version }}
-          name: "Release ${{ needs.calculate-version.outputs.new_version_name }}"
+          tag_name: v${{ needs.detect-version-change.outputs.version }}
+          name: "Release ${{ needs.detect-version-change.outputs.version_name }}"
           body: |
-            Automated release for version ${{ needs.calculate-version.outputs.new_version_name }}.
+            Automated release for version ${{ needs.detect-version-change.outputs.version }}.
             - Release APK (signed with release key)
             - Debug APK (signed with release key)
-          files: |
-            artifacts/apk/*.apk
+          files: artifacts/apk/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  commit-and-push-version-bump:
-    needs: [calculate-version, create-release]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit version bump
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          # FIX: Added ^ to ensure we only replace the root version key
-          sed -i "s/^version: .*/version: ${{ needs.calculate-version.outputs.new_version }}/" pubspec.yaml
-          git add pubspec.yaml
-          git commit -m "ci: Bump version to ${{ needs.calculate-version.outputs.new_version }}"
-          git pull --rebase origin master
-          git push origin master

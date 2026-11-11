@@ -44,7 +44,12 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Visual Analytics'),
+        titleSpacing: 8,
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text('Visual Analytics'),
+        ),
         elevation: 0,
         actions: [
           IconButton(
@@ -77,20 +82,66 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
               if (vehicles.isEmpty) return const SizedBox.shrink();
               final currentId = activeVehicle?.id ?? vehicles.first.id;
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 12.0),
+              return Container(
+                margin: const EdgeInsets.only(right: 12.0),
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                decoration: BoxDecoration(
+                  color: colorScheme.onPrimary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colorScheme.onPrimary.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     value: currentId,
-                    icon: Icon(Icons.arrow_drop_down, color: colorScheme.onSurface),
+                    isDense: true,
+                    icon: Icon(Icons.arrow_drop_down, color: colorScheme.onPrimary, size: 20),
                     dropdownColor: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
+                    selectedItemBuilder: (context) {
+                      return vehicles.map((v) {
+                        return ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 88),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              v.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: colorScheme.onPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList();
+                    },
                     items: vehicles.map((v) {
+                      final isSelected = v.id == currentId;
                       return DropdownMenuItem<int>(
                         value: v.id,
-                        child: Text(
-                          v.name,
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.directions_car_outlined,
+                              size: 18,
+                              color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                v.name,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),
