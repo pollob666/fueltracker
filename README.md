@@ -21,6 +21,8 @@ You can download the latest version of the application from the [GitHub Releases
 *   **Non-Fuel Expenses & Total Cost of Ownership (TCO):** Multi-category non-fuel expense logging (tolls, parking, maintenance, insurance, taxes) with monthly stacked cost breakdowns and printable audit-ready A4 PDF reports.
 *   **Encrypted Backups & Automated Cloud Sync:** Streamed container backups (`.zip` v2 with O(1) memory), client-side AES-256-GCM / PBKDF2 encryption (`.ftbackup`), and automated periodic WebDAV background sync via WorkManager.
 *   **Multi-Currency, EV & International Units:** Architectural support for ICE, Hybrid, and EV (kWh/SoC), international units (km/mi, L/gal, km/L, MPG, km/kWh), and multi-currency normalization with baseline exchange rate conversions.
+*   **Dynamic Bidirectional Refuel Calculations:** Automatic calculation with intelligent lock targets (auto-calculating Volume when Rate and Paid Amount are entered, or Paid Amount when Volume is entered) and ergonomic field reordering without accidental input erasure.
+*   **High-Resolution Long Screenshots:** Native in-app full-page screenshot capture and instant sharing for Dashboard, Visual Analytics, All Data History, and Maintenance screens without viewport truncation.
 
 > For the comprehensive, detailed directory of all implemented features and technical specifications, see **[docs/features.md](docs/features.md)**.
 
@@ -30,20 +32,20 @@ You can download the latest version of the application from the [GitHub Releases
 |:---:|:---:|:---:|:---:|
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Refuel Entry](docs/screenshots/refuel_entry.png) | ![Analytics & Trends](docs/screenshots/analytics_trends.png) | ![Maintenance & Tires](docs/screenshots/maintenance_tires.png) |
 
-| Receipt OCR | History Timeline | Non-Fuel Expenses | Tablet Master-Detail |
+| Receipt OCR | History Timeline | Non-Fuel Expenses | Long Screenshot |
 |:---:|:---:|:---:|:---:|
-| ![Receipt OCR](docs/screenshots/receipt_ocr.png) | ![History Timeline](docs/screenshots/history_timeline.png) | ![Non-Fuel Expenses](docs/screenshots/non_fuel_expenses.png) | ![Tablet Master-Detail](docs/screenshots/tablet_master_detail.png) |
+| ![Receipt OCR](docs/screenshots/receipt_ocr.png) | ![History Timeline](docs/screenshots/history_timeline.png) | ![Non-Fuel Expenses](docs/screenshots/non_fuel_expenses.png) | ![Long Screenshot](docs/screenshots/long_screenshot.png) |
 
 ### Screenshot Capture Checklist
-- [ ] **Dashboard:** Primary vehicle telemetry summary cards, remaining fuel gauge, DTE projection, and recent refuel history.
-- [ ] **Refuel Form:** Bidirectional calculation lock toggles, fuel type selector, station auto-suggestion, and trip discrepancy alert chip.
-- [ ] **Receipt OCR Modal:** Camera viewfinder preview, live text bounding boxes, and extracted metrics auto-fill banner.
-- [ ] **Telemetry & Analytics:** Fuel price fluctuation line charts (30-day moving average), station efficiency scatter plot (±15% anomaly bands), and driving condition split.
-- [ ] **Maintenance & Tires:** 4-wheel interactive chassis schematic, tread depth wear rate progress, and service schedule checklist.
-- [ ] **Non-Fuel Expenses & TCO:** Monthly stacked expenditure breakdown bar chart (Fuel, Service, Non-Fuel) and all-inclusive cost/km telemetry.
-- [ ] **All Data History:** Material 3 timeline cards, date filter chips, station text search, and tabular view switcher.
-- [ ] **Tablet / Foldable Dual-Pane View:** Master-detail split layout (NavigationRail, left vehicle selector, right telemetry and charts) on displays >= 720 dp.
-- [ ] **Dark Mode Monet Theme:** Material You wallpaper dynamic color theming across light and dark palettes.
+- [x] **Dashboard:** Primary vehicle telemetry summary cards, remaining fuel gauge, DTE projection, and recent refuel history.
+- [x] **Refuel Form:** Bidirectional calculation lock toggles, fuel type selector, station auto-suggestion, and trip discrepancy alert chip.
+- [x] **Receipt OCR Modal:** Camera viewfinder preview, live text bounding boxes, and extracted metrics auto-fill banner.
+- [x] **Telemetry & Analytics:** Fuel price fluctuation line charts (30-day moving average), station efficiency scatter plot (±15% anomaly bands), and driving condition split.
+- [x] **Maintenance & Tires:** 4-wheel interactive chassis schematic, tread depth wear rate progress, and service schedule checklist.
+- [x] **Non-Fuel Expenses & TCO:** Monthly stacked expenditure breakdown bar chart (Fuel, Service, Non-Fuel) and all-inclusive cost/km telemetry.
+- [x] **All Data History:** Material 3 timeline cards, date filter chips, station text search, and tabular view switcher.
+- [x] **Long Screenshot & System Share:** High-resolution unclipped screen composite generation and direct system share sheet dispatch.
+- [x] **Dark Mode Monet Theme:** Material You wallpaper dynamic color theming across light and dark palettes.
 
 ## Build from Source
 

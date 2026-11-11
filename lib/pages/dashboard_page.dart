@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/pages/all_data_page.dart';
 import 'package:fuel_tracker/providers/fuel_record_providers.dart';
+import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:intl/intl.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
@@ -31,6 +32,7 @@ import 'package:fuel_tracker/utils/tire_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
 import 'package:fuel_tracker/services/version_service.dart';
+import 'package:fuel_tracker/utils/long_screenshot_service.dart';
 import 'package:fuel_tracker/widgets/anomaly_diagnostic_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -45,6 +47,7 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
+  final GlobalKey _screenshotKey = GlobalKey();
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
   final VersionService _versionService = VersionService();
@@ -151,7 +154,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
   }
 
-  Future<void> _loadInitialData() async {
+  Future<void> _loadInitialData({bool preserveSelection = true}) async {
     var recs = await DatabaseHelper.instance.getFuelRecords();
     var fuelTypes = await _fuelTypeService.getFuelTypes();
     var vehicles = await _vehicleService.getVehicles();
@@ -167,7 +170,22 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         _vehicleMap = {for (var v in vehicles) v.id!: v};
 
         if (vehicles.isNotEmpty) {
-          _selectedVehicleId = defaultVehicleId ?? vehicles.first.id;
+          final activeId = ref.read(activeVehicleIdProvider);
+          if (preserveSelection &&
+              _selectedVehicleId != null &&
+              vehicles.any((v) => v.id == _selectedVehicleId)) {
+            // Keep current selection
+          } else if (activeId != null && vehicles.any((v) => v.id == activeId)) {
+            _selectedVehicleId = activeId;
+          } else if (defaultVehicleId != null &&
+              vehicles.any((v) => v.id == defaultVehicleId)) {
+            _selectedVehicleId = defaultVehicleId;
+          } else {
+            _selectedVehicleId = vehicles.first.id;
+          }
+          if (_selectedVehicleId != null) {
+            ref.read(activeVehicleIdProvider.notifier).state = _selectedVehicleId;
+          }
           _filterRecords();
         } else {
           _filteredRecords = [];
@@ -890,8 +908,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     if (_selectedVehicleId != null) {
       ref.listen(fuelRecordsProvider(_selectedVehicleId!), (previous, next) {
-        if (previous != null) {
-          _loadInitialData();
+        if (previous != null && next.hasValue) {
+          _loadInitialData(preserveSelection: true);
         }
       });
     }
@@ -1233,7 +1251,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final isTablet = screenWidth >= 720;
 
     final vehicleSelectorWidget = DropdownButtonFormField<int>(
-      initialValue: _selectedVehicleId,
+      key: ValueKey(_selectedVehicleId),
+      value: _selectedVehicleId,
       items: _vehicles.map((vehicle) {
         return DropdownMenuItem<int>(
           value: vehicle.id,
@@ -1242,8 +1261,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       }).toList(),
       onChanged: (val) {
         HapticFeedback.selectionClick();
+        if (val != null) {
+          ref.read(activeVehicleIdProvider.notifier).state = val;
+        }
         setState(() {
           _selectedVehicleId = val;
+          _isAnomalyDismissed = false;
           _filterRecords();
         });
       },
@@ -1310,7 +1333,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   context,
                   localizations.dailyAverageRun,
                   calculateDailyAverageRun(_filteredRecords),
-                  'km/day',
+                  '${selectedVehicle?.distanceUnit.symbol ?? 'km'}/day',
                   colorScheme.secondaryContainer,
                   colorScheme.onSecondaryContainer,
                   colorScheme.secondary,
@@ -1320,7 +1343,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   context,
                   localizations.dailyAverageCost,
                   calculateDailyAverageCost(_filteredRecords),
-                  'BDT/day',
+                  '${selectedVehicle?.baseCurrency ?? 'BDT'}/day',
                   colorScheme.errorContainer,
                   colorScheme.onErrorContainer,
                   colorScheme.error,
@@ -1573,29 +1596,54 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         title: Text(isTablet && selectedVehicle != null
             ? '${localizations.appTitle} - ${selectedVehicle.name}'
             : localizations.appTitle),
-        actions: isTablet
-            ? []
-            : [
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () async {
-                    HapticFeedback.lightImpact();
-                    await Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => const AddDataPage()));
-                    _loadInitialData();
-                  },
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.screenshot_outlined),
+            tooltip: 'Long Screenshot',
+            onPressed: () async {
+              HapticFeedback.lightImpact();
+              final messenger = ScaffoldMessenger.of(context);
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Capturing screenshot...'),
+                  duration: Duration(milliseconds: 700),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SettingsPage()),
-                    );
-                  },
-                ),
-              ],
+              );
+              final success = await LongScreenshotService.captureAndShare(
+                context: context,
+                boundaryKey: _screenshotKey,
+                fileNamePrefix: 'fueltracker_dashboard',
+                shareText: 'Fuel Tracker Dashboard - ${selectedVehicle?.name ?? ""}',
+              );
+              if (!success && mounted) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Failed to capture screenshot')),
+                );
+              }
+            },
+          ),
+          if (!isTablet) ...[
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () async {
+                HapticFeedback.lightImpact();
+                await Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const AddDataPage()));
+                _loadInitialData();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+            ),
+          ],
+        ],
       ),
       drawer: isTablet ? null : const MyDrawer(),
       body: SafeArea(
@@ -1649,13 +1697,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 5, child: leftPane),
-                          const SizedBox(width: 24),
-                          Expanded(flex: 6, child: rightPane),
-                        ],
+                      child: RepaintBoundary(
+                        key: _screenshotKey,
+                        child: ColoredBox(
+                          color: theme.scaffoldBackgroundColor,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 5, child: leftPane),
+                              const SizedBox(width: 24),
+                              Expanded(flex: 6, child: rightPane),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1663,42 +1717,48 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               )
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    vehicleSelectorWidget,
-                    const SizedBox(height: 16),
-                    actionButtonsRow,
-                    const SizedBox(height: 16),
-                    analyticsCard,
-                    const SizedBox(height: 16),
-                    ...mileageCards,
-                    const SizedBox(height: 24),
-                    dailyAveragesCard,
-                    const SizedBox(height: 24),
-                    if (anomaly != null && anomaly.hasAnomaly && !_isAnomalyDismissed && selectedVehicle != null) ...[
-                      _buildMileageAnomalyCard(context, selectedVehicle, anomaly),
-                      const SizedBox(height: 24),
-                    ],
-                    if (prediction != null && selectedVehicle != null && prediction.isAlertActive) ...[
-                      _buildRefuelReminderCard(context, selectedVehicle, prediction),
-                      const SizedBox(height: 24),
-                    ],
-                    if (_dueMaintenanceTasks.isNotEmpty && selectedVehicle != null) ...[
-                      _buildMaintenanceWarningBanner(context, selectedVehicle),
-                      const SizedBox(height: 24),
-                    ],
-                    if (_tireAlertMessage != null && selectedVehicle != null) ...[
-                      _buildTireAlertBanner(context, selectedVehicle),
-                      const SizedBox(height: 24),
-                    ],
-                    costEfficiencyCard,
-                    const SizedBox(height: 24),
-                    lastRefuelCard,
-                    if (tirePreviewCard != null) ...[
-                      const SizedBox(height: 24),
-                      tirePreviewCard,
-                    ],
-                  ],
+                child: RepaintBoundary(
+                  key: _screenshotKey,
+                  child: ColoredBox(
+                    color: theme.scaffoldBackgroundColor,
+                    child: Column(
+                      children: [
+                        vehicleSelectorWidget,
+                        const SizedBox(height: 16),
+                        actionButtonsRow,
+                        const SizedBox(height: 16),
+                        analyticsCard,
+                        const SizedBox(height: 16),
+                        ...mileageCards,
+                        const SizedBox(height: 24),
+                        dailyAveragesCard,
+                        const SizedBox(height: 24),
+                        if (anomaly != null && anomaly.hasAnomaly && !_isAnomalyDismissed && selectedVehicle != null) ...[
+                          _buildMileageAnomalyCard(context, selectedVehicle, anomaly),
+                          const SizedBox(height: 24),
+                        ],
+                        if (prediction != null && selectedVehicle != null && prediction.isAlertActive) ...[
+                          _buildRefuelReminderCard(context, selectedVehicle, prediction),
+                          const SizedBox(height: 24),
+                        ],
+                        if (_dueMaintenanceTasks.isNotEmpty && selectedVehicle != null) ...[
+                          _buildMaintenanceWarningBanner(context, selectedVehicle),
+                          const SizedBox(height: 24),
+                        ],
+                        if (_tireAlertMessage != null && selectedVehicle != null) ...[
+                          _buildTireAlertBanner(context, selectedVehicle),
+                          const SizedBox(height: 24),
+                        ],
+                        costEfficiencyCard,
+                        const SizedBox(height: 24),
+                        lastRefuelCard,
+                        if (tirePreviewCard != null) ...[
+                          const SizedBox(height: 24),
+                          tirePreviewCard,
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
       ),

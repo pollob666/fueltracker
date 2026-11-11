@@ -2,6 +2,7 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/models/fuel_record.dart';
 import 'package:fuel_tracker/pages/add_data_page.dart';
@@ -11,6 +12,7 @@ import 'package:fuel_tracker/providers/non_fuel_expense_providers.dart';
 import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/analytics_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/utils/long_screenshot_service.dart';
 import 'package:fuel_tracker/widgets/add_expense_bottom_sheet.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/charts/carbon_footprint_card.dart';
@@ -29,6 +31,8 @@ class AnalyticsPage extends ConsumerStatefulWidget {
 }
 
 class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
+  final GlobalKey _screenshotKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -43,6 +47,31 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
         title: const Text('Visual Analytics'),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.screenshot_outlined),
+            tooltip: 'Long Screenshot',
+            onPressed: () async {
+              HapticFeedback.lightImpact();
+              final messenger = ScaffoldMessenger.of(context);
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Capturing screenshot...'),
+                  duration: Duration(milliseconds: 700),
+                ),
+              );
+              final success = await LongScreenshotService.captureAndShare(
+                context: context,
+                boundaryKey: _screenshotKey,
+                fileNamePrefix: 'fueltracker_analytics',
+                shareText: 'Fuel Tracker Visual Analytics - ${activeVehicle?.name ?? ""}',
+              );
+              if (!success && mounted) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Failed to capture screenshot')),
+                );
+              }
+            },
+          ),
           vehiclesAsync.maybeWhen(
             data: (vehicles) {
               if (vehicles.isEmpty) return const SizedBox.shrink();
@@ -102,91 +131,100 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
           return Column(
             children: [
               Expanded(
-                child: ListView(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
-                  children: [
-                    // Time Window Filter Chips
-                    _buildTimeWindowSelector(context, selectedWindow),
-                    const SizedBox(height: 16),
+                  child: RepaintBoundary(
+                    key: _screenshotKey,
+                    child: ColoredBox(
+                      color: theme.scaffoldBackgroundColor,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Time Window Filter Chips
+                          _buildTimeWindowSelector(context, selectedWindow),
+                          const SizedBox(height: 16),
 
-                    // Total Cost of Ownership (TCO) Stacked Bar Chart
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final summary = ref.watch(tcoOverviewProvider(vehicleId));
-                        final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
-                        final distSym = activeVehicle?.distanceUnit.symbol ?? 'km';
-                        return TcoStackedBarWidget(
-                          summary: summary,
-                          currencySymbol: currSym,
-                          distanceUnit: distSym,
-                          onLogExpense: () {
-                            AddExpenseBottomSheet.show(context, vehicleId: vehicleId);
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                          // Total Cost of Ownership (TCO) Stacked Bar Chart
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final summary = ref.watch(tcoOverviewProvider(vehicleId));
+                              final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
+                              final distSym = activeVehicle?.distanceUnit.symbol ?? 'km';
+                              return TcoStackedBarWidget(
+                                summary: summary,
+                                currencySymbol: currSym,
+                                distanceUnit: distSym,
+                                onLogExpense: () {
+                                  AddExpenseBottomSheet.show(context, vehicleId: vehicleId);
+                                },
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
 
-                    // Price Trend Chart
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final trends = ref.watch(priceTrendsProvider(vehicleId));
-                        final fuelTypes = ref.watch(fuelTypesMapProvider).value ?? {};
-                        final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
-                        final volSym = activeVehicle?.fuelVolumeUnit.symbol ?? 'L';
-                        return PriceTrendChartWidget(
-                          priceTrends: trends,
-                          fuelTypeMap: fuelTypes,
-                          currencySymbol: currSym,
-                          volumeUnit: volSym,
-                          onRecordTap: (record) => _handleRecordTap(context, record),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                          // Price Trend Chart
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final trends = ref.watch(priceTrendsProvider(vehicleId));
+                              final fuelTypes = ref.watch(fuelTypesMapProvider).value ?? {};
+                              final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
+                              final volSym = activeVehicle?.fuelVolumeUnit.symbol ?? 'L';
+                              return PriceTrendChartWidget(
+                                priceTrends: trends,
+                                fuelTypeMap: fuelTypes,
+                                currencySymbol: currSym,
+                                volumeUnit: volSym,
+                                onRecordTap: (record) => _handleRecordTap(context, record),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
 
-                    // Station Efficiency Scatter
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final points = ref.watch(stationEfficiencyPointsProvider(vehicleId));
-                        final runningAvg = ref.watch(vehicleRunningAverageProvider(vehicleId));
-                        final econUnit = activeVehicle?.consumptionUnit.symbol ?? 'km/L';
-                        return StationEfficiencyScatterWidget(
-                          points: points,
-                          runningAverage: runningAvg,
-                          economyUnit: econUnit,
-                          onRecordTap: (record) => _handleRecordTap(context, record),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                          // Station Efficiency Scatter
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final points = ref.watch(stationEfficiencyPointsProvider(vehicleId));
+                              final runningAvg = ref.watch(vehicleRunningAverageProvider(vehicleId));
+                              final econUnit = activeVehicle?.consumptionUnit.symbol ?? 'km/L';
+                              return StationEfficiencyScatterWidget(
+                                points: points,
+                                runningAverage: runningAvg,
+                                economyUnit: econUnit,
+                                onRecordTap: (record) => _handleRecordTap(context, record),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
 
-                    // Driving Condition Impact
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final summary = ref.watch(conditionDeltaProvider(vehicleId));
-                        final econUnit = activeVehicle?.consumptionUnit.symbol ?? 'km/L';
-                        final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
-                        final distSym = activeVehicle?.distanceUnit.symbol ?? 'km';
-                        return ConditionImpactBarWidget(
-                          summary: summary,
-                          economyUnit: econUnit,
-                          currencySymbol: currSym,
-                          distanceUnit: distSym,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                          // Driving Condition Impact
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final summary = ref.watch(conditionDeltaProvider(vehicleId));
+                              final econUnit = activeVehicle?.consumptionUnit.symbol ?? 'km/L';
+                              final currSym = activeVehicle?.baseCurrency ?? AppSettings.defaultBaseCurrency;
+                              final distSym = activeVehicle?.distanceUnit.symbol ?? 'km';
+                              return ConditionImpactBarWidget(
+                                summary: summary,
+                                economyUnit: econUnit,
+                                currencySymbol: currSym,
+                                distanceUnit: distSym,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
 
-                    // Carbon Footprint Card
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final footprint = ref.watch(carbonFootprintProvider(vehicleId));
-                        return CarbonFootprintCardWidget(result: footprint);
-                      },
+                          // Carbon Footprint Card
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final footprint = ref.watch(carbonFootprintProvider(vehicleId));
+                              return CarbonFootprintCardWidget(result: footprint);
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                  ],
+                  ),
                 ),
               ),
               const BannerAdWidget(),

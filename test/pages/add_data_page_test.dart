@@ -156,8 +156,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Default target is Paid Amount auto-calculated
-    // Enter Rate: 2.0, Volume: 10.0 -> Paid Amount should become 20.00
+    // Default target is Volume auto-calculated (as users mainly enter Paid Amount)
+    // Enter Rate: 2.0, Paid Amount: 20.0 -> Volume should become 10.00
     final rateFinder = find.widgetWithText(TextFormField, 'Fuel Price/Rate');
     final volumeFinder = find.widgetWithText(TextFormField, 'Total Volume');
     final paidFinder = find.widgetWithText(TextFormField, 'Paid Amount');
@@ -167,26 +167,18 @@ void main() {
     expect(paidFinder, findsOneWidget);
 
     await tester.enterText(rateFinder, '2.0');
-    await tester.enterText(volumeFinder, '10.0');
-    await tester.pump(const Duration(milliseconds: 100));
-
-    final paidField = tester.widget<TextFormField>(paidFinder);
-    expect(paidField.controller?.text, equals('20.00'));
-
-    // Switch lock to Volume (click lock icon next to Total Volume)
-    final volumeLockFinder = find.byTooltip('Click to auto-calculate Volume');
-    expect(volumeLockFinder, findsOneWidget);
-    await tester.ensureVisible(volumeLockFinder);
-    await tester.pumpAndSettle();
-    await tester.tap(volumeLockFinder);
-    await tester.pump(const Duration(milliseconds: 100));
-
-    // Now enter Paid Amount: 30.0 -> Volume should become 15.00
-    await tester.enterText(paidFinder, '30.0');
+    await tester.enterText(paidFinder, '20.0');
     await tester.pump(const Duration(milliseconds: 100));
 
     final volumeField = tester.widget<TextFormField>(volumeFinder);
-    expect(volumeField.controller?.text, equals('15.00'));
+    expect(double.parse(volumeField.controller!.text), closeTo(10.0, 0.01));
+
+    // Dynamic Bidirectional: Typing into Volume switches auto-calc to Paid Amount
+    await tester.enterText(volumeFinder, '15.0');
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final paidField = tester.widget<TextFormField>(paidFinder);
+    expect(double.parse(paidField.controller!.text), closeTo(30.0, 0.01));
 
     // Switch lock to Rate (click lock icon next to Fuel Price/Rate)
     final rateLockFinder = find.byTooltip('Click to auto-calculate Rate');
@@ -202,7 +194,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     final rateField = tester.widget<TextFormField>(rateFinder);
-    expect(rateField.controller?.text, equals('2.50'));
+    expect(double.parse(rateField.controller!.text), closeTo(2.50, 0.01));
 
     DatabaseHelper.setDatabaseForTesting(null);
   });

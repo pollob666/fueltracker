@@ -3,6 +3,7 @@
 
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
@@ -11,9 +12,11 @@ import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/saved_location.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_data_page.dart';
+import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/utils/long_screenshot_service.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
 import 'package:fuel_tracker/widgets/drawer_widget.dart';
@@ -39,6 +42,7 @@ class AllDataPage extends ConsumerStatefulWidget {
 }
 
 class _AllDataPageState extends ConsumerState<AllDataPage> {
+  final GlobalKey _screenshotKey = GlobalKey();
   final FuelTypeService _fuelTypeService = FuelTypeService();
   final VehicleService _vehicleService = VehicleService();
   final TextEditingController _searchController = TextEditingController();
@@ -84,8 +88,14 @@ class _AllDataPageState extends ConsumerState<AllDataPage> {
         _fuelTypeMap = {for (var ft in fuelTypes) if (ft.id != null) ft.id!: ft};
         _vehicleMap = {for (var v in vehicles) if (v.id != null) v.id!: v};
         _locationMap = {for (var loc in locations) if (loc.id != null) loc.id!: loc};
-        if (_vehicles.isNotEmpty && _selectedVehicleId == null) {
-          _selectedVehicleId = _vehicles.first.id;
+        if (_vehicles.isNotEmpty) {
+          final activeId = ref.read(activeVehicleIdProvider);
+          if (activeId != null && _vehicles.any((v) => v.id == activeId)) {
+            _selectedVehicleId = activeId;
+          } else if (_selectedVehicleId == null ||
+              !_vehicles.any((v) => v.id == _selectedVehicleId)) {
+            _selectedVehicleId = _vehicles.first.id;
+          }
         }
       });
     }
@@ -413,6 +423,31 @@ class _AllDataPageState extends ConsumerState<AllDataPage> {
       appBar: AppBar(
         title: Text(localizations.allData),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.screenshot_outlined),
+            tooltip: 'Long Screenshot',
+            onPressed: () async {
+              HapticFeedback.lightImpact();
+              final messenger = ScaffoldMessenger.of(context);
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Capturing screenshot...'),
+                  duration: Duration(milliseconds: 700),
+                ),
+              );
+              final success = await LongScreenshotService.captureAndShare(
+                context: context,
+                boundaryKey: _screenshotKey,
+                fileNamePrefix: 'fueltracker_history',
+                shareText: 'Fuel Tracker History',
+              );
+              if (!success && mounted) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Failed to capture screenshot')),
+                );
+              }
+            },
+          ),
           // View Mode Switcher
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -444,109 +479,118 @@ class _AllDataPageState extends ConsumerState<AllDataPage> {
         ],
       ),
       drawer: const MyDrawer(),
-      body: Column(
-        children: [
-          // Vehicle Selector
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: DropdownButtonFormField<int>(
-              initialValue: _selectedVehicleId,
-              value: _selectedVehicleId,
-              items: _vehicles.map((vehicle) {
-                return DropdownMenuItem<int>(
-                  value: vehicle.id,
-                  child: Text(vehicle.name),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() {
-                  _selectedVehicleId = val;
-                });
-              },
-              decoration: InputDecoration(
-                labelText: localizations.vehicle,
-                border: const OutlineInputBorder(),
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-            ),
-          ),
-
-          // Search Bar & Filter Options
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search station, notes, odo...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+      body: RepaintBoundary(
+        key: _screenshotKey,
+        child: ColoredBox(
+          color: theme.scaffoldBackgroundColor,
+          child: Column(
+            children: [
+              // Vehicle Selector
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: DropdownButtonFormField<int>(
+                  key: ValueKey(_selectedVehicleId),
+                  value: _selectedVehicleId,
+                  items: _vehicles.map((vehicle) {
+                    return DropdownMenuItem<int>(
+                      value: vehicle.id,
+                      child: Text(vehicle.name),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      ref.read(activeVehicleIdProvider.notifier).state = val;
+                    }
+                    setState(() {
+                      _selectedVehicleId = val;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: localizations.vehicle,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
                 ),
               ),
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val;
-                });
-              },
-            ),
-          ),
 
-          // Horizontal Filter Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-            child: Row(
-              children: [
-                _buildDateChip('All Dates', HistoryDateFilter.all),
-                const SizedBox(width: 6),
-                _buildDateChip('This Month', HistoryDateFilter.thisMonth),
-                const SizedBox(width: 6),
-                _buildDateChip('Last 3 Months', HistoryDateFilter.lastThreeMonths),
-                const SizedBox(width: 6),
-                _buildCustomDateChip(),
-                const SizedBox(width: 12),
-                // Driving Condition Filter Chips
-                _buildConditionChip('All Road', null),
-                const SizedBox(width: 6),
-                _buildConditionChip('🏙️ City', DrivingCondition.city),
-                const SizedBox(width: 6),
-                _buildConditionChip('🛣️ Highway', DrivingCondition.highway),
-                const SizedBox(width: 6),
-                _buildConditionChip('🔄 Mixed', DrivingCondition.mixed),
-              ],
-            ),
-          ),
+              // Search Bar & Filter Options
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search station, notes, odo...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    isDense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val;
+                    });
+                  },
+                ),
+              ),
 
-          // Summary Stats Header Strip
-          _buildSummaryStatsBar(filteredRecords, overallAverageMileage, theme),
+              // Horizontal Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                child: Row(
+                  children: [
+                    _buildDateChip('All Dates', HistoryDateFilter.all),
+                    const SizedBox(width: 6),
+                    _buildDateChip('This Month', HistoryDateFilter.thisMonth),
+                    const SizedBox(width: 6),
+                    _buildDateChip('Last 3 Months', HistoryDateFilter.lastThreeMonths),
+                    const SizedBox(width: 6),
+                    _buildCustomDateChip(),
+                    const SizedBox(width: 12),
+                    // Driving Condition Filter Chips
+                    _buildConditionChip('All Road', null),
+                    const SizedBox(width: 6),
+                    _buildConditionChip('🏙️ City', DrivingCondition.city),
+                    const SizedBox(width: 6),
+                    _buildConditionChip('🛣️ Highway', DrivingCondition.highway),
+                    const SizedBox(width: 6),
+                    _buildConditionChip('🔄 Mixed', DrivingCondition.mixed),
+                  ],
+                ),
+              ),
 
-          // Body: Cards Timeline vs Table
-          Expanded(
-            child: filteredRecords.isEmpty
-                ? _buildEmptyState(theme)
-                : _viewMode == HistoryViewMode.cards
-                    ? _buildCardsTimeline(
-                        filteredRecords, resultMap, overallAverageMileage)
-                    : _buildClassicTable(filteredRecords, resultMap,
-                        overallAverageMileage, localizations, theme),
+              // Summary Stats Header Strip
+              _buildSummaryStatsBar(filteredRecords, overallAverageMileage, theme),
+
+              // Body: Cards Timeline vs Table
+              Expanded(
+                child: filteredRecords.isEmpty
+                    ? _buildEmptyState(theme)
+                    : _viewMode == HistoryViewMode.cards
+                        ? _buildCardsTimeline(
+                            filteredRecords, resultMap, overallAverageMileage)
+                        : _buildClassicTable(filteredRecords, resultMap,
+                            overallAverageMileage, localizations, theme),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       bottomNavigationBar:
           AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),

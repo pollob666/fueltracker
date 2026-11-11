@@ -22,7 +22,8 @@ class MiniTelemetrySparklineWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final activeVehicle = ref.watch(activeVehicleProvider);
+    final vehicles = ref.watch(vehiclesProvider).value ?? [];
+    final activeVehicle = vehicles.where((v) => v.id == vehicleId).firstOrNull ?? ref.watch(activeVehicleProvider);
     final trends = ref.watch(priceTrendsProvider(vehicleId));
 
     final points = trends.values.expand((p) => p).toList();

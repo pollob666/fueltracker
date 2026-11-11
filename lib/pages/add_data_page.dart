@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_tracker/models/fuel_type.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/providers/fuel_record_providers.dart';
+import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/attachment_service.dart';
 import 'package:fuel_tracker/services/fuel_type_service.dart';
 import 'package:fuel_tracker/services/interstitial_ad_service.dart';
@@ -49,7 +50,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
 
   bool get _isEditing => widget.recordToEdit != null;
 
-  CalculationLockTarget _lockTarget = CalculationLockTarget.paidAmount;
+  CalculationLockTarget _lockTarget = CalculationLockTarget.volume;
 
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _odometerController = TextEditingController();
@@ -151,12 +152,14 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
       }
     } else {
       _loadLastValues();
-      _volumeController.text = _volume.toStringAsFixed(2);
+      if (_volume > 0) {
+        _volumeController.text = _volume.toStringAsFixed(2);
+      }
     }
 
-    _rateController.addListener(_onFormCalculationTriggered);
-    _paidAmountController.addListener(_onFormCalculationTriggered);
-    _volumeController.addListener(_onFormCalculationTriggered);
+    _rateController.addListener(_onRateChanged);
+    _paidAmountController.addListener(_onPaidAmountChanged);
+    _volumeController.addListener(_onVolumeChanged);
     _odometerController.addListener(_onOdoOrTripChanged);
     _tripDistanceController.addListener(_onOdoOrTripChanged);
 
@@ -214,7 +217,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
       final added = ((end - start) / 100.0) * cap;
       _volumeController.text = added.toStringAsFixed(2);
       _volume = added;
-      _onFormCalculationTriggered();
+      _onVolumeChanged();
     }
   }
 
@@ -471,9 +474,15 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
         _vehicles = vehicles;
         _allFuelTypes = allFuelTypes;
         if (!_isEditing && _vehicles.isNotEmpty) {
-          _selectedVehicleId = _vehicles.first.id;
-          _currencyCode = _vehicles.first.baseCurrency;
-          if (_vehicles.first.powertrainType == PowertrainType.bev) {
+          final activeId = ref.read(activeVehicleIdProvider);
+          if (activeId != null && _vehicles.any((v) => v.id == activeId)) {
+            _selectedVehicleId = activeId;
+          } else {
+            _selectedVehicleId = _vehicles.first.id;
+          }
+          final selectedV = _vehicles.firstWhere((v) => v.id == _selectedVehicleId);
+          _currencyCode = selectedV.baseCurrency;
+          if (selectedV.powertrainType == PowertrainType.bev) {
             _isElectricSession = true;
           }
           _updateAvailableFuelTypes();
@@ -528,35 +537,118 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
     });
   }
 
-  void _onFormCalculationTriggered() {
+  void _onPaidAmountChanged() {
+    if (_isUpdating) return;
+    final double? paid = double.tryParse(_paidAmountController.text);
+    final double? rate = double.tryParse(_rateController.text);
+    final double? vol = double.tryParse(_volumeController.text);
+
+    _isUpdating = true;
+    if (_lockTarget == CalculationLockTarget.rate) {
+      if (paid != null && paid > 0 && vol != null && vol > 0) {
+        _rateController.text = (paid / vol).toStringAsFixed(2);
+      }
+    } else {
+      _lockTarget = CalculationLockTarget.volume;
+      if (rate != null && rate > 0 && paid != null && paid >= 0) {
+        _volume = paid / rate;
+        _volumeController.text = _volume.toStringAsFixed(2);
+      } else if (paid == null || paid == 0) {
+        _volume = 0;
+        _volumeController.text = '';
+      }
+    }
+    _isUpdating = false;
+    _saveFormDraft();
+    setState(() {});
+  }
+
+  void _onVolumeChanged() {
+    if (_isUpdating) return;
+    final double? vol = double.tryParse(_volumeController.text);
+    final double? rate = double.tryParse(_rateController.text);
+    final double? paid = double.tryParse(_paidAmountController.text);
+
+    _isUpdating = true;
+    if (vol != null && vol >= 0) {
+      _volume = vol;
+    }
+    if (_lockTarget == CalculationLockTarget.rate) {
+      if (vol != null && vol > 0 && paid != null && paid > 0) {
+        _rateController.text = (paid / vol).toStringAsFixed(2);
+      }
+    } else {
+      _lockTarget = CalculationLockTarget.paidAmount;
+      if (rate != null && rate > 0 && vol != null && vol >= 0) {
+        _paidAmountController.text = (vol * rate).toStringAsFixed(2);
+      }
+    }
+    _isUpdating = false;
+    _saveFormDraft();
+    setState(() {});
+  }
+
+  void _onRateChanged() {
     if (_isUpdating) return;
     final double? rate = double.tryParse(_rateController.text);
     final double? vol = double.tryParse(_volumeController.text);
-    final double? paidAmount = double.tryParse(_paidAmountController.text);
+    final double? paid = double.tryParse(_paidAmountController.text);
 
     _isUpdating = true;
     switch (_lockTarget) {
+      case CalculationLockTarget.volume:
+        if (rate != null && rate > 0 && paid != null && paid >= 0) {
+          _volume = paid / rate;
+          _volumeController.text = _volume.toStringAsFixed(2);
+        }
+        break;
       case CalculationLockTarget.paidAmount:
         if (rate != null && rate > 0 && vol != null && vol >= 0) {
           _volume = vol;
           _paidAmountController.text = (vol * rate).toStringAsFixed(2);
         }
         break;
-      case CalculationLockTarget.volume:
-        if (rate != null && rate > 0 && paidAmount != null && paidAmount >= 0) {
-          _volume = paidAmount / rate;
-          _volumeController.text = _volume.toStringAsFixed(2);
-        }
-        break;
       case CalculationLockTarget.rate:
-        if (vol != null && vol > 0 && paidAmount != null && paidAmount >= 0) {
-          _volume = vol;
-          _rateController.text = (paidAmount / vol).toStringAsFixed(2);
+        if (rate != null && rate > 0 && paid != null && paid > 0) {
+          _volume = paid / rate;
+          _volumeController.text = _volume.toStringAsFixed(2);
+        } else if (rate != null && rate > 0 && vol != null && vol > 0) {
+          _paidAmountController.text = (vol * rate).toStringAsFixed(2);
         }
         break;
     }
     _isUpdating = false;
+    _saveFormDraft();
     setState(() {});
+  }
+
+  void _setLockTarget(CalculationLockTarget target) {
+    setState(() {
+      _lockTarget = target;
+      final double? rate = double.tryParse(_rateController.text);
+      final double? vol = double.tryParse(_volumeController.text);
+      final double? paid = double.tryParse(_paidAmountController.text);
+      _isUpdating = true;
+      switch (target) {
+        case CalculationLockTarget.paidAmount:
+          if (rate != null && rate > 0 && vol != null && vol >= 0) {
+            _paidAmountController.text = (vol * rate).toStringAsFixed(2);
+          }
+          break;
+        case CalculationLockTarget.volume:
+          if (rate != null && rate > 0 && paid != null && paid >= 0) {
+            _volume = paid / rate;
+            _volumeController.text = _volume.toStringAsFixed(2);
+          }
+          break;
+        case CalculationLockTarget.rate:
+          if (vol != null && vol > 0 && paid != null && paid >= 0) {
+            _rateController.text = (paid / vol).toStringAsFixed(2);
+          }
+          break;
+      }
+      _isUpdating = false;
+    });
   }
 
   Future<void> _loadLastValues() async {
@@ -607,9 +699,9 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
 
   @override
   void dispose() {
-    _rateController.removeListener(_onFormCalculationTriggered);
-    _paidAmountController.removeListener(_onFormCalculationTriggered);
-    _volumeController.removeListener(_onFormCalculationTriggered);
+    _rateController.removeListener(_onRateChanged);
+    _paidAmountController.removeListener(_onPaidAmountChanged);
+    _volumeController.removeListener(_onVolumeChanged);
     _odometerController.removeListener(_onOdoOrTripChanged);
     _tripDistanceController.removeListener(_onOdoOrTripChanged);
 
@@ -691,6 +783,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     ],
                   ),
                   DropdownButtonFormField<int>(
+                    key: ValueKey(_selectedVehicleId),
                     initialValue: _selectedVehicleId != null &&
                             _vehicles.any((v) => v.id == _selectedVehicleId)
                         ? _selectedVehicleId
@@ -702,6 +795,9 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                             ))
                         .toList(),
                     onChanged: (val) {
+                      if (val != null) {
+                        ref.read(activeVehicleIdProvider.notifier).state = val;
+                      }
                       setState(() {
                         _selectedVehicleId = val!;
                         final v = _selectedVehicle;
@@ -996,7 +1092,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     focusNode: _rateFocus,
                     textInputAction: TextInputAction.next,
                     onFieldSubmitted: (_) =>
-                        FocusScope.of(context).requestFocus(_volumeFocus),
+                        FocusScope.of(context).requestFocus(_paidAmountFocus),
                     decoration: InputDecoration(
                       labelText:
                           AppLocalizations.of(context)!.fuelPriceRate,
@@ -1013,12 +1109,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                         tooltip: _lockTarget == CalculationLockTarget.rate
                             ? 'Auto-calculated'
                             : 'Click to auto-calculate Rate',
-                        onPressed: () {
-                          setState(() {
-                            _lockTarget = CalculationLockTarget.rate;
-                            _onFormCalculationTriggered();
-                          });
-                        },
+                        onPressed: () => _setLockTarget(CalculationLockTarget.rate),
                       ),
                     ),
                     keyboardType:
@@ -1027,6 +1118,40 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                       if (value == null || value.isEmpty) {
                         return AppLocalizations.of(context)!
                             .enterFuelPriceRate;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _paidAmountController,
+                    focusNode: _paidAmountFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) =>
+                        FocusScope.of(context).requestFocus(_volumeFocus),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.paidAmount,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _lockTarget == CalculationLockTarget.paidAmount
+                              ? Icons.lock
+                              : Icons.lock_open_outlined,
+                          size: 20,
+                          color: _lockTarget == CalculationLockTarget.paidAmount
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.outline,
+                        ),
+                        tooltip: _lockTarget == CalculationLockTarget.paidAmount
+                            ? 'Auto-calculated'
+                            : 'Click to auto-calculate Paid Amount',
+                        onPressed: () => _setLockTarget(CalculationLockTarget.paidAmount),
+                      ),
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppLocalizations.of(context)!.enterPaidAmount;
                       }
                       return null;
                     },
@@ -1055,6 +1180,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                               _rateController.text = (paid / _volume).toStringAsFixed(2);
                             }
                           } else {
+                            _lockTarget = CalculationLockTarget.paidAmount;
                             final double? rate = double.tryParse(_rateController.text);
                             if (rate != null && rate > 0) {
                               _paidAmountController.text =
@@ -1069,9 +1195,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                   TextFormField(
                     controller: _volumeController,
                     focusNode: _volumeFocus,
-                    textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) =>
-                        FocusScope.of(context).requestFocus(_paidAmountFocus),
+                    textInputAction: TextInputAction.done,
                     decoration: InputDecoration(
                       labelText: _isElectricSession
                           ? 'Energy Added (kWh)'
@@ -1089,12 +1213,7 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                         tooltip: _lockTarget == CalculationLockTarget.volume
                             ? 'Auto-calculated'
                             : 'Click to auto-calculate Volume',
-                        onPressed: () {
-                          setState(() {
-                            _lockTarget = CalculationLockTarget.volume;
-                            _onFormCalculationTriggered();
-                          });
-                        },
+                        onPressed: () => _setLockTarget(CalculationLockTarget.volume),
                       ),
                     ),
                     keyboardType:
@@ -1102,42 +1221,6 @@ class _AddDataPageState extends ConsumerState<AddDataPage> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return AppLocalizations.of(context)!.enterTotalVolume;
-                      }
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _paidAmountController,
-                    focusNode: _paidAmountFocus,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: AppLocalizations.of(context)!.paidAmount,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _lockTarget == CalculationLockTarget.paidAmount
-                              ? Icons.lock
-                              : Icons.lock_open_outlined,
-                          size: 20,
-                          color: _lockTarget == CalculationLockTarget.paidAmount
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.outline,
-                        ),
-                        tooltip: _lockTarget == CalculationLockTarget.paidAmount
-                            ? 'Auto-calculated'
-                            : 'Click to auto-calculate Paid Amount',
-                        onPressed: () {
-                          setState(() {
-                            _lockTarget = CalculationLockTarget.paidAmount;
-                            _onFormCalculationTriggered();
-                          });
-                        },
-                      ),
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return AppLocalizations.of(context)!.enterPaidAmount;
                       }
                       return null;
                     },

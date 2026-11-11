@@ -2,6 +2,8 @@
 // Copyright (C) 2024 Andalib Bin Haque <pollob666@gmail.com>
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fuel_tracker/database/database_helper.dart';
 import 'package:fuel_tracker/l10n/l10n.dart';
@@ -11,9 +13,11 @@ import 'package:fuel_tracker/models/service_session.dart';
 import 'package:fuel_tracker/models/vehicle.dart';
 import 'package:fuel_tracker/pages/add_data_page.dart';
 import 'package:fuel_tracker/pages/add_vehicle_page.dart';
+import 'package:fuel_tracker/providers/vehicle_providers.dart';
 import 'package:fuel_tracker/services/notification_service.dart';
 import 'package:fuel_tracker/services/vehicle_service.dart';
 import 'package:fuel_tracker/utils/app_settings.dart';
+import 'package:fuel_tracker/utils/long_screenshot_service.dart';
 import 'package:fuel_tracker/utils/maintenance_calculator.dart';
 import 'package:fuel_tracker/utils/mileage_calculator.dart';
 import 'package:fuel_tracker/widgets/banner_ad_widget.dart';
@@ -26,7 +30,7 @@ import 'package:fuel_tracker/utils/unit_converter.dart';
 import 'package:fuel_tracker/widgets/location_picker_field.dart';
 import 'package:fuel_tracker/widgets/tire_schematic_widget.dart';
 
-class MaintenancePage extends StatefulWidget {
+class MaintenancePage extends ConsumerStatefulWidget {
   final int? initialVehicleId;
   final int? openLogForTaskId;
   final int initialTabIndex;
@@ -39,11 +43,12 @@ class MaintenancePage extends StatefulWidget {
   });
 
   @override
-  State<MaintenancePage> createState() => _MaintenancePageState();
+  ConsumerState<MaintenancePage> createState() => _MaintenancePageState();
 }
 
-class _MaintenancePageState extends State<MaintenancePage>
+class _MaintenancePageState extends ConsumerState<MaintenancePage>
     with TickerProviderStateMixin {
+  final GlobalKey _screenshotKey = GlobalKey();
   final VehicleService _vehicleService = VehicleService();
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
@@ -99,8 +104,9 @@ class _MaintenancePageState extends State<MaintenancePage>
     setState(() => _isLoading = true);
     final vehicles = await _vehicleService.getVehicles();
     final defaultId = await _vehicleService.getDefaultVehicle();
+    final activeVehicleId = ref.read(activeVehicleIdProvider);
 
-    int? activeId = widget.initialVehicleId ?? defaultId;
+    int? activeId = widget.initialVehicleId ?? activeVehicleId ?? defaultId;
     if (activeId == null && vehicles.isNotEmpty) {
       activeId = vehicles.first.id;
     } else if (activeId != null && !vehicles.any((v) => v.id == activeId)) {
@@ -1358,6 +1364,31 @@ class _MaintenancePageState extends State<MaintenancePage>
         title: Text(l10n.maintenance),
         actions: [
           IconButton(
+            icon: const Icon(Icons.screenshot_outlined),
+            tooltip: 'Long Screenshot',
+            onPressed: () async {
+              HapticFeedback.lightImpact();
+              final messenger = ScaffoldMessenger.of(context);
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Capturing screenshot...'),
+                  duration: Duration(milliseconds: 700),
+                ),
+              );
+              final success = await LongScreenshotService.captureAndShare(
+                context: context,
+                boundaryKey: _screenshotKey,
+                fileNamePrefix: 'fueltracker_maintenance',
+                shareText: 'Fuel Tracker Maintenance - ${_currentVehicle?.name ?? ""}',
+              );
+              if (!success && mounted) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Failed to capture screenshot')),
+                );
+              }
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.assignment_turned_in_outlined),
             tooltip: l10n.logServiceVisit,
             onPressed: _selectedVehicleId != null ? _openLogServiceDialog : null,
@@ -1391,9 +1422,13 @@ class _MaintenancePageState extends State<MaintenancePage>
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
-              child: Column(
-                children: [
-                  // Vehicle Selector Header Card
+              child: RepaintBoundary(
+                key: _screenshotKey,
+                child: ColoredBox(
+                  color: theme.scaffoldBackgroundColor,
+                  child: Column(
+                    children: [
+                      // Vehicle Selector Header Card
                   if (_vehicles.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -1412,6 +1447,7 @@ class _MaintenancePageState extends State<MaintenancePage>
                               Expanded(
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<int>(
+                                    key: ValueKey(_selectedVehicleId),
                                     value: _selectedVehicleId,
                                     isExpanded: true,
                                     items: _vehicles.map((v) {
@@ -1425,6 +1461,7 @@ class _MaintenancePageState extends State<MaintenancePage>
                                     }).toList(),
                                     onChanged: (id) {
                                       if (id != null && id != _selectedVehicleId) {
+                                        ref.read(activeVehicleIdProvider.notifier).state = id;
                                         final nextVeh = _vehicles.where((v) => v.id == id).firstOrNull;
                                         setState(() {
                                           _selectedVehicleId = id;
@@ -1879,6 +1916,8 @@ class _MaintenancePageState extends State<MaintenancePage>
                 ],
               ),
             ),
+          ),
+        ),
       bottomNavigationBar: AppSettings.adsEnabled ? const BannerAdWidget() : const SizedBox(),
     );
   }
